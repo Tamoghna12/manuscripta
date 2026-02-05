@@ -1,0 +1,24 @@
+{
+  "templates": [
+    {
+      "id": "acl",
+      "label": "ACL",
+      "mainFile": "main.tex"
+    },
+    {
+      "id": "cvpr",
+      "label": "CVPR (skeleton)",
+      "mainFile": "main.tex"
+    },
+    {
+      "id": "neurips",
+      "label": "NeurIPS (skeleton)",
+      "mainFile": "main.tex"
+    },
+    {
+      "id": "icml",
+      "label": "ICML (skeleton)",
+      "mainFile": "main.tex"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "openprism",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm --workspace apps/backend run dev\" \"npm --workspace apps/frontend run dev\"",
+    "dev:backend": "npm --workspace apps/backend run dev",
+    "dev:frontend": "npm --workspace apps/frontend run dev",
+    "build": "npm --workspace apps/frontend run build",
+    "preview": "npm --workspace apps/frontend run preview"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}
