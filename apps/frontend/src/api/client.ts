@@ -9,6 +9,10 @@ export interface FileItem {
   type: 'file' | 'dir';
 }
 
+export interface FileOrderMap {
+  [folder: string]: string[];
+}
+
 export interface LLMConfig {
   endpoint: string;
   apiKey: string;
@@ -19,6 +23,14 @@ export interface TemplateMeta {
   id: string;
   label: string;
   mainFile: string;
+}
+
+export interface ArxivPaper {
+  title: string;
+  abstract: string;
+  authors: string[];
+  url: string;
+  arxivId: string;
 }
 
 const API_BASE = '';
@@ -61,7 +73,7 @@ export function deleteProject(id: string) {
 }
 
 export function getProjectTree(id: string) {
-  return request<{ items: FileItem[] }>(`/api/projects/${id}/tree`);
+  return request<{ items: FileItem[]; fileOrder?: FileOrderMap }>(`/api/projects/${id}/tree`);
 }
 
 export function getFile(id: string, filePath: string) {
@@ -93,6 +105,13 @@ export function renamePath(id: string, from: string, to: string) {
   return request<{ ok: boolean }>(`/api/projects/${id}/rename`, {
     method: 'POST',
     body: JSON.stringify({ from, to })
+  });
+}
+
+export function updateFileOrder(id: string, folder: string, order: string[]) {
+  return request<{ ok: boolean }>(`/api/projects/${id}/file-order`, {
+    method: 'POST',
+    body: JSON.stringify({ folder, order })
   });
 }
 
@@ -158,4 +177,106 @@ export function convertTemplate(payload: { projectId: string; targetTemplate: st
       body: JSON.stringify({ targetTemplate: payload.targetTemplate, mainFile: payload.mainFile })
     }
   );
+}
+
+export function arxivSearch(payload: { query: string; maxResults?: number }) {
+  return request<{ ok: boolean; papers?: ArxivPaper[]; error?: string }>(
+    '/api/arxiv/search',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }
+  );
+}
+
+export function arxivBibtex(payload: { arxivId: string }) {
+  return request<{ ok: boolean; bibtex?: string; entry?: ArxivPaper; error?: string }>(
+    '/api/arxiv/bibtex',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }
+  );
+}
+
+export function plotFromTable(payload: {
+  projectId: string;
+  tableLatex: string;
+  chartType: string;
+  title?: string;
+  prompt?: string;
+  filename?: string;
+  llmConfig?: Partial<LLMConfig>;
+}) {
+  return request<{ ok: boolean; assetPath?: string; error?: string }>(
+    '/api/plot/from-table',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }
+  );
+}
+
+export function callLLM(payload: {
+  messages: { role: 'system' | 'user' | 'assistant'; content: string }[];
+  model?: string;
+  llmConfig?: Partial<LLMConfig>;
+}) {
+  return request<{ ok: boolean; content?: string; error?: string }>('/api/llm', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function importZip(payload: { file: File; projectName?: string }) {
+  const form = new FormData();
+  form.append('zip', payload.file);
+  if (payload.projectName) {
+    form.append('projectName', payload.projectName);
+  }
+  const res = await fetch('/api/projects/import-zip', {
+    method: 'POST',
+    body: form
+  });
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+  return res.json() as Promise<{ ok: boolean; project?: ProjectMeta; error?: string }>;
+}
+
+export function importArxiv(payload: { arxivIdOrUrl: string; projectName?: string }) {
+  return request<{ ok: boolean; project?: ProjectMeta; error?: string }>(
+    '/api/projects/import-arxiv',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }
+  );
+}
+
+export async function visionToLatex(payload: {
+  projectId: string;
+  file: File;
+  mode: string;
+  prompt?: string;
+  llmConfig?: Partial<LLMConfig>;
+}) {
+  const form = new FormData();
+  form.append('image', payload.file);
+  form.append('projectId', payload.projectId);
+  form.append('mode', payload.mode);
+  if (payload.prompt) {
+    form.append('prompt', payload.prompt);
+  }
+  if (payload.llmConfig) {
+    form.append('llmConfig', JSON.stringify(payload.llmConfig));
+  }
+  const res = await fetch('/api/vision/latex', {
+    method: 'POST',
+    body: form
+  });
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+  return res.json() as Promise<{ ok: boolean; latex?: string; assetPath?: string; error?: string }>;
 }
