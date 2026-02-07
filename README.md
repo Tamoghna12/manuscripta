@@ -148,7 +148,8 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 <div align="center">
 <br>
-<!-- TODO: 添加 WebSearch 展示图 -->
+<img src="static/网络搜索.gif" alt="网络搜索" width="85%"/>
+<br>
 <sub>✨ 联网检索与要点提炼</sub>
 <br><br>
 </div>
@@ -157,7 +158,8 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 <div align="center">
 <br>
-<!-- TODO: 添加 PaperSearch 展示图 -->
+<img src="static/论文检索.gif" alt="论文检索" width="85%"/>
+<br>
 <sub>✨ 论文检索与引用信息获取</sub>
 <br><br>
 </div>
@@ -166,8 +168,8 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 <div align="center">
 <br>
-<!-- TODO: 添加 表格绘图 展示图 -->
-<sub>✨ 表格数据一键生成图表</sub>
+<img src="static/图表生成.png" alt="图表生成" width="85%"/>
+<br><sub>✨ 表格数据一键生成图表</sub>
 <br><br>
 </div>
 
@@ -175,8 +177,8 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 <div align="center">
 <br>
-<!-- TODO: 添加 公式/图表识别 展示图 -->
-<sub>✨ 识别结构并转换为可编辑内容</sub>
+<img src="static/公式识别.png" alt="公式识别" width="85%"/>
+<br><sub>✨ 识别结构并转换为可编辑内容</sub>
 <br><br>
 </div>
 

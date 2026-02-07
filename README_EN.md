@@ -153,7 +153,8 @@ OpenPrism is a local-first LaTeX + AI workspace for academic writing, optimized 
 
 <div align="center">
 <br>
-<!-- TODO: add WebSearch showcase image -->
+<img src="static/网络搜索.gif" alt="WebSearch" width="85%"/>
+<br>
 <sub>✨ Online search with concise summaries</sub>
 <br><br>
 </div>
@@ -162,7 +163,8 @@ OpenPrism is a local-first LaTeX + AI workspace for academic writing, optimized 
 
 <div align="center">
 <br>
-<!-- TODO: add PaperSearch showcase image -->
+<img src="static/论文检索.gif" alt="PaperSearch" width="85%"/>
+<br>
 <sub>✨ Academic search and citation info</sub>
 <br><br>
 </div>
@@ -171,8 +173,8 @@ OpenPrism is a local-first LaTeX + AI workspace for academic writing, optimized 
 
 <div align="center">
 <br>
-<!-- TODO: add table-to-chart showcase image -->
-<sub>✨ Turn tables into charts in one step</sub>
+<img src="static/图表生成.png" alt="Chart generation" width="85%"/>
+<br><sub>✨ Turn tables into charts in one step</sub>
 <br><br>
 </div>
 
@@ -180,8 +182,8 @@ OpenPrism is a local-first LaTeX + AI workspace for academic writing, optimized 
 
 <div align="center">
 <br>
-<!-- TODO: add recognition showcase image -->
-<sub>✨ Recognize structures for editable outputs</sub>
+<img src="static/公式识别.png" alt="Formula recognition" width="85%"/>
+<br><sub>✨ Recognize structures for editable outputs</sub>
 <br><br>
 </div>
 
@@ -234,27 +236,98 @@ Open:
 
 ---
 
+## ⚙️ Configuration
+
+### LLM Configuration (Optional)
+
+OpenPrism supports any **OpenAI-compatible** endpoint, including custom base_url:
+
+```bash
+# .env
+OPENPRISM_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+OPENPRISM_LLM_API_KEY=your-api-key
+OPENPRISM_LLM_MODEL=gpt-4o-mini
+```
+
+You can also configure directly in the frontend "Settings" panel. Settings are saved to browser localStorage.
+
+> Example: Third-party compatible service `https://api.apiyi.com/v1`
+
+### TexLive Configuration
+
+Default uses TexLive. You can customize resources in settings.
+
+---
+
+## 🎯 Usage Guide (Quick)
+
+1. **Create Project**: Create new project in Projects panel and select template
+2. **Write Paper**: Edit LaTeX in Files tree
+3. **AI Edits**: Switch to Agent / Tools, generate diff and confirm
+4. **Compile & Preview**: Click "Compile PDF", preview on right side
+5. **Export PDF**: Click "Download PDF" in preview toolbar
+
+---
+
 ## 📁 Project Structure
 
 ```
-apps/
-  frontend/          # React + Vite
-  backend/           # Fastify API / compile / LLM agent
-templates/           # LaTeX templates
-data/                # runtime project storage
+OpenPrism/
+├── apps/
+│   ├── frontend/              # React + Vite frontend
+│   │   ├── src/
+│   │   │   ├── app/App.tsx     # Main application logic
+│   │   │   ├── api/client.ts   # API calls
+│   │   │   └── latex/          # TexLive integration
+│   └── backend/               # Fastify backend
+│       └── src/index.js        # API / compile / LLM proxy
+├── templates/                 # LaTeX templates (ACL/CVPR/NeurIPS/ICML)
+├── data/                      # Project storage directory (default)
+└── README.md
 ```
+
+---
+
+## 🗺️ Roadmap (Suggested Directions)
+
+- Collaborative editing and comments
+- Version snapshots and rollback
+- Citation search assistant (auto-generate BibTeX)
+- Plugin system / Theme system
 
 ---
 
 ## 🤝 Contributing
 
-PRs welcome. Please include a brief summary and screenshots for UI changes.
+Welcome to submit Issues or PRs:
+1. Fork the repository
+2. Create a new branch
+3. Commit your changes
+4. Submit a PR
+
+Development commands:
+```bash
+npm run dev
+npm run dev:frontend
+npm run dev:backend
+npm run build
+```
 
 ---
 
 ## 📄 License
 
-MIT
+MIT License. See [LICENSE](LICENSE).
+
+---
+
+## 🙏 Acknowledgments
+
+- Tectonic
+- CodeMirror
+- PDF.js
+- LangChain
+- React / Fastify
 
 ---
 
