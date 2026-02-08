@@ -8,8 +8,10 @@
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/yourusername/OpenPrism?style=social)](https://github.com/yourusername/OpenPrism/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/yourusername/OpenPrism?style=social)](https://github.com/yourusername/OpenPrism/network/members)
+[![GitHub Stars](https://img.shields.io/github/stars/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/OpenDCAI/OpenPrism)](https://github.com/OpenDCAI/OpenPrism/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/OpenDCAI/OpenPrism)](https://github.com/OpenDCAI/OpenPrism/pulls)
 
 [中文](README.md) | [English](README_EN.md)
 
@@ -211,51 +213,196 @@ OpenPrism is a local-first LaTeX + AI workspace for academic writing, optimized 
 
 ## 🚀 Quick Start
 
-### Requirements
+### 📋 Requirements
 
+#### Basic Environment
+- **Node.js** >= 18.0.0
+- **npm** >= 9.0.0
 - **OS**: Windows / macOS / Linux
-- **(Optional) Tectonic**: enable server-side compile
 
-### Install & Run
+#### LaTeX Compilation Environment (Required)
+
+OpenPrism requires a LaTeX engine to generate PDFs. Choose one of the following options based on your OS:
+
+**Option 1: TexLive (Recommended)**
+- **Linux (Ubuntu/Debian)**:
+  ```bash
+  sudo apt-get update
+  sudo apt-get install texlive-full
+  ```
+- **Linux (CentOS/RHEL)**:
+  ```bash
+  sudo yum install texlive texlive-*
+  ```
+- **macOS**:
+  ```bash
+  brew install --cask mactex
+  ```
+- **Windows**: Download [TexLive](https://www.tug.org/texlive/) installer
+
+**Option 2: Tectonic (Lightweight)**
+- **Linux/macOS**:
+  ```bash
+  curl --proto '=https' --tlsv1.2 -fsSL https://drop-sh.fullyjustified.net | sh
+  ```
+- **Windows**: Download [Tectonic](https://tectonic-typesetting.github.io/) installer
+
+> **Note**: TexLive full installation is ~5-7GB, Tectonic is lighter but with fewer features. TexLive is recommended for Linux servers.
+
+### 📦 Install & Run
+
+#### Development Deployment
 
 ```bash
-# 1. clone
-git clone https://github.com/yourusername/OpenPrism.git
+# 1. Clone repository
+git clone https://github.com/OpenDCAI/OpenPrism.git
 cd OpenPrism
 
-# 2. install
+# 2. Install dependencies
 npm install
 
-# 3. dev server (frontend + backend)
+# 3. Start dev server (frontend + backend)
 npm run dev
 ```
 
-Open:
-- Frontend: http://localhost:5173  
-- Backend: http://localhost:8787
+Access:
+- **Frontend**: http://localhost:5173
+- **Backend**: http://localhost:8787
+
+#### Production Deployment
+
+```bash
+# 1. Build frontend and backend
+npm run build
+
+# 2. Start production server
+npm start
+```
+
+#### Complete Linux Server Deployment Example
+
+```bash
+# 1. Install Node.js (Ubuntu example)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# 2. Install TexLive
+sudo apt-get update
+sudo apt-get install -y texlive-full
+
+# 3. Verify installation
+node --version  # Should show >= 18.0.0
+pdflatex --version  # Should show TexLive version
+
+# 4. Clone and deploy project
+git clone https://github.com/OpenDCAI/OpenPrism.git
+cd OpenPrism
+npm install
+npm run build
+
+# 5. Configure environment variables (optional)
+cat > .env << EOF
+OPENPRISM_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+OPENPRISM_LLM_API_KEY=your-api-key
+OPENPRISM_LLM_MODEL=gpt-4o-mini
+OPENPRISM_DATA_DIR=/var/openprism/data
+PORT=8787
+EOF
+
+# 6. Start service
+npm start
+
+# 7. Use PM2 for process management (recommended)
+sudo npm install -g pm2
+pm2 start npm --name "openprism" -- start
+pm2 save
+pm2 startup
+```
 
 ---
 
 ## ⚙️ Configuration
 
-### LLM Configuration (Optional)
+### Environment Variables
 
-OpenPrism supports any **OpenAI-compatible** endpoint, including custom base_url:
+Create a `.env` file in the project root (optional):
 
 ```bash
-# .env
+# LLM Configuration
 OPENPRISM_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
 OPENPRISM_LLM_API_KEY=your-api-key
 OPENPRISM_LLM_MODEL=gpt-4o-mini
+
+# Data storage path
+OPENPRISM_DATA_DIR=./data
+
+# Backend service port
+PORT=8787
 ```
 
-You can also configure directly in the frontend "Settings" panel. Settings are saved to browser localStorage.
+### LLM Configuration
 
-> Example: Third-party compatible service `https://api.apiyi.com/v1`
+OpenPrism supports any **OpenAI-compatible** endpoint, including custom base_url:
 
-### TexLive Configuration
+**Method 1: Environment Variables**
+```bash
+# .env file
+OPENPRISM_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+OPENPRISM_LLM_API_KEY=sk-your-api-key
+OPENPRISM_LLM_MODEL=gpt-4o-mini
+```
 
-Default uses TexLive. You can customize resources in settings.
+**Method 2: Frontend Settings Panel**
+- Click the "Settings" button in the frontend interface
+- Fill in API Endpoint, API Key, and Model
+- Configuration is automatically saved to browser localStorage
+
+<div align="center">
+<br>
+<img src="static/模型配置setting.png" alt="Model Configuration Settings" width="85%"/>
+<br>
+<sub>✨ LLM Configuration Settings Panel</sub>
+<br><br>
+</div>
+
+**Supported Third-party Services:**
+- OpenAI: `https://api.openai.com/v1`
+- Azure OpenAI: `https://your-resource.openai.azure.com/openai/deployments/your-deployment`
+- Other compatible services: `https://api.apiyi.com/v1`
+
+### LaTeX Compilation Configuration
+
+**Supported Compilation Engines:**
+- `pdflatex` - Standard LaTeX engine
+- `xelatex` - Supports Unicode and Chinese
+- `lualatex` - Supports Lua scripting
+- `latexmk` - Automated build tool
+- `tectonic` - Modern lightweight engine
+
+**Configuration Method:**
+1. Select compilation engine in frontend "Settings" panel
+2. Set to "Auto" for automatic fallback to available engines
+3. Customize TexLive resource path
+
+### Data Storage Configuration
+
+Default data storage is in `./data` directory, can be modified via environment variable:
+
+```bash
+# Custom data directory
+OPENPRISM_DATA_DIR=/var/openprism/data
+```
+
+**Directory Structure:**
+```
+data/
+├── projects/           # User projects
+│   ├── project-1/
+│   │   ├── main.tex
+│   │   └── references.bib
+│   └── project-2/
+└── templates/          # Template cache
+```
 
 ---
 
@@ -274,15 +421,15 @@ Default uses TexLive. You can customize resources in settings.
 ```
 OpenPrism/
 ├── apps/
-│   ├── frontend/              # React + Vite frontend
+│   ├── frontend/           # React + Vite frontend
 │   │   ├── src/
-│   │   │   ├── app/App.tsx     # Main application logic
-│   │   │   ├── api/client.ts   # API calls
-│   │   │   └── latex/          # TexLive integration
-│   └── backend/               # Fastify backend
-│       └── src/index.js        # API / compile / LLM proxy
-├── templates/                 # LaTeX templates (ACL/CVPR/NeurIPS/ICML)
-├── data/                      # Project storage directory (default)
+│   │   │   ├── app/App.tsx    # Main application logic
+│   │   │   ├── api/client.ts  # API calls
+│   │   │   └── latex/         # TexLive integration
+│   └── backend/            # Fastify backend
+│       └── src/index.js       # API / compile / LLM proxy
+├── templates/              # LaTeX templates (ACL/CVPR/NeurIPS/ICML)
+├── data/                   # Project storage directory (default)
 └── README.md
 ```
 
@@ -335,8 +482,8 @@ MIT License. See [LICENSE](LICENSE).
 
 **If this project helps you, please give us a ⭐️ Star!**
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/OpenPrism?style=social)](https://github.com/yourusername/OpenPrism/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/OpenPrism?style=social)](https://github.com/yourusername/OpenPrism/network/members)
+[![GitHub stars](https://img.shields.io/github/stars/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/network/members)
 
 <br>
 

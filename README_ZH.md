@@ -8,8 +8,10 @@
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/yourusername/OpenPrism?style=social)](https://github.com/yourusername/OpenPrism/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/yourusername/OpenPrism?style=social)](https://github.com/yourusername/OpenPrism/network/members)
+[![GitHub Stars](https://img.shields.io/github/stars/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/OpenDCAI/OpenPrism)](https://github.com/OpenDCAI/OpenPrism/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/OpenDCAI/OpenPrism)](https://github.com/OpenDCAI/OpenPrism/pulls)
 
 [中文](README.md) | [English](README_EN.md)
 
@@ -258,7 +260,7 @@ OpenPrism 需要 LaTeX 编译引擎来生成 PDF，请根据操作系统选择�
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/yourusername/OpenPrism.git
+git clone https://github.com/OpenDCAI/OpenPrism.git
 cd OpenPrism
 
 # 2. 安装依赖
@@ -298,7 +300,7 @@ node --version  # 应显示 >= 18.0.0
 pdflatex --version  # 应显示 TexLive 版本
 
 # 4. 克隆并部署项目
-git clone https://github.com/yourusername/OpenPrism.git
+git clone https://github.com/OpenDCAI/OpenPrism.git
 cd OpenPrism
 npm install
 npm run build
@@ -440,6 +442,7 @@ OpenPrism/
 
 ## 🗺️ Roadmap
 
+- 修复部分bug
 - 协作编辑与评论
 - 版本快照与回滚
 - 引用检索助手（BibTeX 自动生成）
@@ -483,8 +486,8 @@ MIT License. See [LICENSE](LICENSE).
 
 **如果这个项目对你有帮助，请给我们一个 ⭐️ Star！**
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/OpenPrism?style=social)](https://github.com/yourusername/OpenPrism/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/OpenPrism?style=social)](https://github.com/yourusername/OpenPrism/network/members)
+[![GitHub stars](https://img.shields.io/github/stars/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/network/members)
 
 <br>
 
