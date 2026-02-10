@@ -1,6 +1,10 @@
 import crypto from 'crypto';
+import path from 'path';
 import { buildTransferGraph } from '../services/transferAgent/graph.js';
 import { resolveLLMConfig } from '../services/llmService.js';
+import { readTemplateManifest } from '../services/templateService.js';
+import { DATA_DIR, TEMPLATE_DIR } from '../config/constants.js';
+import { ensureDir, readJson, writeJson, copyDir } from '../utils/fsUtils.js';
 
 // In-memory job store: jobId → { graph, state, status, progressLog }
 const jobs = new Map();
@@ -9,30 +13,63 @@ export function registerTransferRoutes(fastify) {
 
   /**
    * POST /api/transfer/start
-   * Body: { sourceProjectId, sourceMainFile, targetProjectId, targetMainFile,
+   * Body: { sourceProjectId, sourceMainFile, targetTemplateId, targetMainFile,
    *         engine?, layoutCheck?, llmConfig? }
-   * Returns: { jobId }
+   * Creates a new project from the target template, then starts the transfer.
+   * Returns: { jobId, newProjectId }
    */
   fastify.post('/api/transfer/start', async (request, reply) => {
     const {
       sourceProjectId, sourceMainFile,
-      targetProjectId, targetMainFile,
+      targetTemplateId, targetMainFile,
       engine = 'pdflatex',
       layoutCheck = false,
       llmConfig,
     } = request.body || {};
 
-    if (!sourceProjectId || !sourceMainFile || !targetProjectId || !targetMainFile) {
+    if (!sourceProjectId || !sourceMainFile || !targetTemplateId || !targetMainFile) {
       return reply.code(400).send({ error: 'Missing required fields.' });
     }
 
+    // Validate template exists
+    const { templates } = await readTemplateManifest();
+    const template = templates.find(t => t.id === targetTemplateId);
+    if (!template) {
+      return reply.code(400).send({ error: `Unknown template: ${targetTemplateId}` });
+    }
+
+    // Create a new project from the template
+    await ensureDir(DATA_DIR);
+    const newProjectId = crypto.randomUUID();
+    const projectRoot = path.join(DATA_DIR, newProjectId);
+    await ensureDir(projectRoot);
+
+    // Read source project name for the new project name
+    let sourceName = 'Untitled';
+    try {
+      const srcMeta = await readJson(path.join(DATA_DIR, sourceProjectId, 'project.json'));
+      sourceName = srcMeta.name || 'Untitled';
+    } catch { /* ignore */ }
+
+    const meta = {
+      id: newProjectId,
+      name: `${sourceName} (${template.label})`,
+      createdAt: new Date().toISOString(),
+    };
+    await writeJson(path.join(projectRoot, 'project.json'), meta);
+
+    // Copy template files into the new project
+    const templateRoot = path.join(TEMPLATE_DIR, targetTemplateId);
+    await copyDir(templateRoot, projectRoot);
+
+    // Build transfer graph
     const jobId = crypto.randomUUID();
     const graph = buildTransferGraph();
 
     const initialState = {
       sourceProjectId,
       sourceMainFile,
-      targetProjectId,
+      targetProjectId: newProjectId,
       targetMainFile,
       engine,
       layoutCheck,
@@ -48,7 +85,7 @@ export function registerTransferRoutes(fastify) {
       iterator: null,
     });
 
-    return { jobId };
+    return { jobId, newProjectId };
   });
 
   /**
@@ -81,10 +118,11 @@ export function registerTransferRoutes(fastify) {
         progressLog: job.progressLog,
       };
     } catch (err) {
+      const msg = err?.message || String(err || 'Unknown error');
       job.status = 'error';
-      job.error = err.message;
+      job.error = msg;
       return reply.code(500).send({
-        error: err.message,
+        error: msg,
         progressLog: job.progressLog,
       });
     }

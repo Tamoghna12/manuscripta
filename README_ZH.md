@@ -48,6 +48,10 @@
 
 ## 📢 最新动态
 
+> [!WARNING]
+> 🚧 <strong>模板转换功能仍在测试中</strong><br>
+> 模板转换（Template Transfer）功能目前处于测试阶段，可能存在已知或未知的 Bug。如遇到问题，欢迎在 [Issues](https://github.com/OpenDCAI/OpenPrism/issues) 中反馈。
+
 > [!TIP]
 > 🆕 <strong>2025-02 · 实时协作上线</strong><br>
 > 支持多人同时编辑同一文档，基于 CRDT 实现光标同步与冲突自动解决。当前版本需要公网服务器部署，通过邀请令牌邀请远程协作者加入。

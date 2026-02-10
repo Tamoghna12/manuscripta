@@ -1,17 +1,64 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { TEMPLATE_MANIFEST } from '../config/constants.js';
-import { ensureDir, readJson } from '../utils/fsUtils.js';
+import { TEMPLATE_DIR, TEMPLATE_MANIFEST } from '../config/constants.js';
+import { ensureDir, readJson, writeJson } from '../utils/fsUtils.js';
 
 export async function readTemplateManifest() {
+  // Read manifest
+  let manifestTemplates = [];
+  let categories = [];
   try {
     const data = await readJson(TEMPLATE_MANIFEST);
-    const templates = Array.isArray(data?.templates) ? data.templates : [];
-    const categories = Array.isArray(data?.categories) ? data.categories : [];
-    return { templates, categories };
-  } catch {
-    return { templates: [], categories: [] };
+    manifestTemplates = Array.isArray(data?.templates) ? data.templates : [];
+    categories = Array.isArray(data?.categories) ? data.categories : [];
+  } catch { /* ignore */ }
+
+  // Scan templates directory for dirs not in manifest
+  const knownIds = new Set(manifestTemplates.map(t => t.id));
+  try {
+    await ensureDir(TEMPLATE_DIR);
+    const entries = await fs.readdir(TEMPLATE_DIR, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name === 'node_modules') continue;
+      if (knownIds.has(entry.name)) continue;
+      // Check if dir contains a .tex file
+      const dirPath = path.join(TEMPLATE_DIR, entry.name);
+      const files = await fs.readdir(dirPath);
+      const hasTex = files.some(f => f.endsWith('.tex'));
+      if (!hasTex) continue;
+      // Auto-generate entry
+      manifestTemplates.push({
+        id: entry.name,
+        label: entry.name,
+        mainFile: 'main.tex',
+        category: 'academic',
+        description: entry.name,
+        descriptionEn: entry.name,
+        tags: [],
+        author: '',
+        featured: false,
+      });
+    }
+  } catch { /* ignore */ }
+
+  return { templates: manifestTemplates, categories };
+}
+
+export async function addTemplateToManifest(entry) {
+  let data = { templates: [], categories: [] };
+  try {
+    data = await readJson(TEMPLATE_MANIFEST);
+  } catch { /* ignore */ }
+  const templates = Array.isArray(data.templates) ? data.templates : [];
+  const exists = templates.findIndex(t => t.id === entry.id);
+  if (exists >= 0) {
+    templates[exists] = { ...templates[exists], ...entry };
+  } else {
+    templates.push(entry);
   }
+  data.templates = templates;
+  await writeJson(TEMPLATE_MANIFEST, data);
 }
 
 export async function copyTemplateIntoProject(templateRoot, projectRoot) {

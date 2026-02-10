@@ -93,6 +93,8 @@ body {
   color: var(--muted);
   background: rgba(252, 248, 241, 0.7);
   border-bottom: 1px solid var(--border);
+  max-height: 120px;
+  overflow-y: auto;
 }
 
 .status-left {
@@ -3280,6 +3282,12 @@ textarea.input {
   flex-direction: column;
 }
 
+.template-gallery-modal .modal-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
 .template-gallery-subtitle {
   padding: 8px 16px;
   font-size: 13px;
@@ -3508,4 +3516,64 @@ textarea.input {
   width: 8px;
   height: 8px;
   border-radius: 999px;
+}
+
+/* ── Transfer Progress Widget ── */
+.transfer-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 360px;
+  max-height: 400px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.transfer-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--panel-muted);
+}
+
+.transfer-widget-header .icon-btn {
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+}
+
+.transfer-widget-status {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.transfer-widget-error {
+  padding: 4px 14px 8px;
+  font-size: 12px;
+  color: #d32f2f;
+}
+
+.transfer-widget-log {
+  padding: 8px 14px 12px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(120, 98, 83, 0.06);
+  max-height: 220px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.transfer-widget-log > div {
+  margin-bottom: 2px;
 }

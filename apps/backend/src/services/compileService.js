@@ -25,6 +25,19 @@ function buildCommand(engine, outDir, mainFile) {
 
 export { SUPPORTED_ENGINES };
 
+// Engines that need two passes for cross-references, lineno switch mode, etc.
+const DOUBLE_PASS_ENGINES = ['pdflatex', 'xelatex', 'lualatex'];
+
+function runSpawn(cmd, args, cwd, pushLog) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { cwd });
+    child.stdout.on('data', pushLog);
+    child.stderr.on('data', pushLog);
+    child.on('error', (err) => reject(err));
+    child.on('close', (code) => resolve(code));
+  });
+}
+
 export async function runCompile({ projectId, mainFile, engine = 'pdflatex' }) {
   if (!SUPPORTED_ENGINES.includes(engine)) {
     return { ok: false, error: `Unsupported engine: ${engine}` };
@@ -52,42 +65,31 @@ export async function runCompile({ projectId, mainFile, engine = 'pdflatex' }) {
   };
 
   const { cmd, args } = buildCommand(engine, outDir, mainFile);
+  const passes = DOUBLE_PASS_ENGINES.includes(engine) ? 2 : 1;
 
-  return new Promise((resolve) => {
-    const child = spawn(cmd, args, { cwd: projectRoot });
-    child.stdout.on('data', pushLog);
-    child.stderr.on('data', pushLog);
-    child.on('error', async (err) => {
-      await fs.rm(outDir, { recursive: true, force: true });
-      resolve({ ok: false, error: `${engine} not available: ${err.message}` });
-    });
-    child.on('close', async (code) => {
-      const base = path.basename(mainFile, path.extname(mainFile));
-      const pdfPath = path.join(outDir, `${base}.pdf`);
-      let pdfBase64 = '';
-      try {
-        const buffer = await fs.readFile(pdfPath);
-        pdfBase64 = buffer.toString('base64');
-      } catch {
-        pdfBase64 = '';
-      }
-      const log = logChunks.join('');
-      await fs.rm(outDir, { recursive: true, force: true });
-      if (!pdfBase64) {
-        resolve({
-          ok: false,
-          error: 'No PDF generated.',
-          log,
-          status: code ?? -1
-        });
-        return;
-      }
-      resolve({
-        ok: true,
-        pdf: pdfBase64,
-        log,
-        status: code ?? 0
-      });
-    });
-  });
+  let code;
+  try {
+    for (let i = 0; i < passes; i++) {
+      code = await runSpawn(cmd, args, projectRoot, pushLog);
+    }
+  } catch (err) {
+    await fs.rm(outDir, { recursive: true, force: true });
+    return { ok: false, error: `${engine} not available: ${err.message}` };
+  }
+
+  const base = path.basename(mainFile, path.extname(mainFile));
+  const pdfPath = path.join(outDir, `${base}.pdf`);
+  let pdfBase64 = '';
+  try {
+    const buffer = await fs.readFile(pdfPath);
+    pdfBase64 = buffer.toString('base64');
+  } catch {
+    pdfBase64 = '';
+  }
+  const log = logChunks.join('');
+  await fs.rm(outDir, { recursive: true, force: true });
+  if (!pdfBase64) {
+    return { ok: false, error: 'No PDF generated.', log, status: code ?? -1 };
+  }
+  return { ok: true, pdf: pdfBase64, log, status: code ?? 0 };
 }

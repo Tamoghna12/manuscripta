@@ -13,13 +13,51 @@ import {
   archiveProject,
   trashProject,
   updateProjectTags,
-  permanentDeleteProject
+  permanentDeleteProject,
+  uploadTemplate
 } from '../api/client';
 import type { ProjectMeta, TemplateMeta, TemplateCategory } from '../api/client';
 import TransferPanel from './TransferPanel';
 
 type ViewFilter = 'all' | 'mine' | 'archived' | 'trash';
 type SortBy = 'updatedAt' | 'name' | 'createdAt';
+
+const SETTINGS_KEY = 'openprism-settings-v1';
+
+interface LLMSettings {
+  llmEndpoint: string;
+  llmApiKey: string;
+  llmModel: string;
+}
+
+const DEFAULT_LLM: LLMSettings = {
+  llmEndpoint: 'https://api.openai.com/v1/chat/completions',
+  llmApiKey: '',
+  llmModel: 'gpt-4o-mini',
+};
+
+function loadLLMSettings(): LLMSettings {
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_LLM;
+    const parsed = JSON.parse(raw);
+    return {
+      llmEndpoint: parsed.llmEndpoint ?? DEFAULT_LLM.llmEndpoint,
+      llmApiKey: parsed.llmApiKey ?? DEFAULT_LLM.llmApiKey,
+      llmModel: parsed.llmModel ?? DEFAULT_LLM.llmModel,
+    };
+  } catch {
+    return DEFAULT_LLM;
+  }
+}
+
+function saveLLMSettings(s: LLMSettings) {
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_KEY);
+    const prev = raw ? JSON.parse(raw) : {};
+    window.localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...prev, ...s }));
+  } catch {}
+}
 
 function formatRelativeTime(iso: string, t: (k: string, o?: Record<string, unknown>) => string): string {
   const now = Date.now();
@@ -59,6 +97,10 @@ export default function ProjectPage() {
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [templateDropdownOpen, setTemplateDropdownOpen] = useState(false);
 
+  // Settings modal state
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsForm, setSettingsForm] = useState<LLMSettings>(loadLLMSettings);
+
   const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
   const [galleryCat, setGalleryCat] = useState('all');
   const [galleryFeatured, setGalleryFeatured] = useState(false);
@@ -72,6 +114,17 @@ export default function ProjectPage() {
   // Transfer modal state
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferSource, setTransferSource] = useState<{ id: string; name: string } | null>(null);
+
+  // Active transfer job (persists after modal close)
+  const [activeJob, setActiveJob] = useState<{
+    jobId: string; status: string; progressLog: string[]; error?: string;
+    sourceName?: string;
+  } | null>(null);
+  const [jobWidgetOpen, setJobWidgetOpen] = useState(true);
+
+  // Template upload state
+  const templateZipRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingTemplate, setUploadingTemplate] = useState(false);
 
   const loadProjects = useCallback(async () => {
     const res = await listProjects();
@@ -255,6 +308,25 @@ export default function ProjectPage() {
     }
   };
 
+  const handleUploadTemplate = async (file: File) => {
+    const baseName = file.name.replace(/\.zip$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const templateId = baseName.toLowerCase();
+    const templateLabel = baseName;
+    setUploadingTemplate(true);
+    try {
+      await uploadTemplate(templateId, templateLabel, file);
+      const res = await listTemplates();
+      setTemplates(res.templates || []);
+      setCategories(res.categories || []);
+      setStatus(t('模板上传成功'));
+    } catch (err) {
+      setStatus(t('模板上传失败: {{error}}', { error: String(err) }));
+    } finally {
+      setUploadingTemplate(false);
+      if (templateZipRef.current) templateZipRef.current.value = '';
+    }
+  };
+
   const handleCopy = async (id: string, originalName: string) => {
     try {
       const res = await copyProject(id, `${originalName} (Copy)`);
@@ -426,6 +498,7 @@ export default function ProjectPage() {
                 </div>
               )}
             </div>
+            <button className="btn ghost" onClick={() => setSettingsOpen(true)}>{t('设置')}</button>
           </div>
         </header>
 
@@ -737,7 +810,26 @@ export default function ProjectPage() {
                 <button className="btn ghost" onClick={() => setTemplateGalleryOpen(false)}>{t('返回')}</button>
                 <span>{t('模板库')}</span>
               </div>
-              <button className="icon-btn" onClick={() => setTemplateGalleryOpen(false)}>✕</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  ref={templateZipRef}
+                  type="file"
+                  accept=".zip"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUploadTemplate(f);
+                  }}
+                />
+                <button
+                  className="btn ghost"
+                  disabled={uploadingTemplate}
+                  onClick={() => templateZipRef.current?.click()}
+                >
+                  {uploadingTemplate ? t('上传中...') : t('上传模板')}
+                </button>
+                <button className="icon-btn" onClick={() => setTemplateGalleryOpen(false)}>✕</button>
+              </div>
             </div>
             <div className="modal-body">
               <div className="template-gallery-subtitle">{t('选择模板快速开始您的项目')}</div>
@@ -808,8 +900,92 @@ export default function ProjectPage() {
             <div className="modal-body">
               <TransferPanel
                 projectId={transferSource.id}
-                mainFile="main.tex"
+                onJobUpdate={(job) => {
+                  setActiveJob({ ...job, sourceName: transferSource.name });
+                  setJobWidgetOpen(true);
+                  if (job.status === 'success') loadProjects();
+                }}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating transfer progress widget */}
+      {activeJob && !transferOpen && jobWidgetOpen && (
+        <div className="transfer-widget">
+          <div className="transfer-widget-header">
+            <span>{t('模板转换')} — {activeJob.sourceName || ''}</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button className="icon-btn" onClick={() => {
+                setTransferOpen(true);
+                if (transferSource) setTransferSource(transferSource);
+              }} title={t('展开')}>&#x2197;</button>
+              <button className="icon-btn" onClick={() => setJobWidgetOpen(false)}>✕</button>
+            </div>
+          </div>
+          <div className="transfer-widget-status">
+            <strong>{t('状态')}:</strong> {activeJob.status}
+          </div>
+          {activeJob.error && (
+            <div className="transfer-widget-error">{activeJob.error}</div>
+          )}
+          {activeJob.progressLog.length > 0 && (
+            <div className="transfer-widget-log">
+              {activeJob.progressLog.map((line, i) => (
+                <div key={i}>{line}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {settingsOpen && (
+        <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>{t('设置')}</div>
+              <button className="icon-btn" onClick={() => setSettingsOpen(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="field">
+                <label>{t('LLM Endpoint')}</label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="https://api.openai.com/v1/chat/completions"
+                  value={settingsForm.llmEndpoint}
+                  onChange={(e) => setSettingsForm((p) => ({ ...p, llmEndpoint: e.target.value }))}
+                />
+              </div>
+              <div className="field">
+                <label>{t('LLM API Key')}</label>
+                <input
+                  className="input"
+                  type="password"
+                  placeholder="sk-..."
+                  value={settingsForm.llmApiKey}
+                  onChange={(e) => setSettingsForm((p) => ({ ...p, llmApiKey: e.target.value }))}
+                />
+              </div>
+              <div className="field">
+                <label>{t('LLM Model')}</label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="gpt-4o"
+                  value={settingsForm.llmModel}
+                  onChange={(e) => setSettingsForm((p) => ({ ...p, llmModel: e.target.value }))}
+                />
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                {t('未配置 API Key 时将使用后端环境变量。')}
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn ghost" onClick={() => { setSettingsForm(loadLLMSettings()); setSettingsOpen(false); }}>{t('取消')}</button>
+              <button className="btn" onClick={() => { saveLLMSettings(settingsForm); setSettingsOpen(false); }}>{t('保存')}</button>
             </div>
           </div>
         </div>

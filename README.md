@@ -54,6 +54,10 @@
 
 ## 📢 News
 
+> [!WARNING]
+> 🚧 <strong>Template Transfer is under testing</strong><br>
+> The Template Transfer feature is currently in beta and may contain known or unknown bugs. If you encounter any issues, please report them via [Issues](https://github.com/OpenDCAI/OpenPrism/issues).
+
 > [!TIP]
 > 🆕 <strong>2025-02 · Real-time Collaboration</strong><br>
 > Multi-user simultaneous editing is now available, powered by CRDT with automatic conflict resolution and cursor sync. Current version requires a server with a public IP; invite remote collaborators via token-based links.

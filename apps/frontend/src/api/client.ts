@@ -88,7 +88,7 @@ export function getCollabServer() {
   return window.localStorage.getItem(COLLAB_SERVER_KEY) || '';
 }
 
-function getAuthHeader() {
+function getAuthHeader(): Record<string, string> {
   const token = getCollabToken();
   if (!token) return {};
   return { Authorization: `Bearer ${token}` };
@@ -96,12 +96,14 @@ function getAuthHeader() {
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const lang = getLangHeader();
-  const mergedHeaders = {
-    'Content-Type': 'application/json',
+  const mergedHeaders: Record<string, string> = {
     'x-lang': lang,
     ...getAuthHeader(),
-    ...(options?.headers || {})
+    ...(options?.headers as Record<string, string> || {})
   };
+  if (options?.body) {
+    mergedHeaders['Content-Type'] = 'application/json';
+  }
   const res = await fetch(`${API_BASE}${url}`, {
     ...options,
     headers: mergedHeaders
@@ -311,6 +313,21 @@ export function listTemplates() {
   return request<{ templates: TemplateMeta[]; categories?: TemplateCategory[] }>('/api/templates');
 }
 
+export async function uploadTemplate(templateId: string, templateLabel: string, file: File) {
+  const form = new FormData();
+  form.append('templateId', templateId);
+  form.append('templateLabel', templateLabel);
+  form.append('file', file);
+  const lang = getLangHeader();
+  const res = await fetch(`${API_BASE}/api/templates/upload`, {
+    method: 'POST',
+    headers: { 'x-lang': lang, ...getAuthHeader() },
+    body: form,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json() as Promise<{ ok: boolean; templateId?: string; error?: string }>;
+}
+
 export function arxivSearch(payload: { query: string; maxResults?: number }) {
   return request<{ ok: boolean; papers?: ArxivPaper[]; error?: string }>(
     '/api/arxiv/search',
@@ -452,7 +469,7 @@ export async function visionToLatex(payload: {
 export interface TransferStartPayload {
   sourceProjectId: string;
   sourceMainFile: string;
-  targetProjectId: string;
+  targetTemplateId: string;
   targetMainFile: string;
   engine?: string;
   layoutCheck?: boolean;
