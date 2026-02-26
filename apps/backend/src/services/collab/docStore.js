@@ -47,6 +47,19 @@ async function flushDoc(doc) {
   const text = doc.text.toString();
   await ensureDir(path.dirname(doc.absPath));
   await fs.writeFile(doc.absPath, text, 'utf8');
+  // Persist comments
+  if (doc.comments && doc.comments.size > 0) {
+    try {
+      const commentsData = {};
+      doc.comments.forEach((value, key) => {
+        commentsData[key] = value instanceof Y.Map ? value.toJSON() : value;
+      });
+      const commentsPath = doc.absPath + '.comments.json';
+      await fs.writeFile(commentsPath, JSON.stringify(commentsData, null, 2), 'utf8');
+    } catch {
+      // ignore
+    }
+  }
   if (doc.metaPath) {
     try {
       const meta = await readJson(doc.metaPath);
@@ -97,6 +110,7 @@ export async function getOrCreateDoc({ key, absPath, metaPath }) {
   const ydoc = new Y.Doc();
   const awareness = new Awareness(ydoc);
   const text = ydoc.getText('content');
+  const comments = ydoc.getMap('comments');
   let content = '';
   try {
     content = await fs.readFile(absPath, 'utf8');
@@ -106,6 +120,19 @@ export async function getOrCreateDoc({ key, absPath, metaPath }) {
   if (text.length === 0 && content) {
     text.insert(0, content);
   }
+  // Load persisted comments
+  try {
+    const commentsPath = absPath + '.comments.json';
+    const commentsJson = await fs.readFile(commentsPath, 'utf8');
+    const commentsData = JSON.parse(commentsJson);
+    if (comments.size === 0 && commentsData) {
+      for (const [k, v] of Object.entries(commentsData)) {
+        comments.set(k, v);
+      }
+    }
+  } catch {
+    // no persisted comments
+  }
   doc = {
     key,
     absPath,
@@ -113,6 +140,7 @@ export async function getOrCreateDoc({ key, absPath, metaPath }) {
     ydoc,
     awareness,
     text,
+    comments,
     conns: new Set(),
     flushTimer: null,
     lastError: null,
@@ -123,8 +151,8 @@ export async function getOrCreateDoc({ key, absPath, metaPath }) {
   return doc;
 }
 
-export function setupConnection(doc, socket) {
-  const conn = { socket, awarenessClientIds: new Set() };
+export function setupConnection(doc, socket, { role, displayName } = {}) {
+  const conn = { socket, awarenessClientIds: new Set(), role: role || 'admin', displayName };
   doc.conns.add(conn);
   if (doc.cleanupTimer) {
     clearTimeout(doc.cleanupTimer);
@@ -152,6 +180,20 @@ export function setupConnection(doc, socket) {
     const decoder = decoding.createDecoder(buffer);
     const messageType = decoding.readVarUint(decoder);
     if (messageType === MESSAGE_SYNC) {
+      // For viewers: read the message but drop any update (step 2) from client
+      if (conn.role === 'viewer') {
+        // Still send sync step 1 replies (initial state) but ignore updates
+        const msgType = decoding.readVarUint(decoder);
+        if (msgType === 0) {
+          // Sync step 1 — reply with step 2 (send doc state)
+          const replyEncoder = encoding.createEncoder();
+          encoding.writeVarUint(replyEncoder, MESSAGE_SYNC);
+          syncProtocol.writeSyncStep2(replyEncoder, doc.ydoc);
+          sendMessage(conn, encoding.toUint8Array(replyEncoder));
+        }
+        // msgType 1 (step 2 = update from client) or 2 (update) → silently dropped
+        return;
+      }
       const replyEncoder = encoding.createEncoder();
       encoding.writeVarUint(replyEncoder, MESSAGE_SYNC);
       syncProtocol.readSyncMessage(decoder, replyEncoder, doc.ydoc, conn);

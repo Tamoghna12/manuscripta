@@ -1,0 +1,86 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\titleformat{\section}{\large\bfseries\scshape}{}{0em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{First M. Last}} \\[6pt]
+Department of Computer Science, University Name \\
+123 University Ave, City, State 12345 \\
+\href{mailto:name@example.com}{name@example.com} $\cdot$
+\href{https://www.example.com}{www.example.com} $\cdot$
+Phone: +1 (234) 567-8901
+\end{center}
+
+\section{Research Interests}
+Machine learning, computer vision, natural language processing, and their applications.
+
+\section{Education}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Ph.D., Computer Science} \hfill 2020--2024 \\
+    University Name, City, Country \\
+    Dissertation: ``Thesis Title'' \\
+    Advisor: Prof.\ Advisor Name
+  \item \textbf{B.S., Computer Science} \hfill 2016--2020 \\
+    University Name, City, Country \\
+    \emph{Summa Cum Laude}
+\end{itemize}
+
+\section{Academic Appointments}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Assistant Professor}, Department of CS, University \hfill 2024--Present
+\end{itemize}
+
+\section{Publications}
+\subsection*{Journal Articles}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{F. Last}, A. Coauthor. ``Paper Title.'' \emph{Journal Name}, vol.~X, no.~Y, pp.~1--10, 2024.
+\end{enumerate}
+\subsection*{Conference Papers}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{F. Last}, A. Coauthor. ``Paper Title.'' In \emph{Proc.\ Conference Name}, 2024.
+\end{enumerate}
+
+\section{Grants and Funding}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{NSF CAREER Award}, ``Project Title,'' \$500,000, 2025--2030 (PI)
+\end{itemize}
+
+\section{Teaching}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{CS 101: Introduction to Computer Science} \hfill Fall 2024
+  \item \textbf{CS 501: Advanced Machine Learning} \hfill Spring 2025
+\end{itemize}
+
+\section{Awards and Honors}
+\begin{itemize}[leftmargin=*]
+  \item Best Paper Award, Conference Name, 2024
+\end{itemize}
+
+\section{Professional Service}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Program Committee:} CONF 2024, CONF 2025
+  \item \textbf{Reviewer:} Journal A, Journal B
+\end{itemize}
+
+\section{Skills}
+\textbf{Programming:} Python, C++, Julia \quad
+\textbf{Frameworks:} PyTorch, JAX \quad
+\textbf{Languages:} English, Spanish
+
+\end{document}

@@ -2,17 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-const TITLE_TEXT = 'OpenPrism is Here';
-const FEATURE_KEYS = ['completion', 'vision', 'plot', 'search', 'agent', 'review'] as const;
+const TITLE_TEXT = 'Manuscripta is Here';
+const FEATURE_KEYS = ['completion', 'vision', 'plot', 'search', 'agent', 'review', 'grammar'] as const;
 const AUTO_INTERVAL = 4000;
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [charCount, setCharCount] = useState(0);
   const [activeFeature, setActiveFeature] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
-  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+
+  useEffect(() => { document.title = 'Manuscripta'; }, []);
 
   useEffect(() => {
     if (charCount >= TITLE_TEXT.length) return;
@@ -37,36 +38,12 @@ export default function LandingPage() {
 
   return (
     <div className="landing-page">
-      {/* Top language selector */}
-      <div className="landing-top-bar">
-        <div className="ios-select-wrapper">
-          <button className="ios-select-trigger" onClick={() => setLangDropdownOpen(!langDropdownOpen)}>
-            <span>{i18n.language === 'en-US' ? t('English') : t('中文')}</span>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={langDropdownOpen ? 'rotate' : ''}>
-              <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          {langDropdownOpen && (
-            <div className="ios-dropdown dropdown-down">
-              {([['zh-CN', t('中文')], ['en-US', t('English')]] as [string, string][]).map(([val, label]) => (
-                <div key={val} className={`ios-dropdown-item ${i18n.language === val ? 'active' : ''}`} onClick={() => { i18n.changeLanguage(val); setLangDropdownOpen(false); }}>
-                  {label}
-                  {i18n.language === val && (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Hero section */}
       <section className="landing-hero">
         {/* Announcement banner */}
         <div className="landing-announce">
           <span className="landing-announce-text">
-            {t('landing.announce')}
+            Multi-provider AI &middot; Grammar Checking &middot; Real-time Collaboration
           </span>
           <a
             className="landing-announce-link"
@@ -100,10 +77,9 @@ export default function LandingPage() {
         </h1>
 
         {/* Subtitle */}
-        <p
-          className="landing-subtitle"
-          dangerouslySetInnerHTML={{ __html: t('landing.subtitle') }}
-        />
+        <p className="landing-subtitle">
+          AI-powered <b>academic writing</b> — lightweight, fast, worry-free.
+        </p>
 
         {/* CTA buttons */}
         <div className="landing-cta">
@@ -123,7 +99,14 @@ export default function LandingPage() {
               <path d="M2 17l10 5 10-5" />
               <path d="M2 12l10 5 10-5" />
             </svg>
-            {t('landing.featureAI')}
+            AI Completion
+          </div>
+          <div className="landing-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            Grammar Check
           </div>
           <div className="landing-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -131,22 +114,14 @@ export default function LandingPage() {
               <circle cx="8.5" cy="8.5" r="1.5" />
               <path d="M21 15l-5-5L5 21" />
             </svg>
-            {t('landing.featureVision')}
-          </div>
-          <div className="landing-badge">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="20" x2="18" y2="10" />
-              <line x1="12" y1="20" x2="12" y2="4" />
-              <line x1="6" y1="20" x2="6" y2="14" />
-            </svg>
-            {t('landing.featurePlot')}
+            AI Vision
           </div>
           <div className="landing-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            {t('landing.featureSearch')}
+            Paper Search
           </div>
         </div>
       </section>
@@ -215,6 +190,8 @@ function FeatureIcon({ name }: { name: string }) {
       return <svg {...props}><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg>;
     case 'review':
       return <svg {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+    case 'grammar':
+      return <svg {...props}><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>;
     default:
       return null;
   }

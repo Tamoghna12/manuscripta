@@ -1,0 +1,93 @@
+\documentclass{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\title{Presentation Title}
+\subtitle{A Presentation with Madrid Theme}
+\author{Author Name}
+\institute[Short Inst]{Institution Name \\ Department}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+\section{Introduction}
+\begin{frame}{Introduction}
+\begin{itemize}
+  \item Motivation
+  \item Problem statement
+  \item Contributions
+\end{itemize}
+\end{frame}
+
+\section{Background}
+\begin{frame}{Background}
+\begin{block}{Definition}
+A formal definition or concept.
+\end{block}
+\begin{alertblock}{Important}
+Something critical to note.
+\end{alertblock}
+\begin{exampleblock}{Example}
+An illustrative example.
+\end{exampleblock}
+\end{frame}
+
+\section{Method}
+\begin{frame}{Proposed Approach}
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\begin{itemize}
+  \item Component 1
+  \item Component 2
+  \item Component 3
+\end{itemize}
+\end{column}
+\begin{column}{0.5\textwidth}
+\centering [Figure placeholder]
+\end{column}
+\end{columns}
+\end{frame}
+
+\section{Results}
+\begin{frame}{Experimental Results}
+\begin{table}
+\centering
+\begin{tabular}{lcc}
+\toprule
+Method & Accuracy & F1 \\
+\midrule
+Baseline & 85.0 & 83.2 \\
+Ours & \textbf{90.1} & \textbf{88.7} \\
+\bottomrule
+\end{tabular}
+\caption{Performance comparison}
+\end{table}
+\end{frame}
+
+\section{Conclusion}
+\begin{frame}{Conclusion \& Future Work}
+\begin{itemize}
+  \item Summary of findings
+  \item Limitations
+  \item Future directions
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\centering
+\Huge Thank You! \\[1cm]
+\Large Questions?
+\end{frame}
+
+\end{document}

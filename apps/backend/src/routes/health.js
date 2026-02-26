@@ -1,7 +1,7 @@
 import { promises as fs, createWriteStream } from 'fs';
 import { pipeline } from 'stream/promises';
 import path from 'path';
-import unzipper from 'unzipper';
+import { extractZipStream } from '../utils/zipUtils.js';
 import { readTemplateManifest, addTemplateToManifest } from '../services/templateService.js';
 import { TEMPLATE_DIR } from '../config/constants.js';
 import { ensureDir } from '../utils/fsUtils.js';
@@ -41,19 +41,13 @@ export function registerHealthRoutes(fastify) {
         const templateRoot = path.join(TEMPLATE_DIR, templateId);
         await ensureDir(templateRoot);
 
-        const zipStream = part.file.pipe(unzipper.Parse({ forceStream: true }));
-        for await (const entry of zipStream) {
-          const relPath = sanitizeUploadPath(entry.path);
-          if (!relPath) { entry.autodrain(); continue; }
-          const abs = safeJoin(templateRoot, relPath);
-          if (entry.type === 'Directory') {
-            await ensureDir(abs);
-            entry.autodrain();
-            continue;
-          }
-          await ensureDir(path.dirname(abs));
-          await pipeline(entry, createWriteStream(abs));
-        }
+        await extractZipStream(part.file, templateRoot, {
+          safeJoinFn: safeJoin,
+          onEntry: (relPath) => {
+            const sanitized = sanitizeUploadPath(relPath);
+            if (!sanitized) return false;
+          },
+        });
       }
     } catch (err) {
       return reply.code(500).send({ ok: false, error: String(err) });

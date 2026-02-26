@@ -1,0 +1,71 @@
+\documentclass[11pt,a4paper]{report}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{natbib}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Technical Report}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{\small Confidential}
+
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,backgroundcolor=\color{gray!5}}
+
+\title{
+  \textbf{Technical Report Title} \\[0.5cm]
+  {\large Report No.: TR-2026-001} \\[0.5cm]
+  {\large Organization Name}
+}
+\author{Author One \\ Author Two \\[0.5cm] \small Department / Division}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Your executive summary / abstract here.
+\end{abstract}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\chapter{Introduction}
+\section{Purpose}
+\section{Scope}
+\section{Definitions and Acronyms}
+
+\chapter{Background}
+
+\chapter{Technical Approach}
+\section{Architecture}
+\section{Design Decisions}
+
+\chapter{Implementation}
+\section{System Components}
+\section{Configuration}
+
+\chapter{Results}
+\section{Performance Metrics}
+\section{Testing}
+
+\chapter{Discussion}
+\section{Findings}
+\section{Limitations}
+
+\chapter{Conclusions and Recommendations}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+\chapter{Detailed Data}
+\chapter{Configuration Files}
+
+\end{document}

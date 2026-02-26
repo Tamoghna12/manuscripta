@@ -1,17 +1,17 @@
 <div align="center">
 
-<img src="static/logo-rotating.gif" alt="OpenPrism Logo" width="200"/>
+<img src="static/logo-rotating.gif" alt="Manuscripta Logo" width="200"/>
 
-# OpenPrism
+# Manuscripta
 
-### OpenPrism - 氛围写作平台
+### Manuscripta - 氛围写作平台
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/network/members)
-[![GitHub Issues](https://img.shields.io/github/issues/OpenDCAI/OpenPrism)](https://github.com/OpenDCAI/OpenPrism/issues)
-[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/OpenDCAI/OpenPrism)](https://github.com/OpenDCAI/OpenPrism/pulls)
+[![GitHub Stars](https://img.shields.io/github/stars/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/OpenDCAI/Manuscripta)](https://github.com/OpenDCAI/Manuscripta/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/OpenDCAI/Manuscripta)](https://github.com/OpenDCAI/Manuscripta/pulls)
 
 [中文](README_ZH.md) | [English](README.md)
 
@@ -54,7 +54,7 @@
 
 > [!WARNING]
 > 🚧 <strong>模板转换功能仍在测试中</strong><br>
-> 模板转换（Template Transfer）功能目前处于测试阶段，可能存在已知或未知的 Bug。如遇到问题，欢迎在 [Issues](https://github.com/OpenDCAI/OpenPrism/issues) 中反馈。
+> 模板转换（Template Transfer）功能目前处于测试阶段，可能存在已知或未知的 Bug。如遇到问题，欢迎在 [Issues](https://github.com/OpenDCAI/Manuscripta/issues) 中反馈。
 
 > [!TIP]
 > 🆕 <strong>2025-02 · 模板转换（双模式）</strong><br>
@@ -68,7 +68,7 @@
 
 <div align="center">
 <br>
-<img src="static/首页.gif" alt="OpenPrism 主页面" width="90%"/>
+<img src="static/首页.gif" alt="Manuscripta 主页面" width="90%"/>
 <br>
 <sub>✨ 主页面预览：三栏工作区 + 编辑器 + 预览</sub>
 <br><br>
@@ -78,7 +78,7 @@
 
 ## ✨ 核心功能
 
-OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强调高效编辑、可控改动与隐私安全。
+Manuscripta 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强调高效编辑、可控改动与隐私安全。
 
 ### 🤖 AI 智能助手
 
@@ -262,13 +262,13 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 ---
 
-<!-- ## 🔄 OpenPrism vs Prism 功能对比
+<!-- ## 🔄 Manuscripta vs Prism 功能对比
 
-> **Prism** 是 OpenAI 于 2026-01-27 发布的云端 LaTeX 写作平台。**OpenPrism** 是开源、可自托管的替代方案，强调隐私与数据自主。
+> **Prism** 是 OpenAI 于 2026-01-27 发布的云端 LaTeX 写作平台。**Manuscripta** 是开源、可自托管的替代方案，强调隐私与数据自主。
 
 ### 📝 写作与编辑
 
-| 功能 | OpenPrism | Prism (OpenAI) |
+| 功能 | Manuscripta | Prism (OpenAI) |
 |:---|:---:|:---:|
 | LaTeX 编辑器 | ✅ CodeMirror | ✅ 云端编辑器 |
 | PDF 实时预览 | ✅ | ✅ |
@@ -280,7 +280,7 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 ### 🤖 AI 能力
 
-| 功能 | OpenPrism | Prism (OpenAI) |
+| 功能 | Manuscripta | Prism (OpenAI) |
 |:---|:---:|:---:|
 | AI 对话助手 | ✅ Chat / Agent / Tools 三模式 | ✅ GPT-5.2 对话式推理 |
 | 全文档上下文理解 | ✅ | ✅ |
@@ -292,7 +292,7 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 ### 🔍 检索与引用
 
-| 功能 | OpenPrism | Prism (OpenAI) |
+| 功能 | Manuscripta | Prism (OpenAI) |
 |:---|:---:|:---:|
 | 联网搜索（WebSearch） | ✅ | ✅ |
 | 学术论文检索（PaperSearch） | ✅ | ✅ |
@@ -301,7 +301,7 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 ### 📊 多模态与图表
 
-| 功能 | OpenPrism | Prism (OpenAI) |
+| 功能 | Manuscripta | Prism (OpenAI) |
 |:---|:---:|:---:|
 | 表格直出图表 | ✅ | ❌ |
 | 公式 / 图表智能识别 | ✅ | ✅ Image to code |
@@ -310,7 +310,7 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 ### 📝 审稿与质量
 
-| 功能 | OpenPrism | Prism (OpenAI) |
+| 功能 | Manuscripta | Prism (OpenAI) |
 |:---|:---:|:---:|
 | AI 质量检查 | ✅ | ✅ |
 | 完整审稿报告 | ✅ Reviewer 风格 | ❌ |
@@ -320,7 +320,7 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 ### 🔐 部署与隐私
 
-| 功能 | OpenPrism | Prism (OpenAI) |
+| 功能 | Manuscripta | Prism (OpenAI) |
 |:---|:---:|:---:|
 | 部署方式 | ✅ **本地 / 内网自托管** | ❌ 仅云端 |
 | 数据存储位置 | ✅ **完全本地可控** | ❌ OpenAI 云端 |
@@ -331,7 +331,7 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 | 会议模板系统 | ✅ ACL / CVPR / NeurIPS / ICML | ❌ |
 | 模板一键转换 | 🗺️ 规划中 | ❌ |
 
-> 💡 **总结**：Prism 依托 GPT-5.2 与云端协作提供开箱即用的体验，但数据完全托管在 OpenAI。OpenPrism 作为开源替代，支持**本地部署、私域协作、自定义模型**，适合对数据隐私和自主可控有要求的团队与个人。
+> 💡 **总结**：Prism 依托 GPT-5.2 与云端协作提供开箱即用的体验，但数据完全托管在 OpenAI。Manuscripta 作为开源替代，支持**本地部署、私域协作、自定义模型**，适合对数据隐私和自主可控有要求的团队与个人。
 
 --- -->
 
@@ -346,7 +346,7 @@ OpenPrism 是一个面向学术写作的本地部署 LaTeX + AI 工作台，强�
 
 #### LaTeX 编译环境（必需）
 
-OpenPrism 需要 LaTeX 编译引擎来生成 PDF，请根据操作系统选择以下方案之一：
+Manuscripta 需要 LaTeX 编译引擎来生成 PDF，请根据操作系统选择以下方案之一：
 
 **方案 1：TexLive（推荐）**
 - **Linux (Ubuntu/Debian)**:
@@ -379,8 +379,8 @@ OpenPrism 需要 LaTeX 编译引擎来生成 PDF，请根据操作系统选择�
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/OpenDCAI/OpenPrism.git
-cd OpenPrism
+git clone https://github.com/OpenDCAI/Manuscripta.git
+cd Manuscripta
 
 # 2. 安装依赖
 npm install
@@ -419,17 +419,17 @@ node --version  # 应显示 >= 18.0.0
 pdflatex --version  # 应显示 TexLive 版本
 
 # 4. 克隆并部署项目
-git clone https://github.com/OpenDCAI/OpenPrism.git
-cd OpenPrism
+git clone https://github.com/OpenDCAI/Manuscripta.git
+cd Manuscripta
 npm install
 npm run build
 
 # 5. 配置环境变量（可选）
 cat > .env << EOF
-OPENPRISM_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
-OPENPRISM_LLM_API_KEY=your-api-key
-OPENPRISM_LLM_MODEL=gpt-4o-mini
-OPENPRISM_DATA_DIR=/var/openprism/data
+MANUSCRIPTA_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+MANUSCRIPTA_LLM_API_KEY=your-api-key
+MANUSCRIPTA_LLM_MODEL=gpt-4o-mini
+MANUSCRIPTA_DATA_DIR=/var/manuscripta/data
 PORT=8787
 EOF
 
@@ -438,7 +438,7 @@ npm start
 
 # 7. 使用 PM2 守护进程（推荐）
 sudo npm install -g pm2
-pm2 start npm --name "openprism" -- start
+pm2 start npm --name "manuscripta" -- start
 pm2 save
 pm2 startup
 ```
@@ -453,31 +453,31 @@ pm2 startup
 
 ```bash
 # LLM 配置
-OPENPRISM_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
-OPENPRISM_LLM_API_KEY=your-api-key
-OPENPRISM_LLM_MODEL=gpt-4o-mini
+MANUSCRIPTA_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+MANUSCRIPTA_LLM_API_KEY=your-api-key
+MANUSCRIPTA_LLM_MODEL=gpt-4o-mini
 
 # 数据存储路径
-OPENPRISM_DATA_DIR=./data
+MANUSCRIPTA_DATA_DIR=./data
 
 # 后端服务端口
 PORT=8787
 
 # MinerU API 配置（用于 PDF→MD→LaTeX 转换）
-OPENPRISM_MINERU_API_BASE=https://mineru.net/api/v4
-OPENPRISM_MINERU_TOKEN=your-mineru-token
+MANUSCRIPTA_MINERU_API_BASE=https://mineru.net/api/v4
+MANUSCRIPTA_MINERU_TOKEN=your-mineru-token
 ```
 
 ### LLM 配置
 
-OpenPrism 支持任何 **OpenAI 兼容**接口，包括自定义 base_url：
+Manuscripta 支持任何 **OpenAI 兼容**接口，包括自定义 base_url：
 
 **方式 1：环境变量配置**
 ```bash
 # .env 文件
-OPENPRISM_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
-OPENPRISM_LLM_API_KEY=sk-your-api-key
-OPENPRISM_LLM_MODEL=gpt-4o-mini
+MANUSCRIPTA_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+MANUSCRIPTA_LLM_API_KEY=sk-your-api-key
+MANUSCRIPTA_LLM_MODEL=gpt-4o-mini
 ```
 
 **方式 2：前端设置面板**
@@ -518,7 +518,7 @@ OPENPRISM_LLM_MODEL=gpt-4o-mini
 
 ```bash
 # 自定义数据目录
-OPENPRISM_DATA_DIR=/var/openprism/data
+MANUSCRIPTA_DATA_DIR=/var/manuscripta/data
 ```
 
 **目录结构：**
@@ -536,7 +536,7 @@ data/
 
 ## 👥 协作模式使用指南
 
-OpenPrism 内置基于 CRDT（Yjs）+ WebSocket 的实时协作系统，支持多人同时编辑同一文档，无需第三方服务。
+Manuscripta 内置基于 CRDT（Yjs）+ WebSocket 的实时协作系统，支持多人同时编辑同一文档，无需第三方服务。
 
 ### 协作环境变量
 
@@ -544,18 +544,18 @@ OpenPrism 内置基于 CRDT（Yjs）+ WebSocket 的实时协作系统，支持�
 
 ```bash
 # 令牌签名密钥（生产环境务必修改）
-OPENPRISM_COLLAB_TOKEN_SECRET=your-secure-random-string
+MANUSCRIPTA_COLLAB_TOKEN_SECRET=your-secure-random-string
 
 # 是否强制令牌验证（默认 true，本地开发可设为 false）
-OPENPRISM_COLLAB_REQUIRE_TOKEN=true
+MANUSCRIPTA_COLLAB_REQUIRE_TOKEN=true
 
 # 令牌有效期，单位秒（默认 86400 = 24 小时）
-OPENPRISM_COLLAB_TOKEN_TTL=86400
+MANUSCRIPTA_COLLAB_TOKEN_TTL=86400
 ```
 
 ### 使用步骤
 
-1. **部署服务**：将 OpenPrism 部署到有公网 IP 的服务器，配置域名与 HTTPS
+1. **部署服务**：将 Manuscripta 部署到有公网 IP 的服务器，配置域名与 HTTPS
 2. **生成邀请**：在编辑页面的协作面板中点击「生成邀请链接」
 3. **分享链接**：将生成的链接发送给协作者
 4. **加入协作**：协作者打开链接，令牌自动验证后进入编辑器
@@ -588,7 +588,7 @@ server {
 <details>
 <summary><strong>无公网服务器？使用内网穿透（ngrok）</strong></summary>
 
-没有公网服务器也可以远程协作，OpenPrism 内置了隧道支持，一条命令即可将本地服务暴露到公网。
+没有公网服务器也可以远程协作，Manuscripta 内置了隧道支持，一条命令即可将本地服务暴露到公网。
 
 #### 快速开始（ngrok，推荐）
 
@@ -604,7 +604,7 @@ npm run tunnel:ngrok
 3. 启动后终端会输出公网 URL，将该 URL 发给协作者即可：
 
 ```
-  OpenPrism started at http://localhost:8787
+  Manuscripta started at http://localhost:8787
 
   Tunnel active (ngrok):
   Public URL: https://xxxx.ngrok-free.app
@@ -620,7 +620,7 @@ npm run tunnel:ngrok
 | localtunnel | `npm run tunnel` | 零配置，但可能不稳定 |
 | Cloudflare Tunnel | `npm run tunnel:cf` | 需安装 [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/) |
 
-> **注意**：隧道默认关闭，普通 `npm start` 不会创建隧道。也可通过环境变量手动指定：`OPENPRISM_TUNNEL=ngrok npm start`
+> **注意**：隧道默认关闭，普通 `npm start` 不会创建隧道。也可通过环境变量手动指定：`MANUSCRIPTA_TUNNEL=ngrok npm start`
 
 </details>
 
@@ -639,7 +639,7 @@ npm run tunnel:ngrok
 ## 📁 项目结构
 
 ```
-OpenPrism/
+Manuscripta/
 ├── apps/
 │   ├── frontend/              # React + Vite 前端
 │   │   ├── src/
@@ -743,18 +743,18 @@ MIT License. See [LICENSE](LICENSE).
 
 **如果这个项目对你有帮助，请给我们一个 ⭐️ Star！**
 
-[![GitHub stars](https://img.shields.io/github/stars/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/network/members)
+[![GitHub stars](https://img.shields.io/github/stars/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/network/members)
 
 <br>
 
 <a name="wechat-group"></a>
-<img src="static/wechat.png" alt="OpenPrism 微信交流群" width="300"/>
+<img src="static/wechat.png" alt="Manuscripta 微信交流群" width="300"/>
 <br>
 <sub>扫码加入微信交流群</sub>
 
 <p align="center">
-  <em>Made with ❤️ by OpenPrism Team</em>
+  <em>Made with ❤️ by Manuscripta Team</em>
 </p>
 
 </div>

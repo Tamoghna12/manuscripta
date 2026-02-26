@@ -1,6 +1,7 @@
 {
-  "name": "openprism",
+  "name": "manuscripta",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -11,15 +12,38 @@
     "dev:frontend": "npm --workspace apps/frontend run dev",
     "build": "npm --workspace apps/frontend run build",
     "preview": "npm --workspace apps/frontend run preview",
-    "tunnel": "npm run build && cross-env OPENPRISM_TUNNEL=localtunnel node apps/backend/src/index.js",
-    "tunnel:cf": "npm run build && cross-env OPENPRISM_TUNNEL=cloudflared node apps/backend/src/index.js",
-    "tunnel:ngrok": "npm run build && cross-env OPENPRISM_TUNNEL=ngrok node apps/backend/src/index.js"
+    "tunnel": "npm run build && cross-env MANUSCRIPTA_TUNNEL=localtunnel node apps/backend/src/index.js",
+    "tunnel:cf": "npm run build && cross-env MANUSCRIPTA_TUNNEL=cloudflared node apps/backend/src/index.js",
+    "tunnel:ngrok": "npm run build && cross-env MANUSCRIPTA_TUNNEL=ngrok node apps/backend/src/index.js",
+    "test": "npm --workspace apps/backend run test && npm --workspace apps/frontend run test",
+    "test:backend": "npm --workspace apps/backend run test",
+    "test:frontend": "npm --workspace apps/frontend run test",
+    "lint": "eslint apps/backend/src apps/frontend/src",
+    "lint:fix": "eslint apps/backend/src apps/frontend/src --fix",
+    "format": "prettier --write \"apps/**/*.{js,ts,tsx,json,css}\"",
+    "format:check": "prettier --check \"apps/**/*.{js,ts,tsx,json,css}\""
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "eslint": "^9.39.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^17.3.0",
+    "jsdom": "^28.1.0",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.56.0",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1"
+  },
+  "overrides": {
+    "minimatch": ">=10.2.1",
+    "glob": ">=11.0.0"
   }
 }

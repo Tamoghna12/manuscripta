@@ -18,9 +18,11 @@ function sign(data) {
   return crypto.createHmac('sha256', COLLAB_TOKEN_SECRET).update(data).digest();
 }
 
-export function issueToken({ projectId, role = 'admin', ttlSeconds = COLLAB_TOKEN_TTL }) {
+export function issueToken({ projectId, role = 'admin', displayName, color, ttlSeconds = COLLAB_TOKEN_TTL }) {
   const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
   const payload = { v: TOKEN_VERSION, pid: projectId, role, exp };
+  if (displayName) payload.dn = displayName;
+  if (color) payload.cl = color;
   const body = base64UrlEncode(JSON.stringify(payload));
   const sig = base64UrlEncode(sign(body));
   return `op1.${body}.${sig}`;
@@ -40,9 +42,15 @@ export function verifyToken(token) {
   try {
     const payload = JSON.parse(base64UrlDecode(body).toString('utf8'));
     if (payload.v !== TOKEN_VERSION) return null;
-    if (!payload.pid || payload.role !== 'admin') return null;
+    if (!payload.pid || !['admin', 'editor', 'viewer'].includes(payload.role)) return null;
     if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) return null;
-    return { projectId: payload.pid, role: payload.role, exp: payload.exp };
+    return {
+      projectId: payload.pid,
+      role: payload.role,
+      exp: payload.exp,
+      displayName: payload.dn || null,
+      color: payload.cl || null,
+    };
   } catch {
     return null;
   }

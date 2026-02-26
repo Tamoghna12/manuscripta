@@ -1,0 +1,106 @@
+\documentclass{beamer}
+\usetheme{default}
+\usecolortheme{orchid}
+\usefonttheme{professionalfonts}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+\setbeamercolor{frametitle}{bg=structure.fg!20!bg}
+
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\title{Presentation Title}
+\subtitle{A Clean, Modern Presentation}
+\author{Author Name}
+\institute{Institution Name}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+\section{Introduction}
+\begin{frame}{Introduction}
+\begin{itemize}
+  \item Clean, modern design
+  \item Focus on content
+  \item Minimal distractions
+\end{itemize}
+\end{frame}
+
+\section{Content}
+\begin{frame}{Key Concepts}
+\begin{enumerate}
+  \item First concept
+  \item Second concept
+  \item Third concept
+\end{enumerate}
+\vspace{1em}
+\begin{block}{Note}
+Important information highlighted in a block.
+\end{block}
+\end{frame}
+
+\begin{frame}{Mathematics}
+The model is defined as:
+\begin{equation}
+  \mathcal{L}(\theta) = -\sum_{i=1}^{N} \log p_\theta(x_i)
+\end{equation}
+\end{frame}
+
+\begin{frame}{Two Columns}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{Advantages}
+\begin{itemize}
+  \item Pro 1
+  \item Pro 2
+  \item Pro 3
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Challenges}
+\begin{itemize}
+  \item Challenge 1
+  \item Challenge 2
+  \item Challenge 3
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\section{Results}
+\begin{frame}{Results}
+\begin{table}
+\centering
+\begin{tabular}{lcc}
+\toprule
+Model & Acc. & Time \\
+\midrule
+A & 92.1 & 1.2s \\
+B & 94.3 & 2.1s \\
+\textbf{Ours} & \textbf{96.0} & \textbf{1.5s} \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{frame}
+
+\section{Conclusion}
+\begin{frame}{Conclusion}
+\begin{itemize}
+  \item Summary
+  \item Future work
+\end{itemize}
+\vfill
+\centering
+\Large Thank you!
+\end{frame}
+
+\end{document}

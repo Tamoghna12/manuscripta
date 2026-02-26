@@ -1,0 +1,104 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{tabularx}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Course Code -- Course Name}
+\rhead{Page \thepage\ of \pageref{LastPage}}
+
+\newcounter{questioncounter}
+\newcommand{\question}[1]{%
+  \stepcounter{questioncounter}%
+  \vspace{12pt}%
+  \noindent\textbf{Question \thequestioncounter.} (#1 points)\quad%
+}
+
+\begin{document}
+
+\begin{center}
+{\Large\textbf{Course Code: Course Name}} \\[6pt]
+{\Large\textbf{Final Examination}} \\[6pt]
+{\large Semester, Year} \\[12pt]
+\end{center}
+
+\noindent\rule{\textwidth}{1pt}
+
+\begin{tabularx}{\textwidth}{Xr}
+\textbf{Date:} Month Day, Year & \textbf{Duration:} 3 hours \\
+\textbf{Instructor:} Prof.\ Name & \textbf{Total Points:} 100
+\end{tabularx}
+
+\noindent\rule{\textwidth}{1pt}
+
+\vspace{6pt}
+
+\noindent\textbf{Student Name:} \hrulefill \quad \textbf{Student ID:} \hrulefill
+
+\vspace{12pt}
+
+\noindent\textbf{Instructions:}
+\begin{enumerate}[leftmargin=*]
+  \item This exam consists of \pageref{LastPage} pages. Check that your copy is complete.
+  \item Answer all questions. Show all work for full credit.
+  \item No calculators, notes, or electronic devices are permitted unless stated otherwise.
+  \item Write clearly and legibly. Illegible answers will not be graded.
+\end{enumerate}
+
+\vspace{6pt}
+
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Question} & \textbf{Points} & \textbf{Score} \\
+\hline
+1 & 20 & \hspace{2cm} \\ \hline
+2 & 25 & \\ \hline
+3 & 25 & \\ \hline
+4 & 30 & \\ \hline
+\textbf{Total} & \textbf{100} & \\ \hline
+\end{tabular}
+\end{center}
+
+\noindent\rule{\textwidth}{1pt}
+
+\question{20}
+Explain the following concept in your own words.
+
+\vspace{5cm}
+
+\question{25}
+Solve the following problem. Show all steps.
+
+Given $f(x) = x^3 - 3x^2 + 2x$:
+\begin{enumerate}[label=(\alph*)]
+  \item Find all critical points. \hfill (10 points)
+  \item Determine which are local maxima and minima. \hfill (10 points)
+  \item Sketch the graph of $f(x)$. \hfill (5 points)
+\end{enumerate}
+
+\vspace{8cm}
+
+\question{25}
+Prove the following statement.
+
+\vspace{8cm}
+
+\question{30}
+\begin{enumerate}[label=(\alph*)]
+  \item Part (a) of the question. \hfill (15 points)
+  \vspace{5cm}
+  \item Part (b) of the question. \hfill (15 points)
+  \vspace{5cm}
+\end{enumerate}
+
+\begin{center}
+\textbf{--- End of Exam ---}
+\end{center}
+
+\end{document}

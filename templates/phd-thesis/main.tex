@@ -1,0 +1,112 @@
+\documentclass[12pt,a4paper,twoside]{book}
+\usepackage[margin=1in,inner=1.5in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{booktabs}
+\usepackage{natbib}
+\usepackage{fancyhdr}
+\usepackage{appendix}
+\usepackage{subcaption}
+
+\doublespacing
+
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{definition}{Definition}[chapter]
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[RE]{\leftmark}
+\fancyhead[LO]{\rightmark}
+
+\title{
+  {\LARGE\textbf{PhD Thesis Title}} \\[1cm]
+  {\large A dissertation submitted in partial fulfillment \\
+  of the requirements for the degree of \\
+  Doctor of Philosophy} \\[1cm]
+  {\large Department of Computer Science \\
+  University Name}
+}
+\author{Author Name}
+\date{Year}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Declaration}
+I hereby declare that this thesis is my own original work and has not been submitted for any other degree.
+
+\vspace{2cm}
+\noindent\rule{6cm}{0.4pt} \\
+Author Name \\
+Date
+
+\chapter*{Abstract}
+Your abstract here. A comprehensive summary of the thesis contributions, methodology, and findings.
+
+\chapter*{Acknowledgements}
+I would like to thank\ldots
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\chapter*{List of Abbreviations}
+\begin{tabular}{ll}
+  ML & Machine Learning \\
+  DL & Deep Learning \\
+\end{tabular}
+
+\mainmatter
+
+\chapter{Introduction}
+\section{Motivation}
+\section{Research Questions}
+\section{Contributions}
+\section{Thesis Outline}
+
+\chapter{Literature Review}
+\section{Background}
+\section{Prior Work}
+\section{Research Gaps}
+
+\chapter{Theoretical Framework}
+\section{Definitions}
+\section{Problem Formulation}
+
+\chapter{Methodology}
+\section{Approach Overview}
+\section{Method Details}
+
+\chapter{Experimental Evaluation}
+\section{Experimental Setup}
+\section{Datasets}
+\section{Results}
+\section{Analysis}
+
+\chapter{Discussion}
+\section{Interpretation of Results}
+\section{Limitations}
+\section{Broader Impact}
+
+\chapter{Conclusion}
+\section{Summary of Contributions}
+\section{Future Work}
+
+\backmatter
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\begin{appendices}
+\chapter{Supplementary Proofs}
+\chapter{Additional Experiments}
+\chapter{Survey Instruments}
+\end{appendices}
+
+\end{document}

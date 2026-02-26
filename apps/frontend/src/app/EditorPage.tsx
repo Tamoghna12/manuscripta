@@ -6,13 +6,13 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { basicSetup } from 'codemirror';
 import { latex } from '../latex/lang';
-import { Compartment, EditorState, StateEffect, StateField } from '@codemirror/state';
-import { Decoration, EditorView, DecorationSet, WidgetType, keymap, gutter, GutterMarker } from '@codemirror/view';
+import { Compartment, EditorState } from '@codemirror/state';
+import { EditorView, keymap } from '@codemirror/view';
 import { search, searchKeymap } from '@codemirror/search';
-import { autocompletion, CompletionContext } from '@codemirror/autocomplete';
+import { autocompletion } from '@codemirror/autocomplete';
 import { toggleComment } from '@codemirror/commands';
 import { foldKeymap, foldService, indentOnInput } from '@codemirror/language';
-import { GlobalWorkerOptions, getDocument, renderTextLayer } from 'pdfjs-dist';
+import { GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min?url';
 import 'pdfjs-dist/web/pdf_viewer.css';
 import {
@@ -20,8 +20,7 @@ import {
   arxivSearch,
   createFolder as createFolderApi,
   createCollabInvite,
-  compileProject,
-  getAllFiles,
+  compileProjectSSE,
   getCollabServer,
   getFile,
   getProjectTree,
@@ -37,57 +36,99 @@ import {
   visionToLatex,
   writeFile,
   flushCollabFile,
-  setCollabServer
+  setCollabServer,
+  grammarCheck,
+  grammarInline,
+  ollamaListModels,
+  synctexForward,
+  synctexInverse,
+  exportProjectZip
 } from '../api/client';
-import type { ArxivPaper } from '../api/client';
-import { createTwoFilesPatch, diffLines } from 'diff';
+import type { ArxivPaper, GrammarIssue } from '../api/client';
+import { createTwoFilesPatch } from 'diff';
 import type { CompileOutcome } from '../latex/engine';
 import * as Y from 'yjs';
 import { Awareness } from 'y-protocols/awareness';
 import { yCollab } from 'y-codemirror.next';
 import { CollabProvider } from '../collab/provider';
+import { WebRTCProvider } from '../collab/webrtc';
+import { saveDraft, loadDraft, deleteDraft, getDraftCount } from '../utils/offlineStore';
+import { onSyncStatusChange, syncDrafts } from '../utils/offlineSync';
+import SettingsModal from './editor/SettingsModal';
+import type { Message, WebsearchItem, PendingChange, InlineEdit } from './editor/types';
+import ZoteroPanel from '../components/panels/ZoteroPanel';
+import MendeleyPanel from '../components/panels/MendeleyPanel';
+import GitPanel from '../components/panels/GitPanel';
+import CommentsPanel from '../components/panels/CommentsPanel';
+import TrackChangesPanel from '../components/panels/TrackChangesPanel';
+import ReferencesPanel from '../components/panels/ReferencesPanel';
+import SplitDiffView from '../components/SplitDiffView';
+import PdfPreview from '../components/PdfPreview';
+import { useToast } from '../components/Toast';
+import { commentField, commentTheme, setCommentsEffect } from '../components/CommentExtension';
+import type { CommentThread } from '../components/CommentExtension';
+import { trackChangesField, trackChangesTheme, setTrackedChangesEffect } from '../components/TrackChangesExtension';
+import type { TrackedChange } from '../components/TrackChangesExtension';
+
+// Extracted utilities
+import {
+  latexFoldService,
+  parseOutline,
+  extractIncludeTargets,
+  findNearestHeading,
+  findCurrentEnvironment,
+  findLineOffset,
+  replaceSelection,
+  type OutlineItem,
+} from '../utils/latexUtils';
+import {
+  FIGURE_EXTS,
+  isFigureFile,
+  isTextFile,
+  isTextPath,
+  getFileTypeLabel,
+  getParentPath,
+  buildTree,
+  findTreeNode,
+  type TreeNode,
+} from '../utils/fileUtils';
+import {
+  loadSettings,
+  persistSettings,
+  loadCollabName,
+  persistCollabName,
+  pickCollabColor,
+  normalizeServerUrl,
+  PROVIDER_PRESETS,
+  DEFAULT_SETTINGS,
+  SETTINGS_KEY,
+  type AppSettings,
+  type CompileEngine,
+  type LLMProvider,
+} from '../utils/settingsUtils';
+import { extractJsonBlock, safeJsonParse } from '../utils/jsonUtils';
+import { parseCompileErrors, buildSplitDiff, type CompileError } from '../utils/compileUtils';
+
+// Extracted CodeMirror extensions
+import {
+  setGhostEffect,
+  ghostField,
+  setGrammarMarks,
+  grammarField,
+  grammarTooltip,
+  type GrammarMark,
+  envDepthField,
+  scopeGutter,
+  editorTheme,
+  latexCompletionSource,
+  createCiteKeyCompletion,
+  browserSpellCheck,
+} from '../components/editor';
+import { parseBibEntries } from '../utils/bibParser';
+import type { BibEntry } from '../utils/bibParser';
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
-interface Message {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
-
-interface WebsearchItem {
-  id: string;
-  title: string;
-  summary: string;
-  url: string;
-  bibtex: string;
-  citeKey: string;
-}
-
-interface PendingChange {
-  filePath: string;
-  original: string;
-  proposed: string;
-  diff: string;
-}
-
-type InlineEdit =
-  | { kind: 'new-file' | 'new-folder'; parent: string; value: string }
-  | { kind: 'rename'; path: string; value: string };
-
-type CompileEngine = 'pdflatex' | 'xelatex' | 'lualatex' | 'latexmk' | 'tectonic';
-
-type AppSettings = {
-  llmEndpoint: string;
-  llmApiKey: string;
-  llmModel: string;
-  searchEndpoint: string;
-  searchApiKey: string;
-  searchModel: string;
-  visionEndpoint: string;
-  visionApiKey: string;
-  visionModel: string;
-  compileEngine: CompileEngine;
-};
 
 const DEFAULT_TASKS = (t: (key: string) => string) => [
   { value: 'polish', label: t('润色') },
@@ -107,1117 +148,24 @@ const RIGHT_VIEW_OPTIONS = (t: (key: string) => string) => [
   { value: 'review', label: t('评审报告') }
 ];
 
-const SETTINGS_KEY = 'openprism-settings-v1';
-const DEFAULT_SETTINGS: AppSettings = {
-  llmEndpoint: 'https://api.openai.com/v1/chat/completions',
-  llmApiKey: '',
-  llmModel: 'gpt-4o-mini',
-  searchEndpoint: '',
-  searchApiKey: '',
-  searchModel: '',
-  visionEndpoint: '',
-  visionApiKey: '',
-  visionModel: '',
-  compileEngine: 'pdflatex'
-};
-
-const COLLAB_NAME_KEY = 'openprism-collab-name';
-const COLLAB_COLORS = ['#b44a2f', '#2f6fb4', '#2f9b74', '#b48a2f', '#6b2fb4', '#b42f6d', '#2f8fb4'];
-
-function loadSettings(): AppSettings {
-  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
-  try {
-    const raw = window.localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return DEFAULT_SETTINGS;
-    const parsed = JSON.parse(raw) as Partial<AppSettings>;
-    const engine = parsed.compileEngine;
-    const VALID_ENGINES: CompileEngine[] = ['pdflatex', 'xelatex', 'lualatex', 'latexmk', 'tectonic'];
-    const compileEngine: CompileEngine =
-      VALID_ENGINES.includes(engine as CompileEngine)
-        ? (engine as CompileEngine)
-        : DEFAULT_SETTINGS.compileEngine;
-    return {
-      ...DEFAULT_SETTINGS,
-      ...parsed,
-      compileEngine
-    };
-  } catch {
-    return DEFAULT_SETTINGS;
-  }
-}
-
-function persistSettings(settings: AppSettings) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch {
-    // ignore
-  }
-}
-
-function loadCollabName() {
-  if (typeof window === 'undefined') return '';
-  try {
-    return window.localStorage.getItem(COLLAB_NAME_KEY) || '';
-  } catch {
-    return '';
-  }
-}
-
-function persistCollabName(name: string) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(COLLAB_NAME_KEY, name);
-  } catch {
-    // ignore
-  }
-}
-
-function pickCollabColor(seed?: string) {
-  if (!seed) {
-    return COLLAB_COLORS[Math.floor(Math.random() * COLLAB_COLORS.length)];
-  }
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = (hash * 31 + seed.charCodeAt(i)) % 997;
-  }
-  return COLLAB_COLORS[hash % COLLAB_COLORS.length];
-}
-
-function normalizeServerUrl(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return '';
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return `http://${trimmed}`;
-}
-
-const FIGURE_EXTS = ['.png', '.jpg', '.jpeg', '.pdf', '.svg', '.eps'];
-const TEXT_EXTS = ['.sty', '.cls', '.bst', '.txt', '.md', '.json', '.yaml', '.yml', '.csv', '.tsv'];
-
-function isTextPath(filePath: string) {
-  const lower = filePath.toLowerCase();
-  return lower.endsWith('.tex') || lower.endsWith('.bib') || TEXT_EXTS.some((ext) => lower.endsWith(ext));
-}
-
-const SECTION_LEVELS: Record<string, number> = {
-  section: 1,
-  subsection: 2,
-  subsubsection: 3,
-  paragraph: 4,
-  subparagraph: 5
-};
-
-const SECTION_RE = /\\(section|subsection|subsubsection|paragraph|subparagraph)\*?\b/;
-const ENV_RE = /\\(begin|end)\{([^}]+)\}/g;
-const IF_START_RE = /\\if[a-zA-Z@]*\b/g;
-const IF_END_RE = /\\fi\b/g;
-const IF_START_TEST = /\\if[a-zA-Z@]*\b/;
-const GROUP_START_RE = /\\begingroup\b/g;
-const GROUP_END_RE = /\\endgroup\b/g;
-const GROUP_START_TEST = /\\begingroup\b/;
-
-function stripLatexComment(text: string) {
-  let result = '';
-  let escaped = false;
-  for (const ch of text) {
-    if (ch === '%' && !escaped) break;
-    result += ch;
-    if (ch === '\\' && !escaped) {
-      escaped = true;
-    } else {
-      escaped = false;
-    }
-  }
-  return result;
-}
-
-function findEnvFold(state: EditorState, startLineNumber: number, lineEnd: number, env: string) {
-  let depth = 1;
-  for (let lineNo = startLineNumber + 1; lineNo <= state.doc.lines; lineNo += 1) {
-    const line = state.doc.line(lineNo);
-    const clean = stripLatexComment(line.text);
-    let match: RegExpExecArray | null;
-    ENV_RE.lastIndex = 0;
-    while ((match = ENV_RE.exec(clean)) !== null) {
-      const kind = match[1];
-      const name = match[2];
-      if (name !== env) continue;
-      if (kind === 'begin') depth += 1;
-      if (kind === 'end') depth -= 1;
-      if (depth === 0) {
-        if (line.from > lineEnd) {
-          return { from: lineEnd, to: line.from };
-        }
-        return null;
-      }
-    }
-  }
-  return null;
-}
-
-function findSectionFold(state: EditorState, startLineNumber: number, lineEnd: number, level: number) {
-  for (let lineNo = startLineNumber + 1; lineNo <= state.doc.lines; lineNo += 1) {
-    const line = state.doc.line(lineNo);
-    const clean = stripLatexComment(line.text);
-    const match = clean.match(SECTION_RE);
-    if (!match) continue;
-    const nextLevel = SECTION_LEVELS[match[1]] ?? 99;
-    if (nextLevel <= level) {
-      if (line.from > lineEnd) {
-        return { from: lineEnd, to: line.from };
-      }
-      return null;
-    }
-  }
-  if (state.doc.length > lineEnd) {
-    return { from: lineEnd, to: state.doc.length };
-  }
-  return null;
-}
-
-function countRegex(text: string, re: RegExp) {
-  let count = 0;
-  let match: RegExpExecArray | null;
-  re.lastIndex = 0;
-  while ((match = re.exec(text)) !== null) {
-    count += 1;
-  }
-  return count;
-}
-
-function countUnescapedToken(text: string, token: string) {
-  let count = 0;
-  for (let i = 0; i <= text.length - token.length; i += 1) {
-    if (text.slice(i, i + token.length) !== token) continue;
-    if (i > 0 && text[i - 1] === '\\') continue;
-    count += 1;
-    i += token.length - 1;
-  }
-  return count;
-}
-
-function findTokenFold(
-  state: EditorState,
-  startLineNumber: number,
-  lineEnd: number,
-  startRe: RegExp,
-  endRe: RegExp
-) {
-  let depth = 1;
-  for (let lineNo = startLineNumber + 1; lineNo <= state.doc.lines; lineNo += 1) {
-    const line = state.doc.line(lineNo);
-    const clean = stripLatexComment(line.text);
-    depth += countRegex(clean, startRe);
-    depth -= countRegex(clean, endRe);
-    if (depth <= 0) {
-      if (line.from > lineEnd) {
-        return { from: lineEnd, to: line.from };
-      }
-      return null;
-    }
-  }
-  return null;
-}
-
-function findDisplayMathFold(
-  state: EditorState,
-  startLineNumber: number,
-  lineEnd: number,
-  startToken: string,
-  endToken: string
-) {
-  for (let lineNo = startLineNumber + 1; lineNo <= state.doc.lines; lineNo += 1) {
-    const line = state.doc.line(lineNo);
-    const clean = stripLatexComment(line.text);
-    if (countUnescapedToken(clean, endToken) > 0) {
-      if (line.from > lineEnd) {
-        return { from: lineEnd, to: line.from };
-      }
-      return null;
-    }
-  }
-  return null;
-}
-
-function latexFoldService(state: EditorState, lineStart: number, lineEnd: number) {
-  const line = state.doc.lineAt(lineStart);
-  const clean = stripLatexComment(line.text);
-  if (!clean.trim()) return null;
-  const envMatch = clean.match(/\\begin\{([^}]+)\}/);
-  if (envMatch) {
-    return findEnvFold(state, line.number, lineEnd, envMatch[1]);
-  }
-  const sectionMatch = clean.match(SECTION_RE);
-  if (sectionMatch) {
-    const level = SECTION_LEVELS[sectionMatch[1]] ?? 99;
-    return findSectionFold(state, line.number, lineEnd, level);
-  }
-  if (GROUP_START_TEST.test(clean)) {
-    return findTokenFold(state, line.number, lineEnd, GROUP_START_RE, GROUP_END_RE);
-  }
-  if (IF_START_TEST.test(clean)) {
-    return findTokenFold(state, line.number, lineEnd, IF_START_RE, IF_END_RE);
-  }
-  const hasDisplayDollar = countUnescapedToken(clean, '$$') % 2 === 1;
-  if (hasDisplayDollar) {
-    return findDisplayMathFold(state, line.number, lineEnd, '$$', '$$');
-  }
-  const hasDisplayBracket = clean.includes('\\[');
-  if (hasDisplayBracket && !clean.includes('\\]')) {
-    return findDisplayMathFold(state, line.number, lineEnd, '\\[', '\\]');
-  }
-  return null;
-}
-
-function isFigureFile(path: string) {
-  const lower = path.toLowerCase();
-  return FIGURE_EXTS.some((ext) => lower.endsWith(ext));
-}
-
-function isTextFile(path: string) {
-  const lower = path.toLowerCase();
-  return lower.endsWith('.tex') || lower.endsWith('.bib') || TEXT_EXTS.some((ext) => lower.endsWith(ext));
-}
-
-function getFileTypeLabel(path: string) {
-  const lower = path.toLowerCase();
-  if (lower.endsWith('.tex')) return 'TEX';
-  if (lower.endsWith('.bib')) return 'BIB';
-  if (lower.endsWith('.cls')) return 'CLS';
-  if (lower.endsWith('.sty')) return 'STY';
-  if (lower.endsWith('.png')) return 'PNG';
-  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'JPG';
-  if (lower.endsWith('.svg')) return 'SVG';
-  if (lower.endsWith('.pdf')) return 'PDF';
-  if (lower.endsWith('.txt')) return 'TXT';
-  return 'FILE';
-}
-
-function getParentPath(target: string) {
-  if (!target) return '';
-  const idx = target.lastIndexOf('/');
-  return idx === -1 ? '' : target.slice(0, idx);
-}
-
-type TreeNode = {
-  name: string;
-  path: string;
-  type: 'file' | 'dir';
-  children: TreeNode[];
-};
-
-type OutlineItem = {
-  title: string;
-  level: number;
-  pos: number;
-  line: number;
-};
-
-function buildTree(items: { path: string; type: string }[], orderMap: Record<string, string[]> = {}) {
-  const root: TreeNode = { name: '', path: '', type: 'dir', children: [] };
-  const nodeMap = new Map<string, TreeNode>([['', root]]);
-
-  const sorted = [...items].sort((a, b) => a.path.localeCompare(b.path));
-
-  sorted.forEach((item) => {
-    const parts = item.path.split('/').filter(Boolean);
-    let currentPath = '';
-    parts.forEach((part, index) => {
-      const nextPath = currentPath ? `${currentPath}/${part}` : part;
-      if (!nodeMap.has(nextPath)) {
-        const isLeaf = index === parts.length - 1;
-        const node: TreeNode = {
-          name: part,
-          path: nextPath,
-          type: isLeaf ? (item.type === 'dir' ? 'dir' : 'file') : 'dir',
-          children: []
-        };
-        const parent = nodeMap.get(currentPath);
-        if (parent) {
-          parent.children.push(node);
-        }
-        nodeMap.set(nextPath, node);
-      }
-      currentPath = nextPath;
-    });
-  });
-
-  const sortNodes = (node: TreeNode) => {
-    const order = orderMap[node.path] || [];
-    node.children.sort((a, b) => {
-      const aKey = a.name;
-      const bKey = b.name;
-      const aIndex = order.indexOf(aKey);
-      const bIndex = order.indexOf(bKey);
-      if (aIndex !== -1 || bIndex !== -1) {
-        if (aIndex === -1) return 1;
-        if (bIndex === -1) return -1;
-        if (aIndex !== bIndex) return aIndex - bIndex;
-      }
-      if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
-    node.children.forEach(sortNodes);
-  };
-
-  sortNodes(root);
-  return root;
-}
-
-function findTreeNode(root: TreeNode, targetPath: string) {
-  if (root.path === targetPath) return root;
-  const parts = targetPath.split('/').filter(Boolean);
-  let current: TreeNode | null = root;
-  let pathSoFar = '';
-  for (const part of parts) {
-    if (!current) return null;
-    pathSoFar = pathSoFar ? `${pathSoFar}/${part}` : part;
-    current = current.children.find((child) => child.path === pathSoFar) || null;
-  }
-  return current;
-}
-
-function stripLineComment(line: string) {
-  let escaped = false;
-  for (let i = 0; i < line.length; i += 1) {
-    const ch = line[i];
-    if (ch === '%' && !escaped) {
-      return line.slice(0, i);
-    }
-    escaped = ch === '\\';
-  }
-  return line;
-}
-
-function parseOutline(text: string): OutlineItem[] {
-  const items: OutlineItem[] = [];
-  const lines = text.split(/\r?\n/);
-  let offset = 0;
-  lines.forEach((line, index) => {
-    const clean = stripLineComment(line);
-    const regex = /\\+(section|subsection|subsubsection)\*?\s*(?:\[[^\]]*\])?\s*\{([^}]*)\}/g;
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(clean))) {
-      const name = match[1];
-      const title = (match[2] || '').trim() || '(untitled)';
-      const level = name === 'section' ? 1 : name === 'subsection' ? 2 : 3;
-      items.push({
-        title,
-        level,
-        pos: offset + (match.index ?? 0),
-        line: index + 1
-      });
-    }
-    offset += line.length + 1;
-  });
-  return items;
-}
-
-function extractIncludeTargets(text: string) {
-  const targets: string[] = [];
-  const lines = text.split(/\r?\n/);
-  const regex = /\\(?:input|include)\s*\{([^}]+)\}/g;
-  lines.forEach((line) => {
-    const clean = stripLineComment(line);
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(clean))) {
-      const raw = (match[1] || '').trim();
-      if (raw) targets.push(raw);
-    }
-  });
-  return targets;
-}
-
-function findNearestHeading(text: string, cursorPos: number) {
-  const before = text.slice(0, cursorPos);
-  const lines = before.split(/\r?\n/).reverse();
-  for (const line of lines) {
-    const clean = stripLineComment(line);
-    const match = clean.match(/\\+(section|subsection|subsubsection)\*?\s*(?:\[[^\]]*\])?\s*\{([^}]*)\}/);
-    if (match) {
-      return {
-        title: (match[2] || '').trim() || '(untitled)',
-        level: match[1]
-      };
-    }
-  }
-  return null;
-}
-
-function findCurrentEnvironment(text: string) {
-  const stack: string[] = [];
-  const clean = text
-    .split('\n')
-    .map((line) => stripLineComment(line))
-    .join('\n');
-  const regex = /\\\\(begin|end)\\s*\\{([^}]+)\\}/g;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(clean))) {
-    const type = match[1];
-    const name = match[2].trim();
-    if (!name) continue;
-    if (type === 'begin') {
-      stack.push(name);
-    } else if (type === 'end') {
-      const idx = stack.lastIndexOf(name);
-      if (idx !== -1) {
-        stack.splice(idx, 1);
-      }
-    }
-  }
-  return stack.length > 0 ? stack[stack.length - 1] : '';
-}
-
-function extractJsonBlock(text: string) {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) return '';
-  return text.slice(start, end + 1);
-}
-
-function sanitizeJsonString(raw: string) {
-  let inString = false;
-  let escaped = false;
-  let out = '';
-  for (let i = 0; i < raw.length; i += 1) {
-    const ch = raw[i];
-    if (inString) {
-      if (escaped) {
-        out += ch;
-        escaped = false;
-        continue;
-      }
-      if (ch === '\\') {
-        out += ch;
-        escaped = true;
-        continue;
-      }
-      if (ch === '"') {
-        out += ch;
-        inString = false;
-        continue;
-      }
-      if (ch === '\n') {
-        out += '\\n';
-        continue;
-      }
-      if (ch === '\r') {
-        out += '\\r';
-        continue;
-      }
-      if (ch === '\t') {
-        out += '\\t';
-        continue;
-      }
-      const code = ch.charCodeAt(0);
-      if (code >= 0 && code < 0x20) {
-        out += `\\u${code.toString(16).padStart(4, '0')}`;
-        continue;
-      }
-      out += ch;
-    } else {
-      if (ch === '"') {
-        inString = true;
-      }
-      out += ch;
-    }
-  }
-  return out;
-}
-
-function safeJsonParse<T>(raw: string): T | null {
-  try {
-    return JSON.parse(raw) as T;
-  } catch (err) {
-    try {
-      return JSON.parse(sanitizeJsonString(raw)) as T;
-    } catch (err2) {
-      return null;
-    }
-  }
-}
+/* Settings, collab, file, latex, JSON, compile utilities imported from ../utils/ */
 
 function appendLog(setter: (val: string[] | ((prev: string[]) => string[])) => void, line: string) {
   setter((prev) => [...prev, line]);
 }
 
-function latexCompletionSource(context: CompletionContext) {
-  const before = context.matchBefore(/[\\/][A-Za-z]*$/);
-  if (!before) return null;
-  const prev = before.from > 0 ? context.state.doc.sliceString(before.from - 1, before.from) : ' ';
-  if (prev && !/[\s({\n]/.test(prev)) return null;
-  if (before.text.startsWith('/') && prev === ':') return null;
-  const options = [
-    { label: '\\section{}', type: 'keyword', apply: (view: any, _completion: any, from: number, to: number) => {
-      view.dispatch({
-        changes: { from, to, insert: '\\section{}' },
-        selection: { anchor: from + '\\section{'.length }
-      });
-    }},
-    { label: '\\subsection{}', type: 'keyword', apply: (view: any, _completion: any, from: number, to: number) => {
-      view.dispatch({
-        changes: { from, to, insert: '\\subsection{}' },
-        selection: { anchor: from + '\\subsection{'.length }
-      });
-    }},
-    { label: '\\subsubsection{}', type: 'keyword', apply: (view: any, _completion: any, from: number, to: number) => {
-      view.dispatch({
-        changes: { from, to, insert: '\\subsubsection{}' },
-        selection: { anchor: from + '\\subsubsection{'.length }
-      });
-    }},
-    { label: '\\paragraph{}', type: 'keyword', apply: (view: any, _completion: any, from: number, to: number) => {
-      view.dispatch({
-        changes: { from, to, insert: '\\paragraph{}' },
-        selection: { anchor: from + '\\paragraph{'.length }
-      });
-    }},
-    { label: '\\cite{}', type: 'keyword', apply: (view: any, _completion: any, from: number, to: number) => {
-      view.dispatch({
-        changes: { from, to, insert: '\\cite{}' },
-        selection: { anchor: from + '\\cite{'.length }
-      });
-    }},
-    { label: '\\ref{}', type: 'keyword', apply: (view: any, _completion: any, from: number, to: number) => {
-      view.dispatch({
-        changes: { from, to, insert: '\\ref{}' },
-        selection: { anchor: from + '\\ref{'.length }
-      });
-    }},
-    { label: '\\label{}', type: 'keyword', apply: (view: any, _completion: any, from: number, to: number) => {
-      view.dispatch({
-        changes: { from, to, insert: '\\label{}' },
-        selection: { anchor: from + '\\label{'.length }
-      });
-    }},
-    { label: '\\begin{itemize}', type: 'keyword', apply: '\\begin{itemize}\n\\item \n\\end{itemize}' },
-    { label: '\\begin{enumerate}', type: 'keyword', apply: '\\begin{enumerate}\n\\item \n\\end{enumerate}' },
-    { label: '\\begin{figure}', type: 'keyword', apply: '\\begin{figure}[t]\n\\centering\n\\includegraphics[width=0.9\\linewidth]{}\n\\caption{}\n\\label{}\n\\end{figure}' },
-    { label: '\\begin{table}', type: 'keyword', apply: '\\begin{table}[t]\n\\centering\n\\begin{tabular}{}\n\\end{tabular}\n\\caption{}\n\\label{}\n\\end{table}' }
-  ];
-  return {
-    from: before.from,
-    options,
-    validFor: /^[\\/][A-Za-z]*$/
-  };
-}
-
-const setGhostEffect = StateEffect.define<{ pos: number | null; text: string }>();
-
-class GhostWidget extends WidgetType {
-  constructor(private text: string) {
-    super();
-  }
-
-  toDOM() {
-    const span = document.createElement('span');
-    span.className = 'cm-ghost';
-    span.textContent = this.text;
-    return span;
-  }
-
-  ignoreEvent() {
-    return true;
-  }
-}
-
-const ghostField = StateField.define<DecorationSet>({
-  create() {
-    return Decoration.none;
-  },
-  update(deco, tr) {
-    let next = deco.map(tr.changes);
-    for (const effect of tr.effects) {
-      if (effect.is(setGhostEffect)) {
-        const { pos, text } = effect.value;
-        if (pos == null || !text) {
-          return Decoration.none;
-        }
-        const widget = Decoration.widget({
-          widget: new GhostWidget(text),
-          side: 1
-        });
-        return Decoration.set([widget.range(pos)]);
-      }
-    }
-    if (tr.docChanged || tr.selectionSet) {
-      return Decoration.none;
-    }
-    return next;
-  },
-  provide: (field) => EditorView.decorations.from(field)
-});
-
-/* ── LaTeX environment scope colorization ── */
-const SCOPE_COLORS = [
-  'rgba(180, 74, 47, 0.5)',
-  'rgba(59, 130, 186, 0.5)',
-  'rgba(76, 159, 88, 0.5)',
-  'rgba(180, 137, 47, 0.5)',
-  'rgba(142, 68, 173, 0.5)',
-  'rgba(211, 84, 0, 0.5)',
-];
-
-function computeEnvDepths(doc: { lines: number; line: (n: number) => { text: string } }): number[] {
-  const depths: number[] = [];
-  let depth = 0;
-  for (let i = 1; i <= doc.lines; i++) {
-    const clean = stripLatexComment(doc.line(i).text);
-    ENV_RE.lastIndex = 0;
-    let match: RegExpExecArray | null;
-    const events: { pos: number; delta: number }[] = [];
-    while ((match = ENV_RE.exec(clean)) !== null) {
-      events.push({ pos: match.index, delta: match[1] === 'begin' ? 1 : -1 });
-    }
-    events.sort((a, b) => a.pos - b.pos);
-    let lineDepth = depth;
-    for (const ev of events) {
-      if (ev.delta < 0) { depth--; lineDepth = Math.min(lineDepth, depth); }
-      else { depth++; }
-    }
-    depths.push(Math.max(0, lineDepth));
-  }
-  return depths;
-}
-
-const envDepthField = StateField.define<number[]>({
-  create(state) { return computeEnvDepths(state.doc); },
-  update(value, tr) {
-    if (tr.docChanged) return computeEnvDepths(tr.state.doc);
-    return value;
-  },
-});
-
-class ScopeMarker extends GutterMarker {
-  constructor(readonly depth: number) { super(); }
-  toDOM() {
-    const wrap = document.createElement('div');
-    wrap.className = 'cm-scope-marker';
-    for (let i = 0; i < this.depth; i++) {
-      const bar = document.createElement('span');
-      bar.className = 'cm-scope-bar';
-      bar.style.backgroundColor = SCOPE_COLORS[i % SCOPE_COLORS.length];
-      wrap.appendChild(bar);
-    }
-    return wrap;
-  }
-}
-
-const scopeGutter = gutter({
-  class: 'cm-scope-gutter',
-  lineMarker(view, line) {
-    const depths = view.state.field(envDepthField);
-    const lineNo = view.state.doc.lineAt(line.from).number;
-    const d = depths[lineNo - 1] || 0;
-    return d > 0 ? new ScopeMarker(d) : null;
-  },
-});
-
-const editorTheme = EditorView.theme(
-  {
-    '&': {
-      height: '100%',
-      background: 'transparent'
-    },
-    '.cm-scroller': {
-      fontFamily: '"JetBrains Mono", "SF Mono", "Menlo", monospace',
-      fontSize: 'var(--editor-font-size, 11px)',
-      lineHeight: '1.6'
-    },
-    '.cm-content': {
-      padding: '16px'
-    },
-    '.cm-gutters': {
-      background: 'transparent',
-      border: 'none',
-      color: 'rgba(122, 111, 103, 0.6)'
-    },
-    '.cm-lineNumbers .cm-gutterElement': {
-      padding: '0 8px 0 12px'
-    },
-    '.cm-activeLine': {
-      background: 'rgba(180, 74, 47, 0.08)'
-    },
-    '.cm-activeLineGutter': {
-      background: 'transparent'
-    },
-    '.cm-selectionBackground': {
-      background: 'rgba(180, 74, 47, 0.18)'
-    }
-  },
-  { dark: false }
-);
-
-function buildSplitDiff(original: string, proposed: string) {
-  const parts = diffLines(original, proposed);
-  let leftLine = 1;
-  let rightLine = 1;
-  const rows: {
-    left?: string;
-    right?: string;
-    leftNo?: number;
-    rightNo?: number;
-    type: 'context' | 'added' | 'removed';
-  }[] = [];
-
-  parts.forEach((part) => {
-    const lines = part.value.split('\n');
-    if (lines[lines.length - 1] === '') {
-      lines.pop();
-    }
-    lines.forEach((line) => {
-      if (part.added) {
-        rows.push({ right: line, rightNo: rightLine++, type: 'added' });
-      } else if (part.removed) {
-        rows.push({ left: line, leftNo: leftLine++, type: 'removed' });
-      } else {
-        rows.push({
-          left: line,
-          right: line,
-          leftNo: leftLine++,
-          rightNo: rightLine++,
-          type: 'context'
-        });
-      }
-    });
-  });
-
-  return rows;
-}
-
-type CompileError = {
-  message: string;
-  line?: number;
-  file?: string;
-  raw?: string;
-};
-
-function parseCompileErrors(log: string): CompileError[] {
-  if (!log) return [];
-  const lines = log.split('\n');
-  const errors: CompileError[] = [];
-  const seen = new Set<string>();
-
-  const pushError = (error: CompileError) => {
-    const key = `${error.file || ''}:${error.line || ''}:${error.message}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    errors.push(error);
-  };
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    const fileLineMatch = line.match(/([A-Za-z0-9_./-]+\.tex):(\d+)/);
-    if (fileLineMatch) {
-      pushError({
-        message: line.trim(),
-        file: fileLineMatch[1],
-        line: Number(fileLineMatch[2]),
-        raw: line
-      });
-    }
-    if (line.startsWith('!')) {
-      const message = line.replace(/^!+\s*/, '').trim();
-      let lineNo: number | undefined;
-      for (let j = i + 1; j < Math.min(i + 4, lines.length); j += 1) {
-        const match = lines[j].match(/l\.(\d+)/);
-        if (match) {
-          lineNo = Number(match[1]);
-          break;
-        }
-      }
-      pushError({ message, line: lineNo, raw: line });
-    }
-  }
-
-  return errors;
-}
-
-function findLineOffset(text: string, line: number) {
-  if (line <= 1) return 0;
-  let offset = 0;
-  let current = 1;
-  while (current < line && offset < text.length) {
-    const next = text.indexOf('\n', offset);
-    if (next === -1) break;
-    offset = next + 1;
-    current += 1;
-  }
-  return offset;
-}
-
-function replaceSelection(source: string, start: number, end: number, replacement: string) {
-  return source.slice(0, start) + replacement + source.slice(end);
-}
-
-function SplitDiffView({ rows }: { rows: ReturnType<typeof buildSplitDiff> }) {
-  const { t } = useTranslation();
-  const leftRef = useRef<HTMLDivElement | null>(null);
-  const rightRef = useRef<HTMLDivElement | null>(null);
-  const lockRef = useRef(false);
-
-  const syncScroll = (source: HTMLDivElement | null, target: HTMLDivElement | null) => {
-    if (!source || !target || lockRef.current) return;
-    lockRef.current = true;
-    target.scrollTop = source.scrollTop;
-    target.scrollLeft = source.scrollLeft;
-    requestAnimationFrame(() => {
-      lockRef.current = false;
-    });
-  };
-
-  return (
-    <div className="split-diff">
-      <div
-        className="split-column"
-        ref={leftRef}
-        onScroll={() => syncScroll(leftRef.current, rightRef.current)}
-      >
-        <div className="split-header">{t('Before')}</div>
-        {rows.map((row, idx) => (
-          <div key={`l-${idx}`} className={`split-row ${row.type}`}>
-            <div className="line-no">{row.leftNo ?? ''}</div>
-            <div className="line-text">{row.left ?? ''}</div>
-          </div>
-        ))}
-      </div>
-      <div
-        className="split-column"
-        ref={rightRef}
-        onScroll={() => syncScroll(rightRef.current, leftRef.current)}
-      >
-        <div className="split-header">{t('After')}</div>
-        {rows.map((row, idx) => (
-          <div key={`r-${idx}`} className={`split-row ${row.type}`}>
-            <div className="line-no">{row.rightNo ?? ''}</div>
-            <div className="line-text">{row.right ?? ''}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PdfPreview({
-  pdfUrl,
-  scale,
-  fitWidth,
-  spread,
-  onFitScale,
-  onTextClick,
-  onOutline,
-  annotations,
-  annotateMode,
-  onAddAnnotation,
-  containerRef: externalRef
-}: {
-  pdfUrl: string;
-  scale: number;
-  fitWidth: boolean;
-  spread: boolean;
-  onFitScale?: (value: number | null) => void;
-  onTextClick: (text: string) => void;
-  onOutline?: (items: { title: string; page?: number; level: number }[]) => void;
-  annotations: { id: string; page: number; x: number; y: number; text: string }[];
-  annotateMode: boolean;
-  onAddAnnotation?: (page: number, x: number, y: number) => void;
-  containerRef?: RefObject<HTMLDivElement>;
-}) {
-  const { t } = useTranslation();
-  const localRef = useRef<HTMLDivElement | null>(null);
-  const containerRef = externalRef || localRef;
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !pdfUrl) return;
-    let cancelled = false;
-    container.innerHTML = '';
-
-    const render = async () => {
-      try {
-        const loadingTask = getDocument(pdfUrl);
-        const pdf = await loadingTask.promise;
-
-        // 获取容器宽度用于计算缩放比例
-        const containerWidth = container.clientWidth - 24; // 减去 padding
-        const pageTargetWidth = spread ? Math.max(200, (containerWidth - 16) / 2) : containerWidth;
-
-        let baseScale = scale;
-        let firstPage: Awaited<ReturnType<typeof pdf.getPage>> | null = null;
-        if (fitWidth && containerWidth > 0) {
-          firstPage = await pdf.getPage(1);
-          const originalViewport = firstPage.getViewport({ scale: 1.0 });
-          baseScale = pageTargetWidth / originalViewport.width;
-          if (onFitScale) {
-            onFitScale(baseScale);
-          }
-        } else if (onFitScale) {
-          onFitScale(null);
-        }
-
-        const renderPage = async (page: Awaited<ReturnType<typeof pdf.getPage>>) => {
-          // 先获取原始尺寸
-          const cssViewport = page.getViewport({ scale: baseScale });
-          const qualityBoost = Math.min(2.4, (window.devicePixelRatio || 1) * 1.25);
-          const renderViewport = page.getViewport({ scale: baseScale * qualityBoost });
-
-          const pageWrapper = document.createElement('div');
-          pageWrapper.className = 'pdf-page';
-          pageWrapper.style.width = `${cssViewport.width}px`;
-          pageWrapper.style.height = `${cssViewport.height}px`;
-          pageWrapper.dataset.pageNumber = String(page.pageNumber);
-
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          canvas.width = renderViewport.width;
-          canvas.height = renderViewport.height;
-          canvas.style.width = `${cssViewport.width}px`;
-          canvas.style.height = `${cssViewport.height}px`;
-          pageWrapper.appendChild(canvas);
-
-          const textLayer = document.createElement('div');
-          textLayer.className = 'textLayer';
-          textLayer.style.width = `${cssViewport.width}px`;
-          textLayer.style.height = `${cssViewport.height}px`;
-          pageWrapper.appendChild(textLayer);
-
-          if (ctx) {
-            await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
-          }
-          const textContent = await page.getTextContent();
-          renderTextLayer({
-            textContentSource: textContent,
-            container: textLayer,
-            viewport: cssViewport
-          });
-          return pageWrapper;
-        };
-
-        const wrappers: HTMLElement[] = [];
-        if (firstPage) {
-          if (cancelled) return;
-          const firstWrapper = await renderPage(firstPage);
-          wrappers.push(firstWrapper);
-        }
-
-        for (let pageNum = firstPage ? 2 : 1; pageNum <= pdf.numPages; pageNum += 1) {
-          if (cancelled) return;
-          const page = await pdf.getPage(pageNum);
-          const wrapper = await renderPage(page);
-          wrappers.push(wrapper);
-        }
-
-        if (spread) {
-          for (let idx = 0; idx < wrappers.length; idx += 2) {
-            const row = document.createElement('div');
-            row.className = 'pdf-spread';
-            row.appendChild(wrappers[idx]);
-            if (wrappers[idx + 1]) {
-              row.appendChild(wrappers[idx + 1]);
-            }
-            container.appendChild(row);
-          }
-        } else {
-          wrappers.forEach((wrapper) => container.appendChild(wrapper));
-        }
-
-        if (onOutline) {
-          try {
-            const outline = await pdf.getOutline();
-            const items: { title: string; page?: number; level: number }[] = [];
-            const walk = async (entries: any[], level: number) => {
-              if (!entries) return;
-              for (const entry of entries) {
-                let pageNumber: number | undefined;
-                try {
-                  const dest = typeof entry.dest === 'string' ? await pdf.getDestination(entry.dest) : entry.dest;
-                  if (Array.isArray(dest) && dest.length > 0) {
-                    const pageIndex = await pdf.getPageIndex(dest[0]);
-                    pageNumber = pageIndex + 1;
-                  }
-                } catch {
-                  pageNumber = undefined;
-                }
-                items.push({ title: entry.title || t('(untitled)'), page: pageNumber, level });
-                if (entry.items?.length) {
-                  await walk(entry.items, level + 1);
-                }
-              }
-            };
-            await walk(outline || [], 1);
-            onOutline(items);
-          } catch {
-            onOutline([]);
-          }
-        }
-      } catch (err) {
-        console.error('PDF render error:', err);
-        container.innerHTML = `<div class="muted">${t('PDF 渲染失败')}</div>`;
-      }
-    };
-
-    render().catch(() => {
-      container.innerHTML = `<div class="muted">${t('PDF 渲染失败')}</div>`;
-    });
-
-    return () => {
-      cancelled = true;
-      container.innerHTML = '';
-    };
-  }, [pdfUrl, fitWidth, onFitScale, scale, spread, onOutline, t]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    container.querySelectorAll('.pdf-annotation').forEach((node) => node.remove());
-    annotations.forEach((note) => {
-      const pageEl = container.querySelector(`.pdf-page[data-page-number="${note.page}"]`) as HTMLElement | null;
-      if (!pageEl) return;
-      const marker = document.createElement('div');
-      marker.className = 'pdf-annotation';
-      marker.style.left = `${note.x * 100}%`;
-      marker.style.top = `${note.y * 100}%`;
-      marker.title = note.text;
-      marker.dataset.annotationId = note.id;
-      pageEl.appendChild(marker);
-    });
-  }, [annotations, pdfUrl, spread]);
-
-  return (
-    <div
-      className={`pdf-preview ${annotateMode ? 'annotate' : ''}`}
-      ref={containerRef}
-      onClick={(event) => {
-        const target = event.target as HTMLElement | null;
-        if (!target) return;
-        if (annotateMode && onAddAnnotation) {
-          const pageEl = target.closest('.pdf-page') as HTMLElement | null;
-          if (pageEl) {
-            const rect = pageEl.getBoundingClientRect();
-            const x = (event.clientX - rect.left) / rect.width;
-            const y = (event.clientY - rect.top) / rect.height;
-            const page = Number(pageEl.dataset.pageNumber || 1);
-            onAddAnnotation(page, x, y);
-            return;
-          }
-        }
-        if (target.tagName !== 'SPAN') return;
-        const text = (target.textContent || '').trim();
-        if (text.length < 3) return;
-        onTextClick(text);
-      }}
-    />
-  );
-}
-
 export default function EditorPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { toast } = useToast();
   const { projectId: routeProjectId } = useParams();
   const projectId = routeProjectId || '';
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
+  useEffect(() => {
+    document.title = projectName ? `${projectName} — Manuscripta` : 'Manuscripta';
+  }, [projectName]);
   const [tree, setTree] = useState<{ path: string; type: string }[]>([]);
   const [fileOrder, setFileOrder] = useState<Record<string, string[]>>({});
   const [activePath, setActivePath] = useState<string>('');
@@ -1261,16 +209,21 @@ export default function EditorPage() {
   const [pdfOutline, setPdfOutline] = useState<{ title: string; page?: number; level: number }[]>([]);
   const [pdfAnnotations, setPdfAnnotations] = useState<{ id: string; page: number; x: number; y: number; text: string }[]>([]);
   const [pdfAnnotateMode, setPdfAnnotateMode] = useState(false);
+  const [hasSynctex, setHasSynctex] = useState(false);
+  const [synctexHighlight, setSynctexHighlight] = useState<{ page: number; x: number; y: number; w: number; h: number } | null>(null);
   const [engineName, setEngineName] = useState<string>('');
   const [isCompiling, setIsCompiling] = useState(false);
+  const [compilePhase, setCompilePhase] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [offlineDraftCount, setOfflineDraftCount] = useState(0);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle');
   const [savePulse, setSavePulse] = useState(false);
   const [status, setStatus] = useState<string>('');
   const [rightView, setRightView] = useState<'pdf' | 'figures' | 'diff' | 'log' | 'toc' | 'review'>('pdf');
   const [selectedFigure, setSelectedFigure] = useState<string>('');
   const [diffFocus, setDiffFocus] = useState<PendingChange | null>(null);
-  const [activeSidebar, setActiveSidebar] = useState<'files' | 'agent' | 'vision' | 'search' | 'websearch' | 'plot' | 'review' | 'collab'>('files');
+  const [activeSidebar, setActiveSidebar] = useState<'files' | 'agent' | 'vision' | 'search' | 'websearch' | 'plot' | 'review' | 'references' | 'collab' | 'zotero' | 'mendeley' | 'git' | 'comments' | 'trackchanges'>('files');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [columnSizes, setColumnSizes] = useState({ sidebar: 260, editor: 640, right: 420 });
   const [editorSplit, setEditorSplit] = useState(0.7);
@@ -1338,6 +291,7 @@ export default function EditorPage() {
   const [collabName, setCollabName] = useState(() => loadCollabName() || 'Guest');
   const [collabToken] = useState(() => getCollabToken());
   const [collabPeers, setCollabPeers] = useState<{ id: number; name: string; color: string }[]>([]);
+  const bibEntriesRef = useRef<BibEntry[]>([]);
   const editorHostRef = useRef<HTMLDivElement | null>(null);
   const editorAreaRef = useRef<HTMLDivElement | null>(null);
   const cmViewRef = useRef<EditorView | null>(null);
@@ -1352,6 +306,9 @@ export default function EditorPage() {
   const acceptChunkRef = useRef<() => void>(() => {});
   const clearSuggestionRef = useRef<() => void>(() => {});
   const saveActiveFileRef = useRef<() => void>(() => {});
+  const compileRef = useRef<() => void>(() => {});
+  const logContentRef = useRef<HTMLPreElement | null>(null);
+  const synctexForwardRef = useRef<() => void>(() => {});
   const gridRef = useRef<HTMLDivElement | null>(null);
   const editorSplitRef = useRef<HTMLDivElement | null>(null);
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
@@ -1360,12 +317,14 @@ export default function EditorPage() {
   const folderInputRef = useRef<HTMLInputElement | null>(null);
   const saveTimerRef = useRef<number | null>(null);
   const collabProviderRef = useRef<CollabProvider | null>(null);
+  const webrtcProviderRef = useRef<WebRTCProvider | null>(null);
   const collabDocRef = useRef<{ doc: Y.Doc; text: Y.Text; awareness: Awareness } | null>(null);
   const collabActiveRef = useRef(false);
   const collabColorRef = useRef<string>(pickCollabColor(collabName));
   const collabCompartment = useMemo(() => new Compartment(), []);
 
   const {
+    provider,
     llmEndpoint,
     llmApiKey,
     llmModel,
@@ -1375,12 +334,39 @@ export default function EditorPage() {
     visionEndpoint,
     visionApiKey,
     visionModel,
-    compileEngine
+    compileEngine,
+    grammarEnabled,
+    grammarModel
   } = settings;
+
+  // Grammar state
+  const [grammarIssues, setGrammarIssues] = useState<GrammarIssue[]>([]);
+  const [grammarBusy, setGrammarBusy] = useState(false);
+  const grammarTimerRef = useRef<number | null>(null);
+  const grammarFixRef = useRef<(mark: GrammarMark) => void>(() => {});
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('manuscripta-dark-mode') === 'true';
+  });
+  const [grammarFilter, setGrammarFilter] = useState<string>('all');
 
   useEffect(() => {
     persistSettings(settings);
   }, [settings]);
+
+  // Monitor offline sync status
+  useEffect(() => {
+    getDraftCount().then(setOfflineDraftCount).catch(() => {});
+    return onSyncStatusChange((status, result) => {
+      setSyncStatus(status);
+      if (status === 'done') {
+        getDraftCount().then(setOfflineDraftCount).catch(() => {});
+        if (result && result.synced > 0) {
+          setStatus(`Synced ${result.synced} offline draft(s) to server.`);
+        }
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (collabServer) {
@@ -1404,6 +390,157 @@ export default function EditorPage() {
       collabActiveRef.current = false;
     }
   }, [collabEnabled]);
+
+  // Provider change handler: auto-fill endpoint + model from presets
+
+  // Push grammar marks into CodeMirror decorations
+  const pushGrammarMarks = useCallback((issues: GrammarIssue[]) => {
+    const view = cmViewRef.current;
+    if (!view) return;
+    const doc = view.state.doc.toString();
+    const marks: GrammarMark[] = [];
+    for (const issue of issues) {
+      const idx = doc.indexOf(issue.original);
+      if (idx === -1) continue;
+      marks.push({
+        from: idx,
+        to: idx + issue.original.length,
+        original: issue.original,
+        replacement: issue.replacement,
+        category: issue.category,
+        severity: issue.severity,
+        explanation: issue.explanation
+      });
+    }
+    view.dispatch({ effects: setGrammarMarks.of(marks) });
+  }, []);
+
+  // Grammar check: full document scan
+  const handleGrammarCheck = useCallback(async () => {
+    if (grammarBusy) return;
+    setGrammarBusy(true);
+    try {
+      const res = await grammarCheck({
+        content: editorValue,
+        mode: 'full',
+        llmConfig: { endpoint: llmEndpoint, apiKey: llmApiKey, model: grammarModel || llmModel }
+      });
+      if (res.ok) {
+        const issues = res.issues || [];
+        setGrammarIssues(issues);
+        pushGrammarMarks(issues);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setGrammarBusy(false);
+    }
+  }, [editorValue, llmEndpoint, llmApiKey, llmModel, grammarModel, grammarBusy, pushGrammarMarks]);
+
+  // Grammar fix: apply a single fix (works from both panel and tooltip)
+  const handleGrammarFix = useCallback((issue: GrammarIssue | GrammarMark) => {
+    const view = cmViewRef.current;
+    if (!view) return;
+    const doc = view.state.doc.toString();
+    const idx = doc.indexOf(issue.original);
+    if (idx === -1) return;
+    view.dispatch({
+      changes: { from: idx, to: idx + issue.original.length, insert: issue.replacement }
+    });
+    setGrammarIssues((prev) => prev.filter((i) => i.original !== issue.original || i.replacement !== issue.replacement));
+  }, []);
+
+  // Wire up the tooltip fix ref
+  grammarFixRef.current = handleGrammarFix;
+
+  // Grammar fix all
+  const handleGrammarFixAll = useCallback(() => {
+    const view = cmViewRef.current;
+    if (!view || grammarIssues.length === 0) return;
+    const doc = view.state.doc.toString();
+    const sorted = [...grammarIssues]
+      .map((issue) => ({ issue, idx: doc.indexOf(issue.original) }))
+      .filter((item) => item.idx !== -1)
+      .sort((a, b) => b.idx - a.idx);
+    const changes = sorted.map(({ issue, idx }) => ({
+      from: idx,
+      to: idx + issue.original.length,
+      insert: issue.replacement
+    }));
+    if (changes.length > 0) {
+      view.dispatch({ changes });
+      setGrammarIssues([]);
+    }
+  }, [grammarIssues]);
+
+  // Grammar fix by category
+  const handleGrammarFixCategory = useCallback((category: string) => {
+    const view = cmViewRef.current;
+    if (!view) return;
+    const toFix = grammarIssues.filter((i) => i.category === category);
+    if (toFix.length === 0) return;
+    const doc = view.state.doc.toString();
+    const sorted = toFix
+      .map((issue) => ({ issue, idx: doc.indexOf(issue.original) }))
+      .filter((item) => item.idx !== -1)
+      .sort((a, b) => b.idx - a.idx);
+    const changes = sorted.map(({ issue, idx }) => ({
+      from: idx,
+      to: idx + issue.original.length,
+      insert: issue.replacement
+    }));
+    if (changes.length > 0) {
+      view.dispatch({ changes });
+      setGrammarIssues((prev) => prev.filter((i) => i.category !== category));
+    }
+  }, [grammarIssues]);
+
+  // Jump to grammar issue in editor
+  const handleGrammarJump = useCallback((issue: GrammarIssue) => {
+    const view = cmViewRef.current;
+    if (!view) return;
+    const doc = view.state.doc.toString();
+    const idx = doc.indexOf(issue.original);
+    if (idx === -1) return;
+    view.dispatch({
+      selection: { anchor: idx, head: idx + issue.original.length },
+      scrollIntoView: true
+    });
+    view.focus();
+  }, []);
+
+  // Debounced inline grammar checking (triggers when grammarEnabled and editor content changes)
+  useEffect(() => {
+    if (!grammarEnabled || !editorValue || editorValue.length < 20) return;
+    if (grammarTimerRef.current) {
+      clearTimeout(grammarTimerRef.current);
+    }
+    grammarTimerRef.current = window.setTimeout(async () => {
+      try {
+        const res = await grammarInline({
+          content: editorValue,
+          llmConfig: { endpoint: llmEndpoint, apiKey: llmApiKey, model: grammarModel || llmModel }
+        });
+        if (res.ok && res.issues && res.issues.length > 0) {
+          setGrammarIssues(res.issues);
+          pushGrammarMarks(res.issues);
+        }
+      } catch {
+        // silently fail for inline
+      }
+    }, 3000);
+    return () => {
+      if (grammarTimerRef.current) clearTimeout(grammarTimerRef.current);
+    };
+  }, [editorValue, grammarEnabled, llmEndpoint, llmApiKey, llmModel, grammarModel, pushGrammarMarks]);
+
+  // Dark mode: toggle class on document and persist
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('manuscripta-dark-mode', darkMode ? 'true' : 'false');
+    }
+  }, [darkMode]);
 
   const llmConfig = useMemo(
     () => ({
@@ -1463,6 +600,10 @@ export default function EditorPage() {
         collabProviderRef.current.disconnect();
         collabProviderRef.current = null;
       }
+      if (webrtcProviderRef.current) {
+        webrtcProviderRef.current.disconnect();
+        webrtcProviderRef.current = null;
+      }
       collabDocRef.current = null;
       view.dispatch({ effects: collabCompartment.reconfigure([]) });
       setCollabStatus('disconnected');
@@ -1474,6 +615,10 @@ export default function EditorPage() {
       if (collabProviderRef.current) {
         collabProviderRef.current.disconnect();
         collabProviderRef.current = null;
+      }
+      if (webrtcProviderRef.current) {
+        webrtcProviderRef.current.disconnect();
+        webrtcProviderRef.current = null;
       }
       collabDocRef.current = null;
       view.dispatch({ effects: collabCompartment.reconfigure([]) });
@@ -1513,6 +658,18 @@ export default function EditorPage() {
     collabActiveRef.current = true;
     provider.connect();
 
+    // Start WebRTC P2P layer for direct peer-to-peer sync
+    const webrtcProvider = new WebRTCProvider({
+      serverUrl: normalizeServerUrl(collabServer) || (typeof window === 'undefined' ? '' : window.location.origin),
+      token: collabToken || undefined,
+      projectId,
+      filePath: activePath,
+      doc: ydoc,
+      awareness,
+    });
+    webrtcProviderRef.current = webrtcProvider;
+    webrtcProvider.connect();
+
     const updatePeers = () => {
       const peers: { id: number; name: string; color: string }[] = [];
       awareness.getStates().forEach((state, id) => {
@@ -1534,6 +691,10 @@ export default function EditorPage() {
       awareness.off('update', updatePeers);
       provider.disconnect();
       collabProviderRef.current = null;
+      if (webrtcProviderRef.current) {
+        webrtcProviderRef.current.disconnect();
+        webrtcProviderRef.current = null;
+      }
       collabDocRef.current = null;
       ydoc.destroy();
       view.dispatch({ effects: collabCompartment.reconfigure([]) });
@@ -1686,7 +847,46 @@ export default function EditorPage() {
       {
         key: 'Escape',
         run: () => {
+          if (!inlineSuggestionRef.current) return false;
           clearSuggestionRef.current();
+          return true;
+        }
+      },
+      {
+        key: 'Mod-Enter',
+        run: () => {
+          compileRef.current();
+          return true;
+        }
+      },
+      {
+        key: 'Mod-b',
+        run: (view) => {
+          const { from, to } = view.state.selection.main;
+          const selected = view.state.sliceDoc(from, to);
+          view.dispatch({ changes: { from, to, insert: `\\textbf{${selected}}` } });
+          if (!selected) {
+            view.dispatch({ selection: { anchor: from + 8 } });
+          }
+          return true;
+        }
+      },
+      {
+        key: 'Mod-i',
+        run: (view) => {
+          const { from, to } = view.state.selection.main;
+          const selected = view.state.sliceDoc(from, to);
+          view.dispatch({ changes: { from, to, insert: `\\textit{${selected}}` } });
+          if (!selected) {
+            view.dispatch({ selection: { anchor: from + 8 } });
+          }
+          return true;
+        }
+      },
+      {
+        key: 'Mod-Shift-p',
+        run: () => {
+          synctexForwardRef.current();
           return true;
         }
       },
@@ -1707,8 +907,11 @@ export default function EditorPage() {
         editorTheme,
         collabCompartment.of([]),
         ghostField,
+        grammarField,
+        grammarTooltip((mark) => grammarFixRef.current(mark)),
         search(),
-        autocompletion({ override: [latexCompletionSource] }),
+        autocompletion({ override: [latexCompletionSource, createCiteKeyCompletion(bibEntriesRef)] }),
+        browserSpellCheck,
         updateListener,
         keymapExtension
       ]
@@ -1763,15 +966,26 @@ export default function EditorPage() {
       }
       return cached;
     }
-    const data = await getFile(projectId, filePath);
-    setFiles((prev) => ({ ...prev, [filePath]: data.content }));
+    let content = '';
+    try {
+      const data = await getFile(projectId, filePath);
+      content = data.content;
+    } catch {
+      // Server unreachable — try loading from offline draft
+      const draft = await loadDraft(projectId, filePath).catch(() => null);
+      if (draft) {
+        content = draft.content;
+        setStatus(t('离线模式：已从本地缓存加载 {{path}}', { path: filePath }));
+      }
+    }
+    setFiles((prev) => ({ ...prev, [filePath]: content }));
     const collabTextFile = collabEnabled && isTextPath(filePath);
-    setEditorValue(collabTextFile ? '' : data.content);
+    setEditorValue(collabTextFile ? '' : content);
     setIsDirty(false);
     if (!collabTextFile) {
-      setEditorDoc(data.content);
+      setEditorDoc(content);
     }
-    return data.content;
+    return content;
   };
 
   const setEditorDoc = useCallback((value: string) => {
@@ -1972,11 +1186,22 @@ export default function EditorPage() {
         setIsDirty(false);
         setSavePulse(true);
         window.setTimeout(() => setSavePulse(false), 1200);
+        // Clear any offline draft on successful save
+        deleteDraft(projectId, activePath).catch(() => {});
         if (!opts?.silent) {
           setStatus(t('已保存 {{path}}', { path: activePath }));
         }
       } catch (err) {
-        setStatus(t('保存失败: {{error}}', { error: String(err) }));
+        // Server unreachable — save to IndexedDB for offline recovery
+        try {
+          await saveDraft(projectId, activePath, editorValue);
+          setIsDirty(false);
+          if (!opts?.silent) {
+            setStatus(t('离线已保存 {{path}}（服务器不可用）', { path: activePath }));
+          }
+        } catch {
+          setStatus(t('保存失败: {{error}}', { error: String(err) }));
+        }
       } finally {
         setIsSaving(false);
       }
@@ -2641,9 +1866,25 @@ export default function EditorPage() {
 
   const handleUpload = async (fileList: FileList | null, basePath = '') => {
     if (!projectId || !fileList || fileList.length === 0) return;
-    const files = Array.from(fileList);
-    await uploadFiles(projectId, files, basePath);
+    const fileArr = Array.from(fileList);
+    setStatus(t('正在上传 {{num}} 个文件…', { num: String(fileArr.length) }));
+    const res = await uploadFiles(projectId, fileArr, basePath);
+    // Evict cached content for any overwritten files so re-open fetches fresh data
+    if (res.files && res.files.length > 0) {
+      setFiles((prev) => {
+        const next = { ...prev };
+        for (const p of res.files!) {
+          delete next[p];
+        }
+        return next;
+      });
+    }
     await refreshTree();
+    // If the active file was overwritten, re-open it to pick up new content
+    if (activePath && res.files?.includes(activePath)) {
+      await openFile(activePath);
+    }
+    setStatus(t('已上传 {{num}} 个文件。', { num: String(res.files?.length ?? fileArr.length) }));
   };
 
   const handleVisionSubmit = async () => {
@@ -2720,16 +1961,16 @@ export default function EditorPage() {
         // If deleted file was the active file, clear it
         if (target === activePath) {
           setActivePath('');
-          setContent('');
+          setEditorValue('');
         }
         // Refresh the file tree
         refreshTree();
       } else {
-        alert(result.error || t('删除失败'));
+        toast(result.error || t('删除失败'), 'error');
       }
     } catch (err) {
       console.error('Delete error:', err);
-      alert(t('删除失败') + ': ' + String(err));
+      toast(t('删除失败') + ': ' + String(err), 'error');
     }
   };
 
@@ -2888,12 +2129,7 @@ export default function EditorPage() {
   const translateTargetOptions = useMemo(
     () => [
       { value: 'English', label: t('English') },
-      { value: '中文', label: t('中文') },
-      { value: '日本語', label: t('日本語') },
-      { value: '한국어', label: t('한국어') },
-      { value: 'Français', label: t('Français') },
-      { value: 'Deutsch', label: t('Deutsch') },
-      { value: 'Español', label: t('Español') }
+      { value: '中文', label: t('中文') }
     ],
     [t]
   );
@@ -2977,6 +2213,9 @@ export default function EditorPage() {
       setBibTarget(bibFiles[0]);
     }
   }, [bibFiles, bibTarget]);
+
+  const bibEntries = useMemo(() => parseBibEntries(files), [files]);
+  useEffect(() => { bibEntriesRef.current = bibEntries; }, [bibEntries]);
 
   const setAllFolders = useCallback(
     (open: boolean) => {
@@ -3187,10 +2426,15 @@ export default function EditorPage() {
           }}
           onDrop={(event) => {
             event.preventDefault();
-            const from = event.dataTransfer.getData('text/plain');
             setDragOverPath('');
             setDragOverKind('');
             setDragHint(null);
+            if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+              const targetParent = getParentPath(node.path);
+              handleUpload(event.dataTransfer.files, targetParent).catch((err) => setStatus(t('上传失败: {{error}}', { error: String(err) })));
+              return;
+            }
+            const from = event.dataTransfer.getData('text/plain');
             if (!from) return;
             if (fileFilter.trim()) {
               setStatus(t('搜索过滤中无法拖拽排序。'));
@@ -3236,29 +2480,47 @@ export default function EditorPage() {
   const compile = async () => {
     if (!projectId) return;
     setIsCompiling(true);
-    setStatus(t('编译中...'));
+    setCompilePhase(t('compile.saving'));
+    setRightView('log');
     try {
-      const { files: serverFiles } = await getAllFiles(projectId);
-      const fileMap: Record<string, string | Uint8Array> = {};
-      for (const file of serverFiles) {
-        if (file.encoding === 'base64') {
-          const binary = Uint8Array.from(atob(file.content), (c) => c.charCodeAt(0));
-          fileMap[file.path] = binary;
-        } else {
-          fileMap[file.path] = files[file.path] ?? file.content;
+      // Save current editor buffer to disk before compiling
+      await saveActiveFile({ silent: true });
+
+      setCompilePhase(t('compile.pass', { n: 1, total: '...' }));
+      setStatus(t('编译中...'));
+
+      // Stream compile logs in real-time
+      let logAccum = '';
+      let logFlushTimer: ReturnType<typeof setTimeout> | null = null;
+      const flushLog = () => { setCompileLog(logAccum); logFlushTimer = null; };
+      const res = await compileProjectSSE(
+        { projectId, mainFile, engine: compileEngine },
+        (text: string) => {
+          logAccum += text;
+          // Parse phase markers from backend — e.g. [compile] Pass 2/3
+          const passMatch = text.match(/\[compile\] Pass (\d)(?:\/(\d))?/);
+          const bibMatch = text.match(/\[compile\] Bibliography/);
+          if (bibMatch) {
+            setCompilePhase(t('compile.bibliography'));
+          } else if (passMatch) {
+            setCompilePhase(t('compile.pass', { n: passMatch[1], total: passMatch[2] || '...' }));
+          }
+          // Throttle log updates to ~100ms
+          if (!logFlushTimer) {
+            logFlushTimer = setTimeout(flushLog, 100);
+          }
         }
-      }
-      if (activePath) {
-        fileMap[activePath] = editorValue;
-      }
-      if (!fileMap[mainFile]) {
-        throw new Error(t('主文件不存在: {{file}}', { file: mainFile }));
-      }
-      const res = await compileProject({ projectId, mainFile, engine: compileEngine });
+      );
+      // Flush any remaining log content
+      if (logFlushTimer) { clearTimeout(logFlushTimer); }
+      setCompileLog(logAccum);
+
       if (!res.ok || !res.pdf) {
         const detail = [res.error, res.log].filter(Boolean).join('\n');
         throw new Error(detail || t('后端编译失败'));
       }
+
+      setCompilePhase(t('compile.loadingPdf'));
       const result: CompileOutcome = {
         pdf: Uint8Array.from(atob(res.pdf), (c) => c.charCodeAt(0)),
         log: res.log || '',
@@ -3279,16 +2541,26 @@ export default function EditorPage() {
         URL.revokeObjectURL(pdfUrl);
       }
       setPdfUrl(nextUrl);
+      setHasSynctex(!!res.hasSynctex);
       setRightView('pdf');
-      setStatus(t('编译完成 ({{engine}})', { engine: result.engine }));
+      setStatus(t('编译完成 ({{engine}})', { engine: compileEngine }));
     } catch (err) {
       console.error('Compilation error:', err);
       setCompileLog(`${t('编译错误: {{error}}', { error: String(err) })}\n${(err as Error).stack || ''}`);
       setStatus(t('编译失败: {{error}}', { error: String(err) }));
     } finally {
       setIsCompiling(false);
+      setCompilePhase('');
     }
   };
+  compileRef.current = compile;
+
+  // Auto-scroll log panel to bottom during compilation
+  useEffect(() => {
+    if (isCompiling && logContentRef.current) {
+      logContentRef.current.scrollTop = logContentRef.current.scrollHeight;
+    }
+  }, [compileLog, isCompiling]);
 
   const selectionText = useMemo(() => {
     const [start, end] = selectionRange;
@@ -3369,7 +2641,7 @@ export default function EditorPage() {
 
   const downloadPdf = useCallback(() => {
     if (!pdfUrl) return;
-    const name = projectName ? projectName.replace(/\s+/g, '-') : projectId || 'openprism';
+    const name = projectName ? projectName.replace(/\s+/g, '-') : projectId || 'manuscripta';
     const link = document.createElement('a');
     link.href = pdfUrl;
     link.download = `${name}.pdf`;
@@ -3385,6 +2657,48 @@ export default function EditorPage() {
     }
     setPdfFitScale((prev) => (prev && Math.abs(prev - value) < 0.005 ? prev : value));
   }, []);
+
+  // SyncTeX forward search: jump from editor cursor to PDF position
+  const handleSynctexForward = useCallback(async () => {
+    if (!projectId || !hasSynctex) return;
+    const view = cmViewRef.current;
+    if (!view) return;
+    const line = view.state.doc.lineAt(view.state.selection.main.head).number;
+    try {
+      const res = await synctexForward({ projectId, file: activePath, line });
+      if (res.ok && res.results && res.results.length > 0) {
+        setSynctexHighlight(res.results[0]);
+      }
+    } catch { /* ignore */ }
+  }, [projectId, hasSynctex, activePath]);
+  synctexForwardRef.current = handleSynctexForward;
+
+  // SyncTeX inverse search: Ctrl+Click PDF → jump to source line
+  const handleSynctexInverse = useCallback(async (page: number, x: number, y: number) => {
+    if (!projectId || !hasSynctex) return;
+    try {
+      const res = await synctexInverse({ projectId, page, x, y });
+      if (res.ok && res.results && res.results.length > 0) {
+        const { file, line } = res.results[0];
+        const view = cmViewRef.current;
+        if (!view) return;
+        // If the result points to a different file, switch to it
+        if (file && file !== activePath) {
+          const normalizedFile = file.startsWith('./') ? file.slice(2) : file;
+          if (files[normalizedFile] !== undefined) {
+            setActivePath(normalizedFile);
+          }
+        }
+        // Jump to line in editor
+        const docLine = view.state.doc.line(Math.min(line, view.state.doc.lines));
+        view.dispatch({
+          selection: { anchor: docLine.from },
+          scrollIntoView: true,
+        });
+        view.focus();
+      }
+    } catch { /* ignore */ }
+  }, [projectId, hasSynctex, activePath, files]);
 
   const startTypewriter = useCallback((setHistory: Dispatch<SetStateAction<Message[]>>, text: string) => {
     if (typewriterTimerRef.current) {
@@ -3505,7 +2819,7 @@ export default function EditorPage() {
       if (!isChat && res.patches && res.patches.length > 0) {
         const nextPending = res.patches.map((patch) => ({
           filePath: patch.path,
-          original: files[patch.path] ?? '',
+          original: patch.original || files[patch.path] || '',
           proposed: patch.content,
           diff: patch.diff
         }));
@@ -3662,12 +2976,13 @@ export default function EditorPage() {
 
   return (
     <div className="app-shell">
-      <header className="top-bar">
+      <a href="#editor-main" className="skip-link">{t('跳转到编辑器')}</a>
+      <header className="top-bar" role="banner">
         <div className="brand">
-          <div className="brand-title">OpenPrism</div>
+          <div className="brand-title">Manuscripta</div>
           <div className="brand-sub">{projectName || t('Editor Workspace')}</div>
         </div>
-        <div className="toolbar">
+        <div className="toolbar" role="toolbar" aria-label={t('主工具栏')}>
           <Link to="/projects" className="btn ghost">{t('Projects')}</Link>
           <button className="btn ghost" onClick={() => setSidebarOpen((prev) => !prev)}>
             {sidebarOpen ? t('隐藏侧栏') : t('显示侧栏')}
@@ -3693,10 +3008,22 @@ export default function EditorPage() {
             </button>
           </div>
           <button onClick={saveActiveFile} className="btn ghost">{t('保存')}</button>
-          <button onClick={compile} className="btn" disabled={isCompiling}>
-            {isCompiling ? t('编译中...') : t('编译 PDF')}
+          <button onClick={compile} className="btn compile-btn" disabled={isCompiling}>
+            {isCompiling && <span className="spinner" />}
+            {isCompiling ? (compilePhase || t('编译中...')) : t('编译 PDF')}
           </button>
           <button className="btn ghost" onClick={() => setSettingsOpen(true)}>{t('设置')}</button>
+          <button
+            className="btn ghost dark-mode-toggle"
+            onClick={() => setDarkMode((prev) => !prev)}
+            title={darkMode ? 'Light mode' : 'Dark mode'}
+          >
+            {darkMode ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            )}
+          </button>
           <div className="ios-select-wrapper">
             <button className="ios-select-trigger" onClick={(e) => {
               const opening = !langDropdownOpen;
@@ -3710,21 +3037,29 @@ export default function EditorPage() {
         </div>
       </header>
 
-      <div className="status-bar">
+      <div className="status-bar" role="status" aria-live="polite">
         <div className="status-left">
           <div>{status}</div>
           <div className={`save-indicator ${isSaving ? 'saving' : isDirty ? 'dirty' : 'saved'} ${savePulse ? 'pulse' : ''}`}>
             <span className="dot" />
             <span>{isSaving ? t('保存中...') : isDirty ? t('未保存') : t('已保存')}</span>
           </div>
+          {offlineDraftCount > 0 && (
+            <div className="offline-sync-indicator" title={syncStatus === 'syncing' ? 'Syncing...' : `${offlineDraftCount} offline draft(s)`}>
+              <span className={`dot ${syncStatus === 'syncing' ? 'saving' : 'dirty'}`} />
+              <span>{syncStatus === 'syncing' ? 'Syncing...' : `${offlineDraftCount} offline`}</span>
+            </div>
+          )}
         </div>
         <div className="status-right">
-          {t('Compile')}: {compileEngine} · {t('Engine')}: {engineName || t('未初始化')}
+          {t('Compile')}: {compileEngine} · {t('Engine')}: {engineName || compileEngine}
         </div>
       </div>
 
       <main
+        id="editor-main"
         className="workspace"
+        role="main"
         ref={gridRef}
         style={{
           '--col-sidebar': sidebarOpen ? `${columnSizes.sidebar}px` : '0px',
@@ -3734,7 +3069,7 @@ export default function EditorPage() {
         } as CSSProperties}
       >
         {sidebarOpen && (
-          <aside className="panel side-panel">
+          <aside className="panel side-panel" aria-label={t('侧边栏')}>
             <div className="sidebar-tabs">
               <div className="tab-group">
                 <button
@@ -3778,6 +3113,14 @@ export default function EditorPage() {
                   <span className="tab-text">{t('论文检索')}</span>
                 </button>
                 <button
+                  className={`tab-btn ${activeSidebar === 'references' ? 'active' : ''}`}
+                  onClick={() => setActiveSidebar('references')}
+                  title={t('引用管理')}
+                >
+                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/><path d="M8 15h4"/></svg></span>
+                  <span className="tab-text">{t('引用管理')}</span>
+                </button>
+                <button
                   className={`tab-btn ${activeSidebar === 'websearch' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('websearch')}
                   title={t('Websearch')}
@@ -3800,6 +3143,46 @@ export default function EditorPage() {
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
                   <span className="tab-text">{t('Review')}</span>
+                </button>
+                <button
+                  className={`tab-btn ${activeSidebar === 'zotero' ? 'active' : ''}`}
+                  onClick={() => setActiveSidebar('zotero')}
+                  title={t('Zotero')}
+                >
+                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+                  <span className="tab-text">{t('Zotero')}</span>
+                </button>
+                <button
+                  className={`tab-btn ${activeSidebar === 'mendeley' ? 'active' : ''}`}
+                  onClick={() => setActiveSidebar('mendeley')}
+                  title={t('Mendeley')}
+                >
+                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span>
+                  <span className="tab-text">{t('Mendeley')}</span>
+                </button>
+                <button
+                  className={`tab-btn ${activeSidebar === 'git' ? 'active' : ''}`}
+                  onClick={() => setActiveSidebar('git')}
+                  title={t('Git')}
+                >
+                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><line x1="1.05" y1="12" x2="7" y2="12"/><line x1="17.01" y1="12" x2="22.96" y2="12"/></svg></span>
+                  <span className="tab-text">{t('Git')}</span>
+                </button>
+                <button
+                  className={`tab-btn ${activeSidebar === 'comments' ? 'active' : ''}`}
+                  onClick={() => setActiveSidebar('comments')}
+                  title={t('Comments')}
+                >
+                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+                  <span className="tab-text">{t('Comments')}</span>
+                </button>
+                <button
+                  className={`tab-btn ${activeSidebar === 'trackchanges' ? 'active' : ''}`}
+                  onClick={() => setActiveSidebar('trackchanges')}
+                  title={t('Track Changes')}
+                >
+                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
+                  <span className="tab-text">{t('Track Changes')}</span>
                 </button>
               </div>
               <button className="icon-btn" onClick={() => setSidebarOpen(false)}>✕</button>
@@ -4812,6 +4195,101 @@ export default function EditorPage() {
                   <div>{t('Review')}</div>
                 </div>
                 <div className="tools-body">
+                  {/* ── English Correction Panel ── */}
+                  <div className="tool-section">
+                    <div className="tool-title">{t('grammar.label')}</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                      <button
+                        className="btn"
+                        onClick={handleGrammarCheck}
+                        disabled={grammarBusy}
+                      >
+                        {grammarBusy ? t('grammar.checking') : t('grammar.check')}
+                      </button>
+                      {grammarIssues.length > 0 && (
+                        <button className="btn ghost" onClick={handleGrammarFixAll}>
+                          {t('grammar.fixAll')}
+                        </button>
+                      )}
+                    </div>
+                    {grammarIssues.length > 0 && (
+                      <>
+                        <div className="grammar-summary" style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span className="muted" style={{ fontSize: 11 }}>
+                            {t('grammar.issueCount', { count: grammarIssues.length })}
+                          </span>
+                          {(['error', 'warning', 'suggestion'] as const).map((sev) => {
+                            const count = grammarIssues.filter((i) => i.severity === sev).length;
+                            return count > 0 ? (
+                              <span key={sev} className={`grammar-badge grammar-badge-${sev}`} style={{ cursor: 'default' }}>
+                                {count} {sev}
+                              </span>
+                            ) : null;
+                          })}
+                        </div>
+                        {/* Category filter + fix-by-category */}
+                        <div className="grammar-filters" style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+                          <button
+                            className={`btn ghost grammar-filter-btn ${grammarFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => setGrammarFilter('all')}
+                          >All</button>
+                          {Array.from(new Set(grammarIssues.map((i) => i.category))).map((cat) => (
+                            <button
+                              key={cat}
+                              className={`btn ghost grammar-filter-btn ${grammarFilter === cat ? 'active' : ''}`}
+                              onClick={() => setGrammarFilter(cat)}
+                            >
+                              {t(`grammar.category.${cat}`)} ({grammarIssues.filter((i) => i.category === cat).length})
+                            </button>
+                          ))}
+                        </div>
+                        {grammarFilter !== 'all' && (
+                          <button
+                            className="btn ghost"
+                            style={{ marginBottom: 8, fontSize: 11 }}
+                            onClick={() => handleGrammarFixCategory(grammarFilter)}
+                          >
+                            Fix all {t(`grammar.category.${grammarFilter}`)}
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {grammarIssues.length === 0 && !grammarBusy && (
+                      <div className="muted">{t('grammar.noIssues')}</div>
+                    )}
+                    <div className="grammar-issues-list">
+                      {grammarIssues
+                        .filter((issue) => grammarFilter === 'all' || issue.category === grammarFilter)
+                        .map((issue, idx) => (
+                        <div
+                          key={`grammar-${idx}`}
+                          className={`grammar-issue grammar-${issue.severity}`}
+                          onClick={() => handleGrammarJump(issue)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="grammar-issue-header">
+                            <span className={`grammar-badge grammar-badge-${issue.severity}`}>
+                              {issue.severity === 'error' ? t('grammar.error') : issue.severity === 'warning' ? t('grammar.warning') : t('grammar.suggestion')}
+                            </span>
+                            <span className="grammar-category">{t(`grammar.category.${issue.category}`)}</span>
+                          </div>
+                          <div className="grammar-issue-body">
+                            <div className="grammar-original">{issue.original}</div>
+                            <div className="grammar-arrow">→</div>
+                            <div className="grammar-replacement">{issue.replacement}</div>
+                          </div>
+                          {issue.explanation && (
+                            <div className="grammar-explanation">{issue.explanation}</div>
+                          )}
+                          <button className="btn ghost grammar-fix-btn" onClick={(e) => { e.stopPropagation(); handleGrammarFix(issue); }}>
+                            {t('grammar.applyFix')}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Quality Checks Panel ── */}
                   <div className="tool-section">
                     <div className="tool-title">{t('质量检查')}</div>
                     <div className="tool-desc">{t('AI 辅助检查论文质量，发现潜在问题')}</div>
@@ -4994,6 +4472,60 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                   )}
                 </div>
               </>
+            ) : activeSidebar === 'references' ? (
+              <ReferencesPanel
+                entries={bibEntries}
+                onCite={(keys) => insertAtCursor(`\\cite{${keys.join(',')}}`)}
+                onOpenBib={(path) => openFile(path)}
+              />
+            ) : activeSidebar === 'zotero' ? (
+              <ZoteroPanel
+                projectId={projectId}
+                bibTarget={bibTarget}
+                onBibImport={async (bibtex: string) => {
+                  const target = bibTarget || 'references.bib';
+                  try {
+                    const existing = await getFile(projectId, target).catch(() => ({ content: '' }));
+                    await writeFile(projectId, target, (existing.content || '') + '\n' + bibtex);
+                  } catch { /* ignore */ }
+                }}
+              />
+            ) : activeSidebar === 'mendeley' ? (
+              <MendeleyPanel
+                bibTarget={bibTarget}
+                onBibImport={async (bibtex: string) => {
+                  const target = bibTarget || 'references.bib';
+                  try {
+                    const existing = await getFile(projectId, target).catch(() => ({ content: '' }));
+                    await writeFile(projectId, target, (existing.content || '') + '\n' + bibtex);
+                  } catch { /* ignore */ }
+                }}
+              />
+            ) : activeSidebar === 'git' ? (
+              <GitPanel projectId={projectId} />
+            ) : activeSidebar === 'comments' ? (
+              <CommentsPanel
+                comments={[]}
+                onAddComment={() => {}}
+                onReply={() => {}}
+                onResolve={() => {}}
+                onDelete={() => {}}
+                onJumpTo={() => {}}
+                selectionRange={null}
+                authorName={collabName || 'User'}
+                authorColor="#4285f4"
+              />
+            ) : activeSidebar === 'trackchanges' ? (
+              <TrackChangesPanel
+                enabled={false}
+                onToggle={() => {}}
+                changes={[]}
+                onAccept={() => {}}
+                onReject={() => {}}
+                onAcceptAll={() => {}}
+                onRejectAll={() => {}}
+                onJumpTo={() => {}}
+              />
             ) : null}
           </aside>
         )}
@@ -5016,7 +4548,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               <span className="breadcrumb-item heading">{currentHeading.title}</span>
             )}
           </div>
-          <div className="editor-toolbar">
+          <div className="editor-toolbar" role="toolbar" aria-label={t('编辑器工具栏')}>
             <div className="toolbar-group">
               <button className="toolbar-btn" onClick={insertSectionSnippet}>{t('Section')}</button>
               <button className="toolbar-btn" onClick={insertSubsectionSnippet}>{t('Subsection')}</button>
@@ -5058,7 +4590,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
           >
             <div className="editor-area" ref={editorAreaRef}>
               <div ref={editorHostRef} className="editor-host" style={{ '--editor-font-size': `${editorFontSize}px` } as React.CSSProperties} />
-              <div className="editor-hint muted">{t('快捷键: Option/Alt + / 或 Cmd/Ctrl + Space 补全；Cmd/Ctrl + / 注释；Cmd/Ctrl + F 搜索；Cmd/Ctrl + S 保存')}</div>
+              <div className="editor-hint muted">{t('快捷键: Cmd/Ctrl+Enter 编译；Cmd/Ctrl+B 粗体；Cmd/Ctrl+I 斜体；Cmd/Ctrl+S 保存；Cmd/Ctrl+/ 注释；Alt+/ 补全')}</div>
               {(inlineSuggestionText || isSuggesting) && suggestionPos && (
                 <div
                   className={`suggestion-popover ${isSuggesting && !inlineSuggestionText ? 'loading' : ''}`}
@@ -5150,6 +4682,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                     </div>
                     <div className="toolbar-group">
                       <button className="btn ghost small" onClick={downloadPdf} disabled={!pdfUrl}>{t('下载 PDF')}</button>
+                      <button className="btn ghost small" onClick={() => projectId && exportProjectZip(projectId)} disabled={!projectId}>{t('导出 ZIP')}</button>
                       <button
                         className={`btn ghost small ${pdfSpread ? 'active' : ''}`}
                         onClick={() => setPdfSpread((prev) => !prev)}
@@ -5164,6 +4697,16 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                       >
                         {t('注释')}
                       </button>
+                      {hasSynctex && (
+                        <button
+                          className="btn ghost small"
+                          onClick={handleSynctexForward}
+                          disabled={!pdfUrl}
+                          title={t('跳转到 PDF 位置 (SyncTeX)')}
+                        >
+                          {t('定位')}
+                        </button>
+                      )}
                     </div>
                   </div>
                   {pdfUrl ? (
@@ -5178,6 +4721,8 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                       annotateMode={pdfAnnotateMode}
                       onAddAnnotation={addPdfAnnotation}
                       containerRef={pdfContainerRef}
+                      onSynctexClick={hasSynctex ? handleSynctexInverse : undefined}
+                      synctexHighlight={synctexHighlight}
                       onTextClick={(text) => {
                         const view = cmViewRef.current;
                         if (!view) return;
@@ -5333,7 +4878,10 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               {rightView === 'log' && (
                 <div className="log-panel">
                   <div className="log-title">
-                    {t('Compile Log')}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {isCompiling && <span className="spinner" />}
+                      {t('Compile Log')}
+                    </span>
                     <button className="btn ghost log-action" onClick={diagnoseCompile} disabled={diagnoseBusy}>
                       {diagnoseBusy ? (
                         <span className="suggestion-loading">
@@ -5360,7 +4908,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                       ))}
                     </div>
                   )}
-                  <pre className="log-content">{compileLog || t('暂无编译日志')}</pre>
+                  <pre className="log-content" ref={logContentRef}>{compileLog || t('暂无编译日志')}</pre>
                 </div>
               )}
               {rightView === 'review' && (
@@ -5437,114 +4985,15 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
         </div>
       )}
       {settingsOpen && (
-        <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}>
-          <div className="modal" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <div>{t('Workspace Settings')}</div>
-              <button className="icon-btn" onClick={() => setSettingsOpen(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="field">
-                <label>{t('LLM Endpoint')}</label>
-                <input
-                  className="input"
-                  value={llmEndpoint}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, llmEndpoint: e.target.value }))}
-                  placeholder="https://api.openai.com/v1/chat/completions"
-                />
-                <div className="muted">{t('支持 OpenAI 兼容的 base_url，例如 https://api.apiyi.com/v1')}</div>
-              </div>
-              <div className="field">
-                <label>{t('LLM Model')}</label>
-                <input
-                  className="input"
-                  value={llmModel}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, llmModel: e.target.value }))}
-                  placeholder="gpt-4o-mini"
-                />
-              </div>
-              <div className="field">
-                <label>{t('LLM API Key')}</label>
-                <input
-                  className="input"
-                  value={llmApiKey}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, llmApiKey: e.target.value }))}
-                  placeholder="sk-..."
-                  type="password"
-                />
-                {!llmApiKey && (
-                  <div className="muted">{t('未配置 API Key 时将使用后端环境变量。')}</div>
-                )}
-              </div>
-              <div className="field">
-                <label>{t('Search LLM Endpoint (可选)')}</label>
-                <input
-                  className="input"
-                  value={searchEndpoint}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, searchEndpoint: e.target.value }))}
-                  placeholder="https://api.apiyi.com/v1"
-                />
-                <div className="muted">{t('仅用于“检索/websearch”任务，留空则复用 LLM Endpoint。')}</div>
-              </div>
-              <div className="field">
-                <label>{t('Search LLM Model (可选)')}</label>
-                <input
-                  className="input"
-                  value={searchModel}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, searchModel: e.target.value }))}
-                  placeholder="claude-sonnet-4-5-20250929-all"
-                />
-              </div>
-              <div className="field">
-                <label>{t('Search LLM API Key (可选)')}</label>
-                <input
-                  className="input"
-                  value={searchApiKey}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, searchApiKey: e.target.value }))}
-                  placeholder="sk-..."
-                  type="password"
-                />
-              </div>
-              <div className="field">
-                <label>{t('VLM Endpoint (可选)')}</label>
-                <input
-                  className="input"
-                  value={visionEndpoint}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, visionEndpoint: e.target.value }))}
-                  placeholder="https://api.apiyi.com/v1"
-                />
-                <div className="muted">{t('仅用于图像识别，留空则复用 LLM Endpoint。')}</div>
-              </div>
-              <div className="field">
-                <label>{t('VLM Model (可选)')}</label>
-                <input
-                  className="input"
-                  value={visionModel}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, visionModel: e.target.value }))}
-                  placeholder="gpt-4o"
-                />
-              </div>
-              <div className="field">
-                <label>{t('VLM API Key (可选)')}</label>
-                <input
-                  className="input"
-                  value={visionApiKey}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, visionApiKey: e.target.value }))}
-                  placeholder="sk-..."
-                  type="password"
-                />
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn ghost" onClick={() => setSettingsOpen(false)}>{t('关闭')}</button>
-              <button className="btn" onClick={() => setSettingsOpen(false)}>{t('完成')}</button>
-            </div>
-          </div>
-        </div>
+        <SettingsModal
+          settings={settings}
+          setSettings={setSettings}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
       {diffFocus && (
-        <div className="modal-backdrop" onClick={() => setDiffFocus(null)}>
-          <div className="modal diff-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-backdrop" onClick={() => setDiffFocus(null)} role="presentation">
+          <div className="modal diff-modal" role="dialog" aria-modal="true" aria-label={t('Diff 预览')} onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <div>{t('Diff')} · {diffFocus.filePath}</div>
               <button className="icon-btn" onClick={() => setDiffFocus(null)}>✕</button>

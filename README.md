@@ -1,17 +1,17 @@
 <div align="center">
 
-<img src="static/logo-rotating.gif" alt="OpenPrism Logo" width="200"/>
+<img src="static/logo-rotating.gif" alt="Manuscripta Logo" width="200"/>
 
-# OpenPrism
+# Manuscripta
 
-### OpenPrism — Vibe Writing for Academia
+### Manuscripta — Vibe Writing for Academia
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/network/members)
-[![GitHub Issues](https://img.shields.io/github/issues/OpenDCAI/OpenPrism)](https://github.com/OpenDCAI/OpenPrism/issues)
-[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/OpenDCAI/OpenPrism)](https://github.com/OpenDCAI/OpenPrism/pulls)
+[![GitHub Stars](https://img.shields.io/github/stars/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/OpenDCAI/Manuscripta)](https://github.com/OpenDCAI/Manuscripta/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/OpenDCAI/Manuscripta)](https://github.com/OpenDCAI/Manuscripta/pulls)
 
 [中文](README_ZH.md) | [English](README.md)
 
@@ -58,13 +58,9 @@
 
 ## 📢 News
 
-> [!WARNING]
-> 🚧 <strong>Template Transfer is under testing</strong><br>
-> The Template Transfer feature is currently in beta and may contain known or unknown bugs. If you encounter any issues, please report them via [Issues](https://github.com/OpenDCAI/OpenPrism/issues).
-
 > [!TIP]
-> 🆕 <strong>2025-02 · Template Transfer (Dual Mode)</strong><br>
-> Two transfer modes are now available: Legacy mode (LaTeX→LaTeX direct migration) and MinerU mode (PDF→Markdown→LaTeX via MinerU API). Both modes feature LLM-powered content migration, automatic compile error fixing, and optional VLM-based layout checking.
+> 🆕 <strong>Template Transfer (Dual Mode)</strong><br>
+> Two transfer modes are available: Legacy mode (LaTeX→LaTeX direct migration) and MinerU mode (PDF→Markdown→LaTeX via MinerU API). Both modes feature LLM-powered content migration, automatic compile error fixing, and optional VLM-based layout checking. If you encounter any issues, please report them via [Issues](https://github.com/OpenDCAI/Manuscripta/issues).
 
 > [!TIP]
 > 🆕 <strong>2025-02 · Real-time Collaboration</strong><br>
@@ -74,7 +70,7 @@
 
 <div align="center">
 <br>
-<img src="static/首页.gif" alt="OpenPrism Home" width="90%"/>
+<img src="static/首页.gif" alt="Manuscripta Home" width="90%"/>
 <br>
 <sub>✨ Home preview: three-panel workspace + editor + preview</sub>
 <br><br>
@@ -84,7 +80,7 @@
 
 ## ✨ Core Features
 
-OpenPrism is a local-first LaTeX + AI workspace for academic writing, optimized for fast editing, controlled changes, and privacy.
+Manuscripta is a local-first LaTeX + AI workspace for academic writing, optimized for fast editing, controlled changes, and privacy.
 
 ### 🤖 AI Assistant
 
@@ -278,7 +274,7 @@ OpenPrism is a local-first LaTeX + AI workspace for academic writing, optimized 
 
 #### LaTeX Compilation Environment (Required)
 
-OpenPrism requires a LaTeX engine to generate PDFs. Choose one of the following options based on your OS:
+Manuscripta requires a LaTeX engine to generate PDFs. Choose one of the following options based on your OS:
 
 **Option 1: TexLive (Recommended)**
 - **Linux (Ubuntu/Debian)**:
@@ -311,8 +307,8 @@ OpenPrism requires a LaTeX engine to generate PDFs. Choose one of the following 
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/OpenDCAI/OpenPrism.git
-cd OpenPrism
+git clone https://github.com/OpenDCAI/Manuscripta.git
+cd Manuscripta
 
 # 2. Install dependencies
 npm install
@@ -351,17 +347,17 @@ node --version  # Should show >= 18.0.0
 pdflatex --version  # Should show TexLive version
 
 # 4. Clone and deploy project
-git clone https://github.com/OpenDCAI/OpenPrism.git
-cd OpenPrism
+git clone https://github.com/OpenDCAI/Manuscripta.git
+cd Manuscripta
 npm install
 npm run build
 
 # 5. Configure environment variables (optional)
 cat > .env << EOF
-OPENPRISM_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
-OPENPRISM_LLM_API_KEY=your-api-key
-OPENPRISM_LLM_MODEL=gpt-4o-mini
-OPENPRISM_DATA_DIR=/var/openprism/data
+MANUSCRIPTA_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+MANUSCRIPTA_LLM_API_KEY=your-api-key
+MANUSCRIPTA_LLM_MODEL=gpt-4o-mini
+MANUSCRIPTA_DATA_DIR=/var/manuscripta/data
 PORT=8787
 EOF
 
@@ -370,7 +366,7 @@ npm start
 
 # 7. Use PM2 for process management (recommended)
 sudo npm install -g pm2
-pm2 start npm --name "openprism" -- start
+pm2 start npm --name "manuscripta" -- start
 pm2 save
 pm2 startup
 ```
@@ -385,31 +381,31 @@ Create a `.env` file in the project root (optional):
 
 ```bash
 # LLM Configuration
-OPENPRISM_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
-OPENPRISM_LLM_API_KEY=your-api-key
-OPENPRISM_LLM_MODEL=gpt-4o-mini
+MANUSCRIPTA_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+MANUSCRIPTA_LLM_API_KEY=your-api-key
+MANUSCRIPTA_LLM_MODEL=gpt-4o-mini
 
 # Data storage path
-OPENPRISM_DATA_DIR=./data
+MANUSCRIPTA_DATA_DIR=./data
 
 # Backend service port
 PORT=8787
 
 # MinerU API Configuration (for PDF→MD→LaTeX transfer)
-OPENPRISM_MINERU_API_BASE=https://mineru.net/api/v4
-OPENPRISM_MINERU_TOKEN=your-mineru-token
+MANUSCRIPTA_MINERU_API_BASE=https://mineru.net/api/v4
+MANUSCRIPTA_MINERU_TOKEN=your-mineru-token
 ```
 
 ### LLM Configuration
 
-OpenPrism supports any **OpenAI-compatible** endpoint, including custom base_url:
+Manuscripta supports any **OpenAI-compatible** endpoint, including custom base_url:
 
 **Method 1: Environment Variables**
 ```bash
 # .env file
-OPENPRISM_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
-OPENPRISM_LLM_API_KEY=sk-your-api-key
-OPENPRISM_LLM_MODEL=gpt-4o-mini
+MANUSCRIPTA_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+MANUSCRIPTA_LLM_API_KEY=sk-your-api-key
+MANUSCRIPTA_LLM_MODEL=gpt-4o-mini
 ```
 
 **Method 2: Frontend Settings Panel**
@@ -450,7 +446,7 @@ Default data storage is in `./data` directory, can be modified via environment v
 
 ```bash
 # Custom data directory
-OPENPRISM_DATA_DIR=/var/openprism/data
+MANUSCRIPTA_DATA_DIR=/var/manuscripta/data
 ```
 
 **Directory Structure:**
@@ -468,7 +464,7 @@ data/
 
 ## 👥 Collaboration Guide
 
-OpenPrism includes a built-in real-time collaboration system based on CRDT (Yjs) + WebSocket, allowing multiple users to edit the same document simultaneously without any third-party service.
+Manuscripta includes a built-in real-time collaboration system based on CRDT (Yjs) + WebSocket, allowing multiple users to edit the same document simultaneously without any third-party service.
 
 ### Collaboration Environment Variables
 
@@ -476,18 +472,18 @@ Add the following to your `.env` file:
 
 ```bash
 # Token signing secret (must change for production)
-OPENPRISM_COLLAB_TOKEN_SECRET=your-secure-random-string
+MANUSCRIPTA_COLLAB_TOKEN_SECRET=your-secure-random-string
 
 # Require token for collaboration (default: true, set false for local dev)
-OPENPRISM_COLLAB_REQUIRE_TOKEN=true
+MANUSCRIPTA_COLLAB_REQUIRE_TOKEN=true
 
 # Token TTL in seconds (default: 86400 = 24 hours)
-OPENPRISM_COLLAB_TOKEN_TTL=86400
+MANUSCRIPTA_COLLAB_TOKEN_TTL=86400
 ```
 
 ### How to Use
 
-1. **Deploy**: Deploy OpenPrism to a server with a public IP, configure a domain and HTTPS
+1. **Deploy**: Deploy Manuscripta to a server with a public IP, configure a domain and HTTPS
 2. **Generate invite**: Click "Generate Invite Link" in the collaboration panel on the editor page
 3. **Share link**: Send the generated link to your collaborator
 4. **Join**: Collaborator opens the link, token is verified automatically, and they enter the editor
@@ -520,7 +516,7 @@ server {
 <details>
 <summary><strong>No Public Server? Use Tunnel (ngrok)</strong></summary>
 
-You can collaborate remotely without a public server. OpenPrism has built-in tunnel support — one command exposes your local service to the internet.
+You can collaborate remotely without a public server. Manuscripta has built-in tunnel support — one command exposes your local service to the internet.
 
 #### Quick Start (ngrok, Recommended)
 
@@ -537,7 +533,7 @@ npm run tunnel:ngrok
 3. On startup, the terminal prints a public URL. Share it with your collaborator:
 
 ```
-  OpenPrism started at http://localhost:8787
+  Manuscripta started at http://localhost:8787
 
   Tunnel active (ngrok):
   Public URL: https://xxxx.ngrok-free.app
@@ -553,7 +549,7 @@ npm run tunnel:ngrok
 | localtunnel | `npm run tunnel` | Zero-config, but may be unstable |
 | Cloudflare Tunnel | `npm run tunnel:cf` | Requires [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/) installed |
 
-> **Note**: Tunnel is off by default. Regular `npm start` does not create a tunnel. You can also set it via env var: `OPENPRISM_TUNNEL=ngrok npm start`
+> **Note**: Tunnel is off by default. Regular `npm start` does not create a tunnel. You can also set it via env var: `MANUSCRIPTA_TUNNEL=ngrok npm start`
 
 </details>
 
@@ -572,7 +568,7 @@ npm run tunnel:ngrok
 ## 📁 Project Structure
 
 ```
-OpenPrism/
+Manuscripta/
 ├── apps/
 │   ├── frontend/           # React + Vite frontend
 │   │   ├── src/
@@ -678,18 +674,18 @@ MIT License. See [LICENSE](LICENSE).
 
 **If this project helps you, please give us a ⭐️ Star!**
 
-[![GitHub stars](https://img.shields.io/github/stars/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/OpenDCAI/OpenPrism?style=social)](https://github.com/OpenDCAI/OpenPrism/network/members)
+[![GitHub stars](https://img.shields.io/github/stars/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/network/members)
 
 <br>
 
 <a name="wechat-group"></a>
-<img src="static/wechat.png" alt="OpenPrism WeChat Community" width="300"/>
+<img src="static/wechat.png" alt="Manuscripta WeChat Community" width="300"/>
 <br>
 <sub>Scan to join the community WeChat group</sub>
 
 <p align="center">
-  <em>Made with ❤️ by OpenPrism Team</em>
+  <em>Made with ❤️ by Manuscripta Team</em>
 </p>
 
 </div>

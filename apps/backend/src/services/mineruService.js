@@ -11,7 +11,7 @@ const MINERU_MAX_FILE_BYTES = 200 * 1024 * 1024;
  * apiBase can be overridden by the frontend; falls back to MINERU_API_BASE constant.
  */
 export function resolveMineruConfig(mineruConfig) {
-  const rawBase = (mineruConfig?.apiBase || process.env.OPENPRISM_MINERU_API_BASE || MINERU_API_BASE).trim();
+  const rawBase = (mineruConfig?.apiBase || process.env.MANUSCRIPTA_MINERU_API_BASE || MINERU_API_BASE).trim();
   const rawExtraFormats = Array.isArray(mineruConfig?.extraFormats) ? mineruConfig.extraFormats : [];
   const extraFormats = rawExtraFormats
     .map(v => String(v || '').trim().toLowerCase())
@@ -19,7 +19,7 @@ export function resolveMineruConfig(mineruConfig) {
 
   return {
     apiBase: rawBase.replace(/\/+$/, ''),
-    token: (mineruConfig?.token || process.env.OPENPRISM_MINERU_TOKEN || '').trim(),
+    token: (mineruConfig?.token || process.env.MANUSCRIPTA_MINERU_TOKEN || '').trim(),
     modelVersion: mineruConfig?.modelVersion || 'vlm',
     isOcr: typeof mineruConfig?.isOcr === 'boolean' ? mineruConfig.isOcr : undefined,
     enableFormula: typeof mineruConfig?.enableFormula === 'boolean' ? mineruConfig.enableFormula : true,
@@ -178,8 +178,7 @@ function sleep(ms) {
  * Returns { markdownContent, images, jsonContent }
  */
 async function downloadAndExtractZip(zipUrl, outputDir) {
-  // Dynamic import to avoid issues if not installed
-  const { default: unzipper } = await import('unzipper');
+  const { extractZipBuffer } = await import('../utils/zipUtils.js');
 
   // Clear previous extraction output to avoid stale-file contamination.
   await fs.rm(outputDir, { recursive: true, force: true });
@@ -195,20 +194,7 @@ async function downloadAndExtractZip(zipUrl, outputDir) {
   const zipBuffer = Buffer.from(arrayBuffer);
 
   // Extract zip to outputDir
-  const directory = await unzipper.Open.buffer(zipBuffer);
-  for (const file of directory.files) {
-    if (file.type === 'Directory') continue;
-    const normalized = file.path.replace(/\\/g, '/');
-    let filePath;
-    try {
-      filePath = safeJoin(outputDir, normalized);
-    } catch {
-      throw new Error(`Unsafe path in MinerU zip: ${file.path}`);
-    }
-    await ensureDir(path.dirname(filePath));
-    const content = await file.buffer();
-    await fs.writeFile(filePath, content);
-  }
+  await extractZipBuffer(zipBuffer, outputDir, { safeJoinFn: safeJoin });
 
   // Find markdown file and images
   return await parseExtractedOutput(outputDir);
@@ -332,7 +318,7 @@ export async function parsePdfWithMineru(pdfPath, mineruConfig, outputDir, onPro
     extraFormats,
   } = config;
   if (!token) {
-    throw new Error('MinerU token not configured. Set OPENPRISM_MINERU_TOKEN or provide in settings.');
+    throw new Error('MinerU token not configured. Set MANUSCRIPTA_MINERU_TOKEN or provide in settings.');
   }
   if (callback && !seed) {
     throw new Error('MinerU seed is required when callback is provided.');

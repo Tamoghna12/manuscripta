@@ -1,0 +1,109 @@
+\documentclass[11pt,a4paper,twoside]{book}
+\usepackage[margin=1in,inner=1.25in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{makeidx}
+
+\makeindex
+
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{example}{Example}[chapter]
+\newtheorem{remark}{Remark}[chapter]
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\thepage\quad\leftmark}
+\fancyhead[RO]{\rightmark\quad\thepage}
+
+\title{
+  {\Huge\textbf{Textbook Title}} \\[1cm]
+  {\Large An Introduction to the Subject}
+}
+\author{Author Name \\ University Name}
+\date{Edition: First, \the\year}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Preface}
+This textbook provides\ldots
+
+\tableofcontents
+
+\mainmatter
+
+\part{Foundations}
+
+\chapter{Introduction}
+\section{Overview}
+\section{Historical Background}
+\section{Organization of This Book}
+
+\subsection*{Exercises}
+\begin{enumerate}
+  \item Exercise 1.
+  \item Exercise 2.
+\end{enumerate}
+
+\chapter{Mathematical Preliminaries}
+\section{Sets and Functions}
+\section{Linear Algebra Review}
+
+\begin{definition}
+A \emph{vector space} is\ldots
+\end{definition}
+
+\begin{theorem}
+For all $x \in V$, we have\ldots
+\end{theorem}
+\begin{proof}
+The proof follows from\ldots
+\end{proof}
+
+\subsection*{Exercises}
+\begin{enumerate}
+  \item Prove that\ldots
+  \item Show that\ldots
+\end{enumerate}
+
+\part{Core Topics}
+
+\chapter{Topic One}
+\section{Fundamentals}
+\section{Advanced Concepts}
+\section{Applications}
+\subsection*{Exercises}
+
+\chapter{Topic Two}
+\section{Theory}
+\section{Algorithms}
+\section{Case Studies}
+\subsection*{Exercises}
+
+\part{Advanced Topics}
+
+\chapter{Advanced Topic}
+\section{Recent Developments}
+\section{Open Problems}
+
+\backmatter
+
+\appendix
+\chapter{Notation Reference}
+\chapter{Solutions to Selected Exercises}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\printindex
+
+\end{document}

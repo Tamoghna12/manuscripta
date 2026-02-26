@@ -1,0 +1,99 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{times}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{definition}{Definition}
+
+\hypersetup{colorlinks=true, citecolor=blue, urlcolor=blue, linkcolor=blue}
+
+\title{Paper Title for JMLR}
+\author{
+  \textbf{Author One} \hspace{2cm} \textbf{Author Two} \\
+  \texttt{author1@example.com} \hspace{1cm} \texttt{author2@example.com} \\[6pt]
+  Department of Computer Science \\
+  University Name \\
+  City, Country
+}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Your abstract here. JMLR is the premier open-access journal for machine learning research.
+\end{abstract}
+
+\noindent\textbf{Keywords:} machine learning, statistical learning, optimization
+
+\section{Introduction}
+
+\section{Related Work}
+
+\section{Problem Setting}
+
+\begin{definition}
+A learning problem is defined by\ldots
+\end{definition}
+
+\section{Method}
+\subsection{Algorithm}
+
+\begin{algorithm}[t]
+\caption{Proposed Algorithm}
+\label{alg:main}
+\begin{algorithmic}[1]
+\REQUIRE Input data $\{(x_i, y_i)\}_{i=1}^n$, learning rate $\eta$
+\ENSURE Model parameters $\theta$
+\STATE Initialize $\theta$
+\FOR{$t = 1$ to $T$}
+  \STATE Compute gradient $g_t = \nabla \mathcal{L}(\theta)$
+  \STATE Update $\theta \leftarrow \theta - \eta g_t$
+\ENDFOR
+\RETURN $\theta$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Theoretical Analysis}
+
+\begin{theorem}
+Under assumptions (A1)--(A3), Algorithm~\ref{alg:main} converges at rate $O(1/\sqrt{T})$.
+\end{theorem}
+
+\begin{proof}
+See Appendix~\ref{app:proofs}.
+\end{proof}
+
+\section{Experiments}
+\subsection{Datasets and Setup}
+\subsection{Baselines}
+\subsection{Results}
+\subsection{Analysis}
+
+\section{Discussion}
+
+\section{Conclusion}
+
+\section*{Acknowledgments}
+The authors thank\ldots
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+\section{Proofs}
+\label{app:proofs}
+
+\section{Additional Experiments}
+
+\section{Hyperparameter Details}
+
+\end{document}

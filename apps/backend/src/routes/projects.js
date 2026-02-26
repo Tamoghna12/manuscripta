@@ -1,8 +1,9 @@
 import path from 'path';
-import { promises as fs, createWriteStream } from 'fs';
+import { promises as fs, createWriteStream, createReadStream } from 'fs';
 import { pipeline } from 'stream/promises';
-import tar from 'tar';
-import unzipper from 'unzipper';
+import { spawn } from 'child_process';
+import * as tar from 'tar';
+import { extractZipStream } from '../utils/zipUtils.js';
 import crypto from 'crypto';
 import { DATA_DIR, TEMPLATE_DIR } from '../config/constants.js';
 import { ensureDir, readJson, writeJson, copyDir, listFilesRecursive } from '../utils/fsUtils.js';
@@ -71,22 +72,13 @@ export function registerProjectRoutes(fastify) {
         }
         if (part.type !== 'file') continue;
         hasZip = true;
-        const zipStream = part.file.pipe(unzipper.Parse({ forceStream: true }));
-        for await (const entry of zipStream) {
-          const relPath = sanitizeUploadPath(entry.path);
-          if (!relPath || relPath.endsWith('project.json')) {
-            entry.autodrain();
-            continue;
-          }
-          const abs = safeJoin(projectRoot, relPath);
-          if (entry.type === 'Directory') {
-            await ensureDir(abs);
-            entry.autodrain();
-            continue;
-          }
-          await ensureDir(path.dirname(abs));
-          await pipeline(entry, createWriteStream(abs));
-        }
+        await extractZipStream(part.file, projectRoot, {
+          safeJoinFn: safeJoin,
+          onEntry: (relPath) => {
+            const sanitized = sanitizeUploadPath(relPath);
+            if (!sanitized || sanitized.endsWith('project.json')) return false;
+          },
+        });
       }
     } catch (err) {
       await fs.rm(projectRoot, { recursive: true, force: true });
@@ -318,10 +310,18 @@ export function registerProjectRoutes(fastify) {
     const { id } = req.params;
     const projectRoot = await getProjectRoot(id);
     const saved = [];
+    let nextPath = '';
     const parts = req.parts();
     for await (const part of parts) {
+      // The frontend sends a 'path' field before each file to preserve
+      // directory structure (busboy strips paths from the filename header).
+      if (part.type === 'field' && part.fieldname === 'path') {
+        nextPath = sanitizeUploadPath(String(part.value));
+        continue;
+      }
       if (part.type !== 'file') continue;
-      const relPath = sanitizeUploadPath(part.filename);
+      const relPath = nextPath || sanitizeUploadPath(part.filename);
+      nextPath = '';
       if (!relPath) continue;
       const abs = safeJoin(projectRoot, relPath);
       await ensureDir(path.dirname(abs));
@@ -453,5 +453,36 @@ export function registerProjectRoutes(fastify) {
       throw err;
     }
     return { ok: true };
+  });
+
+  // Export project as zip download
+  fastify.get('/api/projects/:id/export-zip', async (req, reply) => {
+    const { id } = req.params;
+    const projectRoot = await getProjectRoot(id);
+    let projectName = 'project';
+    try {
+      const meta = await readJson(path.join(projectRoot, 'project.json'));
+      projectName = (meta.name || 'project').replace(/[^a-zA-Z0-9_\-. ]/g, '_');
+    } catch { /* use default */ }
+
+    const items = await listFilesRecursive(projectRoot);
+    const files = items
+      .filter(i => i.type === 'file' && i.path !== 'project.json' && !i.path.startsWith('.compile/'))
+      .map(i => i.path);
+
+    if (files.length === 0) {
+      return reply.code(404).send({ ok: false, error: 'No files to export.' });
+    }
+
+    reply.raw.writeHead(200, {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${projectName}.zip"`,
+    });
+
+    const child = spawn('zip', ['-r', '-', ...files], { cwd: projectRoot, stdio: ['pipe', 'pipe', 'pipe'] });
+    child.stdout.pipe(reply.raw);
+    child.stderr.on('data', () => {});
+    child.on('close', () => reply.raw.end());
+    return reply;
   });
 }

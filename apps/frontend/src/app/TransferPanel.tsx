@@ -44,7 +44,7 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
   const [layoutCheck, setLayoutCheck] = useState(false);
 
   // LLM config — read from shared localStorage (set via ProjectPage / EditorPage settings)
-  const SETTINGS_KEY = 'openprism-settings-v1';
+  const SETTINGS_KEY = 'manuscripta-settings-v1';
   const readLLMFromStorage = (): { llmEndpoint: string; llmApiKey: string; llmModel: string } => {
     try {
       const raw = window.localStorage.getItem(SETTINGS_KEY);

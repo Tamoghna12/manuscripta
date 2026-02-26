@@ -18,11 +18,12 @@ import {
 } from '../api/client';
 import type { ProjectMeta, TemplateMeta, TemplateCategory } from '../api/client';
 import TransferPanel from './TransferPanel';
+import { useAuth } from '../auth/AuthContext';
 
 type ViewFilter = 'all' | 'mine' | 'archived' | 'trash';
 type SortBy = 'updatedAt' | 'name' | 'createdAt';
 
-const SETTINGS_KEY = 'openprism-settings-v1';
+const SETTINGS_KEY = 'manuscripta-settings-v1';
 
 interface LLMSettings {
   llmEndpoint: string;
@@ -33,7 +34,7 @@ interface LLMSettings {
 const DEFAULT_LLM: LLMSettings = {
   llmEndpoint: 'https://api.openai.com/v1/chat/completions',
   llmApiKey: '',
-  llmModel: 'gpt-4o-mini',
+  llmModel: 'gpt-4o',
 };
 
 function loadLLMSettings(): LLMSettings {
@@ -72,6 +73,9 @@ function formatRelativeTime(iso: string, t: (k: string, o?: Record<string, unkno
 export default function ProjectPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { authEnabled, user, logout } = useAuth();
+
+  useEffect(() => { document.title = `${t('项目')} — Manuscripta`; }, [t]);
 
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
   const [templates, setTemplates] = useState<TemplateMeta[]>([]);
@@ -400,7 +404,7 @@ export default function ProjectPage() {
       {/* ── Sidebar ── */}
       <aside className="project-sidebar">
         <div className="sidebar-brand">
-          <div className="brand-title">OpenPrism</div>
+          <div className="brand-title">Manuscripta</div>
           <div className="brand-sub">{t('Projects Workspace')}</div>
         </div>
 
@@ -466,6 +470,15 @@ export default function ProjectPage() {
             </div>
           )}
         </div>
+
+        {authEnabled && user && (
+          <div className="sidebar-auth-footer">
+            <div className="sidebar-auth-user">{user.displayName || user.username}</div>
+            <button className="btn ghost" onClick={logout} style={{ fontSize: 12, padding: '4px 10px' }}>
+              {t('auth.logout')}
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* ── Main Content ── */}

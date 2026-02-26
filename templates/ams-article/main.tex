@@ -1,0 +1,70 @@
+\documentclass[11pt]{amsart}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{example}{Example}[section]
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}[section]
+
+\title{Paper Title for AMS Journal}
+\author{Author One}
+\address{Department of Mathematics, University One, City, Country}
+\email{author1@example.com}
+\author{Author Two}
+\address{Department of Mathematics, University Two, City, Country}
+\email{author2@example.com}
+
+\subjclass[2020]{Primary 35J05; Secondary 65N30}
+\keywords{Keyword one, keyword two, keyword three}
+\date{\today}
+
+\begin{document}
+
+\begin{abstract}
+Your abstract here. AMS journals publish research in pure and applied mathematics.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+\section{Preliminaries}
+
+\begin{definition}
+A \emph{Banach space} is\ldots
+\end{definition}
+
+\section{Main Results}
+
+\begin{theorem}
+\label{thm:existence}
+Let $\Omega \subset \mathbb{R}^n$ be a bounded domain. Then\ldots
+\end{theorem}
+
+\begin{proof}
+We proceed by contradiction.
+\end{proof}
+
+\begin{corollary}
+As a consequence of Theorem~\ref{thm:existence}\ldots
+\end{corollary}
+
+\section{Applications}
+
+\section{Concluding Remarks}
+
+\section*{Acknowledgements}
+The first author was supported by\ldots
+
+\bibliographystyle{amsplain}
+\bibliography{references}
+
+\end{document}

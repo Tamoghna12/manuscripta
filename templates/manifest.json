@@ -8,51 +8,517 @@
       "description": "ACL 会议论文模板，适用于自然语言处理领域",
       "descriptionEn": "ACL conference paper template for NLP research",
       "tags": ["ACL", "NLP"],
-      "author": "OpenPrism",
+      "author": "Manuscripta",
       "featured": true
     },
     {
       "id": "cvpr",
-      "label": "CVPR (skeleton)",
+      "label": "CVPR",
       "mainFile": "main.tex",
       "category": "academic",
-      "description": "CVPR 会议论文骨架模板，适用于计算机视觉领域",
-      "descriptionEn": "CVPR conference paper skeleton template for computer vision",
+      "description": "CVPR 会议论文模板，适用于计算机视觉领域",
+      "descriptionEn": "CVPR conference paper template for computer vision",
       "tags": ["CVPR", "Computer Vision"],
-      "author": "OpenPrism",
+      "author": "Manuscripta",
       "featured": true
     },
     {
       "id": "neurips",
-      "label": "NeurIPS (skeleton)",
+      "label": "NeurIPS",
       "mainFile": "main.tex",
       "category": "academic",
-      "description": "NeurIPS 会议论文骨架模板，适用于机器学习领域",
-      "descriptionEn": "NeurIPS conference paper skeleton template for machine learning",
+      "description": "NeurIPS 会议论文模板，适用于机器学习领域",
+      "descriptionEn": "NeurIPS conference paper template for machine learning",
       "tags": ["NeurIPS", "Machine Learning"],
-      "author": "OpenPrism",
+      "author": "Manuscripta",
       "featured": true
     },
     {
       "id": "icml",
-      "label": "ICML (skeleton)",
+      "label": "ICML",
       "mainFile": "main.tex",
       "category": "academic",
-      "description": "ICML 会议论文骨架模板，适用于机器学习领域",
-      "descriptionEn": "ICML conference paper skeleton template for machine learning",
+      "description": "ICML 会议论文模板，适用于机器学习领域",
+      "descriptionEn": "ICML conference paper template for machine learning",
       "tags": ["ICML", "Machine Learning"],
-      "author": "OpenPrism",
+      "author": "Manuscripta",
       "featured": true
+    },
+    {
+      "id": "aaai",
+      "label": "AAAI",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "AAAI 会议论文模板，适用于人工智能领域",
+      "descriptionEn": "AAAI conference paper template for AI research",
+      "tags": ["AAAI", "AI"],
+      "author": "Manuscripta",
+      "featured": true
+    },
+    {
+      "id": "iclr",
+      "label": "ICLR",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "ICLR 会议论文模板，适用于表示学习领域",
+      "descriptionEn": "ICLR conference paper template for representation learning",
+      "tags": ["ICLR", "Deep Learning"],
+      "author": "Manuscripta",
+      "featured": true
+    },
+    {
+      "id": "eccv",
+      "label": "ECCV",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "ECCV 会议论文模板（Springer LNCS 风格）",
+      "descriptionEn": "ECCV conference paper template (Springer LNCS style)",
+      "tags": ["ECCV", "Computer Vision"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "iccv",
+      "label": "ICCV",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "ICCV 会议论文模板，适用于计算机视觉领域",
+      "descriptionEn": "ICCV conference paper template for computer vision",
+      "tags": ["ICCV", "Computer Vision"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "emnlp",
+      "label": "EMNLP",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "EMNLP 会议论文模板，适用于自然语言处理领域",
+      "descriptionEn": "EMNLP conference paper template for NLP research",
+      "tags": ["EMNLP", "NLP"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "kdd",
+      "label": "KDD",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "KDD 会议论文模板（ACM 格式）",
+      "descriptionEn": "KDD conference paper template (ACM format)",
+      "tags": ["KDD", "Data Mining"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "www",
+      "label": "TheWebConf (WWW)",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "WWW 会议论文模板（ACM 格式）",
+      "descriptionEn": "TheWebConf/WWW conference paper template (ACM format)",
+      "tags": ["WWW", "Web"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "sigchi",
+      "label": "CHI",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "CHI 会议论文模板（ACM SIGCHI 格式）",
+      "descriptionEn": "CHI conference paper template (ACM SIGCHI format)",
+      "tags": ["CHI", "HCI"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "usenix",
+      "label": "USENIX Security",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "USENIX Security 会议论文模板",
+      "descriptionEn": "USENIX Security conference paper template",
+      "tags": ["USENIX", "Security"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "ndss",
+      "label": "NDSS",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "NDSS 会议论文模板",
+      "descriptionEn": "NDSS conference paper template for network security",
+      "tags": ["NDSS", "Security"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "ieee-conference",
+      "label": "IEEE Conference",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "IEEE 通用会议论文模板",
+      "descriptionEn": "Generic IEEE conference paper template",
+      "tags": ["IEEE", "Conference"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "ieee-tpami",
+      "label": "IEEE TPAMI",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "IEEE TPAMI 期刊论文模板",
+      "descriptionEn": "IEEE TPAMI journal paper template",
+      "tags": ["IEEE", "TPAMI", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "ieee-trans",
+      "label": "IEEE Transactions",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "IEEE Transactions 通用期刊论文模板",
+      "descriptionEn": "Generic IEEE Transactions journal paper template",
+      "tags": ["IEEE", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "nature",
+      "label": "Nature",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "Nature 期刊风格论文模板",
+      "descriptionEn": "Nature journal style paper template",
+      "tags": ["Nature", "Journal"],
+      "author": "Manuscripta",
+      "featured": true
+    },
+    {
+      "id": "science",
+      "label": "Science",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "Science 期刊风格论文模板",
+      "descriptionEn": "Science journal style paper template",
+      "tags": ["Science", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "elsevier",
+      "label": "Elsevier",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "Elsevier 期刊论文模板（elsarticle）",
+      "descriptionEn": "Elsevier journal paper template (elsarticle)",
+      "tags": ["Elsevier", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "springer",
+      "label": "Springer Journal",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "Springer 期刊论文模板（svjour3）",
+      "descriptionEn": "Springer journal paper template (svjour3)",
+      "tags": ["Springer", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "lncs",
+      "label": "Springer LNCS",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "Springer LNCS 论文模板",
+      "descriptionEn": "Springer Lecture Notes in Computer Science template",
+      "tags": ["Springer", "LNCS"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "acm-journal",
+      "label": "ACM Journal",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "ACM 期刊论文模板",
+      "descriptionEn": "ACM journal paper template (acmart)",
+      "tags": ["ACM", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "plos",
+      "label": "PLOS ONE",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "PLOS ONE 期刊风格论文模板",
+      "descriptionEn": "PLOS ONE journal style paper template",
+      "tags": ["PLOS", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "arxiv-preprint",
+      "label": "arXiv Preprint",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "arXiv 预印本论文模板（简洁 article 格式）",
+      "descriptionEn": "Clean arXiv preprint paper template",
+      "tags": ["arXiv", "Preprint"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "jmlr",
+      "label": "JMLR",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "JMLR 期刊风格论文模板",
+      "descriptionEn": "Journal of Machine Learning Research paper template",
+      "tags": ["JMLR", "Machine Learning", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "siam",
+      "label": "SIAM",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "SIAM 期刊论文模板",
+      "descriptionEn": "SIAM journal paper template",
+      "tags": ["SIAM", "Mathematics", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "ams-article",
+      "label": "AMS Article",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "AMS 数学论文模板（amsart）",
+      "descriptionEn": "American Mathematical Society article template",
+      "tags": ["AMS", "Mathematics"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "rsc",
+      "label": "RSC",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "英国皇家化学学会期刊风格论文模板",
+      "descriptionEn": "Royal Society of Chemistry journal style template",
+      "tags": ["RSC", "Chemistry", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "achemso",
+      "label": "ACS (achemso)",
+      "mainFile": "main.tex",
+      "category": "academic",
+      "description": "美国化学学会期刊论文模板（achemso）",
+      "descriptionEn": "American Chemical Society journal paper template",
+      "tags": ["ACS", "Chemistry", "Journal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "phd-thesis",
+      "label": "PhD Thesis",
+      "mainFile": "main.tex",
+      "category": "thesis",
+      "description": "博士学位论文模板",
+      "descriptionEn": "PhD thesis template with frontmatter, chapters, and backmatter",
+      "tags": ["PhD", "Thesis"],
+      "author": "Manuscripta",
+      "featured": true
+    },
+    {
+      "id": "masters-thesis",
+      "label": "Master's Thesis",
+      "mainFile": "main.tex",
+      "category": "thesis",
+      "description": "硕士学位论文模板",
+      "descriptionEn": "Master's thesis template",
+      "tags": ["Master's", "Thesis"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "undergraduate",
+      "label": "Undergraduate Thesis",
+      "mainFile": "main.tex",
+      "category": "thesis",
+      "description": "本科毕业论文模板",
+      "descriptionEn": "Undergraduate thesis/report template",
+      "tags": ["Undergraduate", "Thesis"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "technical-report",
+      "label": "Technical Report",
+      "mainFile": "main.tex",
+      "category": "report",
+      "description": "技术报告模板",
+      "descriptionEn": "Technical report template with structured sections",
+      "tags": ["Report", "Technical"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "project-proposal",
+      "label": "Project Proposal",
+      "mainFile": "main.tex",
+      "category": "report",
+      "description": "项目/基金申请书模板",
+      "descriptionEn": "Project or grant proposal template",
+      "tags": ["Proposal", "Grant"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "lab-report",
+      "label": "Lab Report",
+      "mainFile": "main.tex",
+      "category": "report",
+      "description": "实验报告模板",
+      "descriptionEn": "Laboratory experiment report template",
+      "tags": ["Lab", "Report"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "beamer-default",
+      "label": "Beamer (Default)",
+      "mainFile": "main.tex",
+      "category": "presentation",
+      "description": "Beamer 演示文稿（默认主题）",
+      "descriptionEn": "Beamer presentation with default theme",
+      "tags": ["Beamer", "Slides"],
+      "author": "Manuscripta",
+      "featured": true
+    },
+    {
+      "id": "beamer-madrid",
+      "label": "Beamer (Madrid)",
+      "mainFile": "main.tex",
+      "category": "presentation",
+      "description": "Beamer 演示文稿（Madrid 主题）",
+      "descriptionEn": "Beamer presentation with Madrid theme",
+      "tags": ["Beamer", "Slides"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "beamer-metropolis",
+      "label": "Beamer (Modern)",
+      "mainFile": "main.tex",
+      "category": "presentation",
+      "description": "Beamer 演示文稿（现代简约风格）",
+      "descriptionEn": "Beamer presentation with modern minimalist style",
+      "tags": ["Beamer", "Slides", "Modern"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "moderncv",
+      "label": "ModernCV",
+      "mainFile": "main.tex",
+      "category": "resume",
+      "description": "ModernCV 简历模板",
+      "descriptionEn": "Professional resume template using ModernCV",
+      "tags": ["CV", "Resume"],
+      "author": "Manuscripta",
+      "featured": true
+    },
+    {
+      "id": "academic-cv",
+      "label": "Academic CV",
+      "mainFile": "main.tex",
+      "category": "resume",
+      "description": "学术简历模板",
+      "descriptionEn": "Academic curriculum vitae template",
+      "tags": ["CV", "Academic"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "formal-letter",
+      "label": "Formal Letter",
+      "mainFile": "main.tex",
+      "category": "letter",
+      "description": "正式信函模板",
+      "descriptionEn": "Formal letter template",
+      "tags": ["Letter", "Formal"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "cover-letter",
+      "label": "Cover Letter",
+      "mainFile": "main.tex",
+      "category": "letter",
+      "description": "求职信模板",
+      "descriptionEn": "Job application cover letter template",
+      "tags": ["Letter", "Job"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "textbook",
+      "label": "Textbook",
+      "mainFile": "main.tex",
+      "category": "book",
+      "description": "教科书模板（含定理环境和练习）",
+      "descriptionEn": "Textbook template with theorems, examples, and exercises",
+      "tags": ["Textbook", "Book"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "monograph",
+      "label": "Research Monograph",
+      "mainFile": "main.tex",
+      "category": "book",
+      "description": "学术专著模板",
+      "descriptionEn": "Research monograph template",
+      "tags": ["Monograph", "Book"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "poster-a0",
+      "label": "Academic Poster",
+      "mainFile": "main.tex",
+      "category": "presentation",
+      "description": "学术海报模板（A0 尺寸）",
+      "descriptionEn": "Academic poster template (A0 size)",
+      "tags": ["Poster", "A0"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "homework",
+      "label": "Homework",
+      "mainFile": "main.tex",
+      "category": "report",
+      "description": "课程作业模板",
+      "descriptionEn": "Course homework/assignment template",
+      "tags": ["Homework", "Assignment"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "exam",
+      "label": "Exam Paper",
+      "mainFile": "main.tex",
+      "category": "report",
+      "description": "考试试卷模板",
+      "descriptionEn": "Exam/test paper template with scoring",
+      "tags": ["Exam", "Test"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "cheatsheet",
+      "label": "Cheat Sheet",
+      "mainFile": "main.tex",
+      "category": "report",
+      "description": "速查表/参考卡片模板",
+      "descriptionEn": "Reference cheat sheet template (multi-column)",
+      "tags": ["Cheatsheet", "Reference"],
+      "author": "Manuscripta"
+    },
+    {
+      "id": "meeting-minutes",
+      "label": "Meeting Minutes",
+      "mainFile": "main.tex",
+      "category": "report",
+      "description": "会议记录模板",
+      "descriptionEn": "Meeting minutes template with action items",
+      "tags": ["Meeting", "Minutes"],
+      "author": "Manuscripta"
     }
   ],
   "categories": [
     { "id": "all", "label": "所有", "labelEn": "All" },
     { "id": "academic", "label": "学术论文", "labelEn": "Academic" },
     { "id": "thesis", "label": "学位论文", "labelEn": "Thesis" },
-    { "id": "resume", "label": "简历", "labelEn": "Resume" },
+    { "id": "report", "label": "报告", "labelEn": "Report" },
     { "id": "presentation", "label": "演示文稿", "labelEn": "Presentation" },
+    { "id": "resume", "label": "简历", "labelEn": "Resume" },
     { "id": "book", "label": "书籍", "labelEn": "Book" },
-    { "id": "letter", "label": "信件", "labelEn": "Letter" },
-    { "id": "report", "label": "报告", "labelEn": "Report" }
+    { "id": "letter", "label": "信件", "labelEn": "Letter" }
   ]
 }

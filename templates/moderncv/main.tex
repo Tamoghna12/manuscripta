@@ -1,0 +1,53 @@
+\documentclass[11pt,a4paper]{moderncv}
+\moderncvstyle{classic}
+\moderncvcolor{blue}
+\usepackage[margin=0.75in]{geometry}
+
+\name{First}{Last}
+\title{Curriculum Vitae}
+\address{123 Street}{City, State 12345}{Country}
+\phone[mobile]{+1~(234)~567~8901}
+\email{name@example.com}
+\homepage{www.example.com}
+\social[linkedin]{linkedin-name}
+\social[github]{github-name}
+
+\begin{document}
+\makecvtitle
+
+\section{Education}
+\cventry{2020--2024}{Ph.D. in Computer Science}{University Name}{City}{}
+{Thesis: ``Thesis Title''. Advisor: Prof.\ Advisor Name.}
+\cventry{2016--2020}{B.S. in Computer Science}{University Name}{City}{}
+{Summa Cum Laude. GPA: 3.9/4.0.}
+
+\section{Experience}
+\cventry{2023--Present}{Research Scientist}{Company Name}{City}{}{
+\begin{itemize}
+  \item Developed novel algorithms for\ldots
+  \item Led a team of 5 researchers on\ldots
+\end{itemize}}
+\cventry{Summer 2022}{Research Intern}{Company Name}{City}{}{
+\begin{itemize}
+  \item Worked on large-scale machine learning systems.
+\end{itemize}}
+
+\section{Publications}
+\cvitem{2024}{Author One, \textbf{Author Two}, Author Three. ``Paper Title.'' \emph{Conference Name}, 2024.}
+\cvitem{2023}{Author One, \textbf{Author Two}. ``Paper Title.'' \emph{Journal Name}, 2023.}
+
+\section{Skills}
+\cvdoubleitem{Languages}{Python, C++, Java}{Frameworks}{PyTorch, TensorFlow}
+\cvdoubleitem{Tools}{Git, Docker, Linux}{Languages}{English (native), Spanish (fluent)}
+
+\section{Awards}
+\cvitem{2023}{Best Paper Award, Conference Name}
+\cvitem{2020}{University Medal for Outstanding Achievement}
+
+\section{Service}
+\cvitem{Reviewer}{Conference A, Conference B, Journal C}
+
+\section{References}
+Available upon request.
+
+\end{document}

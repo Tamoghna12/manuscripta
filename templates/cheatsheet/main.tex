@@ -1,0 +1,95 @@
+\documentclass[8pt,a4paper,landscape]{article}
+\usepackage[margin=0.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{multicol}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+
+\pagestyle{empty}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+\setlength{\columnsep}{12pt}
+
+\titleformat{\section}{\normalsize\bfseries\color{blue!70!black}}{}{0em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{4pt}{2pt}
+\titleformat{\subsection}{\small\bfseries}{}{0em}{}
+\titlespacing*{\subsection}{0pt}{3pt}{1pt}
+
+\begin{document}
+
+\begin{center}
+{\large\textbf{Subject Name -- Cheat Sheet}} \\
+{\small Course Code $\cdot$ Semester Year $\cdot$ Your Name}
+\end{center}
+
+\begin{multicols}{4}
+
+\section{Topic 1: Basics}
+\subsection{Definition 1}
+Brief definition or formula.
+\[ E = mc^2 \]
+
+\subsection{Key Properties}
+\begin{itemize}[leftmargin=*,nosep]
+  \item Property 1
+  \item Property 2
+  \item Property 3
+\end{itemize}
+
+\section{Topic 2: Formulas}
+\begin{align*}
+  \sin^2\theta + \cos^2\theta &= 1 \\
+  e^{i\theta} &= \cos\theta + i\sin\theta \\
+  \frac{d}{dx}e^x &= e^x
+\end{align*}
+
+\subsection{Integrals}
+\begin{align*}
+  \int_a^b f(x)\,dx &= F(b) - F(a) \\
+  \sum_{k=0}^{n} x^k &= \frac{1 - x^{n+1}}{1 - x}
+\end{align*}
+
+\section{Topic 3: Theorems}
+\subsection{Theorem 1}
+\textbf{Statement:} If $f$ is continuous on $[a,b]$, then\ldots
+
+\section{Topic 4: Methods}
+\begin{enumerate}[leftmargin=*,nosep]
+  \item Step 1
+  \item Step 2
+  \item Step 3
+\end{enumerate}
+
+\section{Topic 5: Examples}
+\subsection{Example 1}
+Problem: Find $x$ if\ldots \\
+Solution: $x = 42$
+
+\section{Topic 6: Common Mistakes}
+\begin{itemize}[leftmargin=*,nosep]
+  \item Mistake 1: explanation
+  \item Mistake 2: explanation
+\end{itemize}
+
+\section{Topic 7: Quick Reference}
+\begin{tabular}{ll}
+  Symbol & Meaning \\
+  \hline
+  $\nabla$ & Gradient \\
+  $\partial$ & Partial derivative \\
+  $\forall$ & For all \\
+  $\exists$ & There exists \\
+\end{tabular}
+
+\section{Topic 8: Tips}
+\begin{itemize}[leftmargin=*,nosep]
+  \item Tip 1
+  \item Tip 2
+  \item Tip 3
+\end{itemize}
+
+\end{multicols}
+
+\end{document}

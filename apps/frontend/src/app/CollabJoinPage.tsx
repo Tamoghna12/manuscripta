@@ -8,6 +8,8 @@ export default function CollabJoinPage() {
   const { t } = useTranslation();
   const [status, setStatus] = useState(t('正在加入协作...'));
 
+  useEffect(() => { document.title = `${t('加入协作')} — Manuscripta`; }, [t]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token') || '';

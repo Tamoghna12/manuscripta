@@ -1,0 +1,80 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Course Name -- Homework X}
+\rhead{Your Name}
+\cfoot{\thepage}
+
+\newcommand{\problem}[1]{\section*{Problem #1}}
+\newcommand{\solution}{\noindent\textbf{Solution.}\quad}
+
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,backgroundcolor=\color{gray!10}}
+
+\title{
+  \textbf{Course Code: Course Name} \\
+  Homework Assignment X
+}
+\author{
+  Your Name \\
+  Student ID: 12345678 \\
+  Collaborators: None
+}
+\date{Due: Month Day, Year}
+
+\begin{document}
+\maketitle
+
+\problem{1}
+\textit{Problem statement goes here.}
+
+\solution
+Write your solution here.
+
+\begin{align}
+  f(x) &= x^2 + 2x + 1 \\
+  &= (x + 1)^2
+\end{align}
+
+\problem{2}
+\textit{Problem statement goes here.}
+
+\solution
+
+\begin{proof}
+We proceed by induction.
+
+\textbf{Base case:} When $n = 1$, the claim holds.
+
+\textbf{Inductive step:} Assume the claim holds for $n = k$. We show it holds for $n = k + 1$.
+
+Therefore, by induction, the claim holds for all $n \geq 1$.
+\end{proof}
+
+\problem{3}
+\textit{Problem statement goes here.}
+
+\solution
+
+\begin{lstlisting}[language=Python]
+def solve(n):
+    if n <= 1:
+        return n
+    return solve(n-1) + solve(n-2)
+\end{lstlisting}
+
+\problem{4}
+\textit{Problem statement goes here.}
+
+\solution
+Your solution here.
+
+\end{document}

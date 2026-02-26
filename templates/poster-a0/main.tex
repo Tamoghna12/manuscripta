@@ -1,0 +1,136 @@
+\documentclass[a0paper,portrait]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage[most]{tcolorbox}
+\usepackage{float}
+
+\definecolor{posterblue}{RGB}{0, 83, 155}
+\definecolor{posterlight}{RGB}{230, 240, 250}
+
+\renewcommand{\normalsize}{\fontsize{28}{34}\selectfont}
+\renewcommand{\small}{\fontsize{24}{30}\selectfont}
+\renewcommand{\footnotesize}{\fontsize{20}{26}\selectfont}
+\renewcommand{\large}{\fontsize{36}{44}\selectfont}
+\renewcommand{\Large}{\fontsize{48}{58}\selectfont}
+\renewcommand{\LARGE}{\fontsize{60}{72}\selectfont}
+\renewcommand{\huge}{\fontsize{72}{86}\selectfont}
+\renewcommand{\Huge}{\fontsize{84}{100}\selectfont}
+
+\newtcolorbox{posterbox}[1]{
+  colback=posterlight,colframe=posterblue,fonttitle=\large\bfseries,
+  title=#1,boxrule=2pt,arc=8pt,left=10pt,right=10pt,top=10pt,bottom=10pt
+}
+
+\begin{document}
+\pagestyle{empty}
+
+\begin{center}
+\colorbox{posterblue}{%
+\parbox{0.96\textwidth}{%
+\centering\color{white}
+\vspace{20pt}
+{\Huge\textbf{Poster Title Goes Here}} \\[16pt]
+{\Large Author One\textsuperscript{1}, Author Two\textsuperscript{2}} \\[10pt]
+{\large \textsuperscript{1}University One \quad \textsuperscript{2}University Two} \\[6pt]
+{\large Contact: author1@example.com}
+\vspace{20pt}
+}}
+\end{center}
+
+\vspace{1cm}
+
+\begin{multicols}{3}
+
+\begin{posterbox}{Introduction}
+Introduce the problem and motivation for the research.
+
+\textbf{Key Question:} What is the main research question?
+\end{posterbox}
+
+\vspace{0.5cm}
+
+\begin{posterbox}{Background}
+\begin{itemize}
+  \item Prior approach 1
+  \item Prior approach 2
+  \item Research gap
+\end{itemize}
+\end{posterbox}
+
+\vspace{0.5cm}
+
+\begin{posterbox}{Method}
+Describe the proposed method.
+\[ \mathcal{L}(\theta) = \sum_{i=1}^{N} \ell(f_\theta(x_i), y_i) \]
+\end{posterbox}
+
+\columnbreak
+
+\begin{posterbox}{Experimental Setup}
+\begin{itemize}
+  \item Datasets used
+  \item Evaluation metrics
+  \item Baselines compared
+\end{itemize}
+\end{posterbox}
+
+\vspace{0.5cm}
+
+\begin{posterbox}{Results}
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Method & Metric 1 & Metric 2 \\
+\midrule
+Baseline A & 78.5 & 76.3 \\
+\textbf{Ours} & \textbf{89.2} & \textbf{87.5} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Key findings:
+\begin{enumerate}
+  \item Finding 1
+  \item Finding 2
+\end{enumerate}
+\end{posterbox}
+
+\columnbreak
+
+\begin{posterbox}{Analysis}
+Additional analysis and ablation studies.
+\end{posterbox}
+
+\vspace{0.5cm}
+
+\begin{posterbox}{Conclusions}
+\begin{itemize}
+  \item Main contribution 1
+  \item Main contribution 2
+  \item Future work directions
+\end{itemize}
+\end{posterbox}
+
+\vspace{0.5cm}
+
+\begin{posterbox}{References}
+\footnotesize
+[1] Author et al., ``Title,'' \emph{Venue}, 2024. \\{}
+[2] Author et al., ``Title,'' \emph{Venue}, 2023.
+\end{posterbox}
+
+\vspace{0.5cm}
+
+\begin{posterbox}{Acknowledgements}
+\footnotesize
+This work was supported by\ldots
+\end{posterbox}
+
+\end{multicols}
+
+\end{document}

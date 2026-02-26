@@ -24,6 +24,15 @@ export interface LLMConfig {
   model: string;
 }
 
+export interface GrammarIssue {
+  line?: number;
+  original: string;
+  replacement: string;
+  category: 'grammar' | 'spelling' | 'style' | 'punctuation' | 'vocabulary' | 'structure';
+  severity: 'error' | 'warning' | 'suggestion';
+  explanation: string;
+}
+
 export interface TemplateMeta {
   id: string;
   label: string;
@@ -51,14 +60,15 @@ export interface ArxivPaper {
 }
 
 const API_BASE = '';
-const LANG_KEY = 'openprism-lang';
-const COLLAB_TOKEN_KEY = 'openprism-collab-token';
-const COLLAB_SERVER_KEY = 'openprism-collab-server';
+const LANG_KEY = 'manuscripta-lang';
+const COLLAB_TOKEN_KEY = 'manuscripta-collab-token';
+const COLLAB_SERVER_KEY = 'manuscripta-collab-server';
+const AUTH_TOKEN_KEY = 'manuscripta-auth-token';
 
 function getLangHeader() {
-  if (typeof window === 'undefined') return 'zh-CN';
+  if (typeof window === 'undefined') return 'en-US';
   const stored = window.localStorage.getItem(LANG_KEY);
-  return stored === 'en-US' ? 'en-US' : 'zh-CN';
+  return stored === 'zh-CN' ? 'zh-CN' : 'en-US';
 }
 
 export function setCollabToken(token: string) {
@@ -88,7 +98,27 @@ export function getCollabServer() {
   return window.localStorage.getItem(COLLAB_SERVER_KEY) || '';
 }
 
+// ─── Auth Token Management ───
+
+export function setAuthToken(token: string) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+export function getAuthToken() {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(AUTH_TOKEN_KEY) || '';
+}
+
+export function clearAuthToken() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
 function getAuthHeader(): Record<string, string> {
+  // Prefer auth session token, fall back to collab token
+  const authToken = getAuthToken();
+  if (authToken) return { Authorization: `Bearer ${authToken}` };
   const token = getCollabToken();
   if (!token) return {};
   return { Authorization: `Bearer ${token}` };
@@ -213,7 +243,8 @@ export async function deleteFile(id: string, filePath: string) {
   const res = await fetch(`/api/projects/${id}/file?${qs}`, {
     method: 'DELETE',
     headers: {
-      'x-lang': getLangHeader()
+      'x-lang': getLangHeader(),
+      ...getAuthHeader()
     }
   });
   if (!res.ok) {
@@ -234,7 +265,10 @@ export async function uploadFiles(projectId: string, files: File[], basePath?: s
   files.forEach((file) => {
     const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
     const finalPath = basePath ? `${basePath}/${rel}` : rel;
-    form.append('files', file, finalPath);
+    // Send intended path as a field before each file — busboy strips directory
+    // components from the filename header, so we transmit the path separately.
+    form.append('path', finalPath);
+    form.append('files', file, file.name);
   });
   const res = await fetch(`/api/projects/${projectId}/upload`, {
     method: 'POST',
@@ -289,7 +323,7 @@ export function runAgent(payload: {
   interaction?: 'chat' | 'agent';
   history?: { role: 'user' | 'assistant'; content: string }[];
 }) {
-  return request<{ ok: boolean; reply: string; suggestion: string; patches?: { path: string; diff: string; content: string }[] }>(`/api/agent/run`, {
+  return request<{ ok: boolean; reply: string; suggestion: string; patches?: { path: string; diff: string; content: string; original?: string }[] }>(`/api/agent/run`, {
     method: 'POST',
     body: JSON.stringify(payload)
   });
@@ -300,13 +334,81 @@ export function compileProject(payload: {
   mainFile: string;
   engine: 'pdflatex' | 'xelatex' | 'lualatex' | 'latexmk' | 'tectonic';
 }) {
-  return request<{ ok: boolean; pdf?: string; log?: string; status?: number; engine?: string; error?: string }>(
+  return request<{ ok: boolean; pdf?: string; log?: string; status?: number; engine?: string; error?: string; hasSynctex?: boolean }>(
     `/api/compile`,
     {
       method: 'POST',
       body: JSON.stringify(payload)
     }
   );
+}
+
+export function compileProjectSSE(
+  payload: { projectId: string; mainFile: string; engine: string },
+  onLog?: (text: string) => void,
+): Promise<{ ok: boolean; pdf?: string; log?: string; status?: number; engine?: string; error?: string; hasSynctex?: boolean }> {
+  return new Promise((resolve, reject) => {
+    const params = new URLSearchParams({
+      projectId: payload.projectId,
+      mainFile: payload.mainFile,
+      engine: payload.engine,
+    });
+    const token = getAuthToken() || getCollabToken();
+    if (token) params.set('token', token);
+    const es = new EventSource(`/api/compile/stream?${params.toString()}`);
+
+    es.addEventListener('log', (e) => {
+      if (onLog) {
+        try {
+          const d = JSON.parse(e.data);
+          onLog(d.text || '');
+        } catch {}
+      }
+    });
+    es.addEventListener('done', (e) => {
+      es.close();
+      try {
+        resolve(JSON.parse(e.data));
+      } catch {
+        resolve({ ok: false, error: 'Failed to parse compile result.' });
+      }
+    });
+    es.onerror = () => {
+      es.close();
+      reject(new Error('Compile SSE connection failed'));
+    };
+  });
+}
+
+export function synctexForward(payload: { projectId: string; file: string; line: number }) {
+  return request<{ ok: boolean; results?: { page: number; x: number; y: number; w: number; h: number }[]; error?: string }>(
+    `/api/synctex/forward`,
+    { method: 'POST', body: JSON.stringify(payload) }
+  );
+}
+
+export function synctexInverse(payload: { projectId: string; page: number; x: number; y: number }) {
+  return request<{ ok: boolean; results?: { file: string; line: number; column: number }[]; error?: string }>(
+    `/api/synctex/inverse`,
+    { method: 'POST', body: JSON.stringify(payload) }
+  );
+}
+
+export async function exportProjectZip(projectId: string) {
+  const res = await fetch(`${API_BASE}/api/projects/${projectId}/export-zip`, {
+    headers: { ...getAuthHeader() },
+  });
+  if (!res.ok) throw new Error('Export failed');
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="(.+?)"/);
+  const filename = match ? match[1] : `${projectId}.zip`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function listTemplates() {
@@ -405,7 +507,7 @@ export function importArxivSSE(
   return new Promise((resolve, reject) => {
     const params = new URLSearchParams({ arxivIdOrUrl: payload.arxivIdOrUrl });
     if (payload.projectName) params.set('projectName', payload.projectName);
-    const token = getCollabToken();
+    const token = getAuthToken() || getCollabToken();
     if (token) params.set('token', token);
     const es = new EventSource(`/api/projects/import-arxiv-sse?${params.toString()}`);
 
@@ -555,4 +657,222 @@ export async function mineruTransferUploadPdf(jobId: string, pdfFile: File) {
     throw new Error(await res.text());
   }
   return res.json() as Promise<{ ok: boolean; pdfPath?: string }>;
+}
+
+// ─── Grammar Check API ───
+
+export function grammarCheck(payload: {
+  content: string;
+  mode?: 'full' | 'inline';
+  llmConfig?: Partial<LLMConfig> & { grammarModel?: string };
+}) {
+  return request<{ ok: boolean; issues: GrammarIssue[]; error?: string }>('/api/grammar/check', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function grammarInline(payload: {
+  content: string;
+  llmConfig?: Partial<LLMConfig> & { grammarModel?: string };
+}) {
+  return request<{ ok: boolean; issues: GrammarIssue[]; error?: string }>('/api/grammar/inline', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
+// ─── Zotero API ───
+
+export function zoteroGetConfig() {
+  return request<{ ok: boolean; config: { userId: string; apiKey: string; hasKey: boolean } | null }>('/api/zotero/config');
+}
+
+export function zoteroSaveConfig(payload: { userId: string; apiKey: string }) {
+  return request<{ ok: boolean; error?: string }>('/api/zotero/config', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function zoteroItems(params: { q?: string; limit?: number; start?: number; collectionKey?: string }) {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set('q', params.q);
+  if (params.limit) qs.set('limit', String(params.limit));
+  if (params.start) qs.set('start', String(params.start));
+  if (params.collectionKey) qs.set('collectionKey', params.collectionKey);
+  return request<{ ok: boolean; items: any[]; totalResults: number; error?: string }>(`/api/zotero/items?${qs}`);
+}
+
+export function zoteroCollections() {
+  return request<{ ok: boolean; collections: any[]; error?: string }>('/api/zotero/collections');
+}
+
+export function zoteroBibtex(payload: { itemKeys: string[] }) {
+  return request<{ ok: boolean; bibtex?: string; error?: string }>('/api/zotero/bibtex', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function zoteroLocal(params?: { dbPath?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.dbPath) qs.set('dbPath', params.dbPath);
+  return request<{ ok: boolean; items: any[]; dbPath?: string; error?: string }>(`/api/zotero/local?${qs}`);
+}
+
+// ─── Mendeley API ───
+
+export function mendeleyStatus() {
+  return request<{ ok: boolean; connected: boolean }>('/api/mendeley/status');
+}
+
+export function mendeleyDisconnect() {
+  return request<{ ok: boolean }>('/api/mendeley/disconnect', { method: 'POST', body: JSON.stringify({}) });
+}
+
+export function mendeleyDocuments(params?: { q?: string; limit?: number; offset?: number }) {
+  const qs = new URLSearchParams();
+  if (params?.q) qs.set('q', params.q);
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.offset) qs.set('offset', String(params.offset));
+  return request<{ ok: boolean; items: any[]; error?: string }>(`/api/mendeley/documents?${qs}`);
+}
+
+export function mendeleyCatalog(params: { q: string }) {
+  const qs = new URLSearchParams({ q: params.q });
+  return request<{ ok: boolean; items: any[]; error?: string }>(`/api/mendeley/catalog?${qs}`);
+}
+
+export function mendeleyBibtex(payload: { documentIds: string[] }) {
+  return request<{ ok: boolean; bibtex?: string; error?: string }>('/api/mendeley/bibtex', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+// ─── Git API ───
+
+export function gitStatus(projectId: string) {
+  return request<{ ok: boolean; initialized?: boolean; changes?: any[]; branches?: string[]; currentBranch?: string; error?: string }>(
+    `/api/projects/${projectId}/git/status`
+  );
+}
+
+export function gitInit(projectId: string) {
+  return request<{ ok: boolean; message?: string; error?: string }>(`/api/projects/${projectId}/git/init`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function gitCommit(projectId: string, payload: { message: string; authorName?: string; authorEmail?: string }) {
+  return request<{ ok: boolean; sha?: string; error?: string }>(`/api/projects/${projectId}/git/commit`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function gitLog(projectId: string, depth?: number) {
+  const qs = depth ? `?depth=${depth}` : '';
+  return request<{ ok: boolean; commits?: any[]; error?: string }>(`/api/projects/${projectId}/git/log${qs}`);
+}
+
+export function gitDiff(projectId: string, payload: { oid1: string; oid2: string }) {
+  return request<{ ok: boolean; diffs?: any[]; error?: string }>(`/api/projects/${projectId}/git/diff`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function gitBranch(projectId: string, payload: { name: string }) {
+  return request<{ ok: boolean; error?: string }>(`/api/projects/${projectId}/git/branch`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function gitCheckout(projectId: string, payload: { name: string }) {
+  return request<{ ok: boolean; error?: string }>(`/api/projects/${projectId}/git/checkout`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function gitGetRemote(projectId: string) {
+  return request<{ ok: boolean; remote: any }>(`/api/projects/${projectId}/git/remote`);
+}
+
+export function gitSetRemote(projectId: string, payload: { url: string; username?: string; token?: string; branch?: string }) {
+  return request<{ ok: boolean; error?: string }>(`/api/projects/${projectId}/git/remote`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function gitPush(projectId: string) {
+  return request<{ ok: boolean; error?: string }>(`/api/projects/${projectId}/git/push`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function gitPull(projectId: string, payload?: { authorName?: string; authorEmail?: string }) {
+  return request<{ ok: boolean; error?: string }>(`/api/projects/${projectId}/git/pull`, {
+    method: 'POST',
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+// ─── Auth API ───
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  displayName: string;
+  role: string;
+}
+
+export function authStatus() {
+  return request<{ ok: boolean; authEnabled: boolean; usersExist: boolean; oidcEnabled?: boolean }>('/api/auth/status');
+}
+
+export function authRegister(payload: { username: string; password: string; displayName?: string }) {
+  return request<{ ok: boolean; user?: AuthUser; token?: string; error?: string }>('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function authLogin(payload: { username: string; password: string }) {
+  return request<{ ok: boolean; user?: AuthUser; token?: string; error?: string }>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function authMe() {
+  return request<{ ok: boolean; user?: AuthUser | null; authEnabled?: boolean }>('/api/auth/me');
+}
+
+export function authChangePassword(payload: { currentPassword: string; newPassword: string }) {
+  return request<{ ok: boolean; error?: string }>('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+// ─── Ollama Model Discovery ───
+
+export async function ollamaListModels(endpoint?: string) {
+  const base = (endpoint || 'http://localhost:11434').replace(/\/+$/, '');
+  try {
+    const res = await fetch(`${base}/api/tags`);
+    if (!res.ok) return { ok: false, models: [] as string[] };
+    const data = await res.json() as { models?: { name: string }[] };
+    const models = (data.models || []).map((m: { name: string }) => m.name);
+    return { ok: true, models };
+  } catch {
+    return { ok: false, models: [] as string[] };
+  }
 }

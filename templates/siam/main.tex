@@ -1,0 +1,67 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{remark}{Remark}[section]
+
+\title{Paper Title for SIAM Journal}
+\author{
+  Author One\thanks{Department, University One, City, Country (\texttt{author1@example.com}).} \and
+  Author Two\thanks{Department, University Two, City, Country (\texttt{author2@example.com}).}
+}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Your abstract here. SIAM journals publish applied and computational mathematics.
+\end{abstract}
+
+\section{Introduction}
+
+\section{Preliminaries}
+
+\begin{definition}
+Let $V$ be a Hilbert space\ldots
+\end{definition}
+
+\section{Main Results}
+
+\begin{theorem}
+Under assumptions (A1)--(A3), there exists a unique solution\ldots
+\end{theorem}
+
+\begin{proof}
+The proof proceeds in three steps.
+\end{proof}
+
+\section{Numerical Method}
+\subsection{Discretization}
+\subsection{Algorithm}
+\subsection{Convergence Analysis}
+
+\section{Numerical Experiments}
+\subsection{Test Problem 1}
+\subsection{Test Problem 2}
+
+\section{Conclusion}
+
+\section*{Acknowledgments}
+The authors thank\ldots
+
+\bibliographystyle{siam}
+\bibliography{references}
+
+\end{document}

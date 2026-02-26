@@ -1,0 +1,184 @@
+import { readFile, writeFile, mkdir } from 'fs/promises';
+import { existsSync } from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import {
+  MENDELEY_CLIENT_ID,
+  MENDELEY_CLIENT_SECRET,
+  MENDELEY_REDIRECT_URI,
+  MENDELEY_TOKENS_PATH,
+  MENDELEY_STATE_PATH,
+} from '../config/constants.js';
+
+const MENDELEY_AUTH_URL = 'https://api.mendeley.com/oauth/authorize';
+const MENDELEY_TOKEN_URL = 'https://api.mendeley.com/oauth/token';
+const MENDELEY_API_BASE = 'https://api.mendeley.com';
+
+export function buildAuthorizationUrl(state) {
+  const clientId = MENDELEY_CLIENT_ID;
+  const redirectUri = MENDELEY_REDIRECT_URI;
+  if (!clientId || !redirectUri) {
+    throw new Error('Mendeley OAuth not configured. Set MANUSCRIPTA_MENDELEY_CLIENT_ID and MANUSCRIPTA_MENDELEY_REDIRECT_URI.');
+  }
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'all',
+    state,
+  });
+  return `${MENDELEY_AUTH_URL}?${params}`;
+}
+
+export async function generateAndSaveState() {
+  const state = crypto.randomBytes(16).toString('hex');
+  const data = { state, createdAt: Date.now() };
+  await mkdir(path.dirname(MENDELEY_STATE_PATH), { recursive: true });
+  await writeFile(MENDELEY_STATE_PATH, JSON.stringify(data), 'utf8');
+  return state;
+}
+
+export async function verifyState(state) {
+  if (!existsSync(MENDELEY_STATE_PATH)) return false;
+  try {
+    const data = JSON.parse(await readFile(MENDELEY_STATE_PATH, 'utf8'));
+    const TTL = 10 * 60 * 1000; // 10 minutes
+    if (data.state !== state) return false;
+    if (Date.now() - data.createdAt > TTL) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function exchangeCodeForToken(code) {
+  const res = await fetch(MENDELEY_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: MENDELEY_REDIRECT_URI,
+      client_id: MENDELEY_CLIENT_ID,
+      client_secret: MENDELEY_CLIENT_SECRET,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Token exchange failed: ${res.status} ${text}`);
+  }
+  const tokens = await res.json();
+  await saveTokens({
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    expiresAt: Date.now() + (tokens.expires_in || 3600) * 1000,
+  });
+  return tokens;
+}
+
+export async function refreshAccessToken() {
+  const stored = await loadTokens();
+  if (!stored || !stored.refreshToken) {
+    throw new Error('No refresh token available.');
+  }
+  const res = await fetch(MENDELEY_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: stored.refreshToken,
+      client_id: MENDELEY_CLIENT_ID,
+      client_secret: MENDELEY_CLIENT_SECRET,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Token refresh failed: ${res.status}`);
+  }
+  const tokens = await res.json();
+  await saveTokens({
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token || stored.refreshToken,
+    expiresAt: Date.now() + (tokens.expires_in || 3600) * 1000,
+  });
+  return tokens.access_token;
+}
+
+async function saveTokens(tokens) {
+  await mkdir(path.dirname(MENDELEY_TOKENS_PATH), { recursive: true });
+  await writeFile(MENDELEY_TOKENS_PATH, JSON.stringify(tokens, null, 2), 'utf8');
+}
+
+async function loadTokens() {
+  if (!existsSync(MENDELEY_TOKENS_PATH)) return null;
+  try {
+    return JSON.parse(await readFile(MENDELEY_TOKENS_PATH, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteTokens() {
+  const { unlink } = await import('fs/promises');
+  try {
+    if (existsSync(MENDELEY_TOKENS_PATH)) await unlink(MENDELEY_TOKENS_PATH);
+    if (existsSync(MENDELEY_STATE_PATH)) await unlink(MENDELEY_STATE_PATH);
+  } catch { /* ignore */ }
+}
+
+export async function getValidToken() {
+  const stored = await loadTokens();
+  if (!stored) return null;
+  if (Date.now() < stored.expiresAt - 60000) {
+    return stored.accessToken;
+  }
+  // Token expired or about to expire, try refresh
+  try {
+    return await refreshAccessToken();
+  } catch {
+    return null;
+  }
+}
+
+export async function isConnected() {
+  const token = await getValidToken();
+  return !!token;
+}
+
+export async function fetchDocuments(accessToken, { query, limit = 20, offset = 0 } = {}) {
+  let url = `${MENDELEY_API_BASE}/documents?view=bib&limit=${limit}&offset=${offset}`;
+  if (query) url += `&query=${encodeURIComponent(query)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Mendeley API error: ${res.status}`);
+  return res.json();
+}
+
+export async function searchCatalog(accessToken, query) {
+  const url = `${MENDELEY_API_BASE}/catalog?query=${encodeURIComponent(query)}&view=bib&limit=20`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Mendeley catalog error: ${res.status}`);
+  return res.json();
+}
+
+export function documentToBibtex(doc) {
+  const type = doc.type || 'article';
+  const citeKey = (doc.authors?.[0]?.last_name || 'unknown').toLowerCase() +
+    (doc.year || '0000');
+  const authors = (doc.authors || []).map(a => `${a.first_name || ''} ${a.last_name || ''}`.trim()).join(' and ');
+
+  const fields = [];
+  if (authors) fields.push(`  author = {${authors}}`);
+  if (doc.title) fields.push(`  title = {${doc.title}}`);
+  if (doc.year) fields.push(`  year = {${doc.year}}`);
+  if (doc.source) fields.push(`  journal = {${doc.source}}`);
+  if (doc.volume) fields.push(`  volume = {${doc.volume}}`);
+  if (doc.issue) fields.push(`  number = {${doc.issue}}`);
+  if (doc.pages) fields.push(`  pages = {${doc.pages}}`);
+  if (doc.identifiers?.doi) fields.push(`  doi = {${doc.identifiers.doi}}`);
+
+  const bibtexType = type === 'journal' ? 'article' : type === 'conference_proceedings' ? 'inproceedings' : type;
+  return `@${bibtexType}{${citeKey},\n${fields.join(',\n')}\n}\n`;
+}
