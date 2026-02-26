@@ -6,5 +6,6 @@ apps/frontend/dist/
 apps/frontend/.vite/
 apps/backend/.cache/
 data/
+backups/
 
 AGENTS.md
