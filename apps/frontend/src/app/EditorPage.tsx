@@ -42,7 +42,11 @@ import {
   ollamaListModels,
   synctexForward,
   synctexInverse,
-  exportProjectZip
+  exportProjectZip,
+  getComments,
+  saveComments,
+  getTrackedChanges,
+  saveTrackedChanges
 } from '../api/client';
 import type { ArxivPaper, GrammarIssue } from '../api/client';
 import { createTwoFilesPatch } from 'diff';
@@ -338,6 +342,21 @@ export default function EditorPage() {
     grammarEnabled,
     grammarModel
   } = settings;
+
+  // Track Changes & Comments state
+  const [trackChangesEnabled, setTrackChangesEnabled] = useState(false);
+  const [trackedChanges, setTrackedChanges] = useState<TrackedChange[]>([]);
+  const trackedChangesRef = useRef<TrackedChange[]>([]);
+  const isAcceptRejectRef = useRef(false);
+  const trackChangesEnabledRef = useRef(false);
+  const [comments, setComments] = useState<CommentThread[]>([]);
+  const commentsRef = useRef<CommentThread[]>([]);
+  const reviewSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync refs with state
+  useEffect(() => { trackedChangesRef.current = trackedChanges; }, [trackedChanges]);
+  useEffect(() => { commentsRef.current = comments; }, [comments]);
+  useEffect(() => { trackChangesEnabledRef.current = trackChangesEnabled; }, [trackChangesEnabled]);
 
   // Grammar state
   const [grammarIssues, setGrammarIssues] = useState<GrammarIssue[]>([]);
@@ -777,6 +796,70 @@ export default function EditorPage() {
           setFiles((prev) => ({ ...prev, [path]: value }));
         }
       }
+      // Track changes capture
+      if (update.docChanged && trackChangesEnabledRef.current && !isAcceptRejectRef.current && !suppressDirtyRef.current && !collabActiveRef.current) {
+        const newChanges: TrackedChange[] = [];
+        update.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
+          const insertedText = inserted.toString();
+          if (toA > fromA) {
+            // Deletion
+            const deletedText = update.startState.sliceDoc(fromA, toA);
+            newChanges.push({
+              id: crypto.randomUUID(),
+              type: 'delete',
+              from: fromA,
+              to: fromA, // collapsed position after deletion
+              text: deletedText,
+              author: collabName || 'User',
+              color: collabColorRef.current || '#4285f4',
+              timestamp: new Date().toISOString(),
+            });
+          }
+          if (insertedText.length > 0) {
+            const insertFrom = fromA;
+            const insertTo = fromA + insertedText.length;
+            newChanges.push({
+              id: crypto.randomUUID(),
+              type: 'insert',
+              from: insertFrom,
+              to: insertTo,
+              text: insertedText,
+              author: collabName || 'User',
+              color: collabColorRef.current || '#4285f4',
+              timestamp: new Date().toISOString(),
+            });
+          }
+        });
+        if (newChanges.length > 0) {
+          // Map existing changes through the document changes
+          const mapped = trackedChangesRef.current
+            .map(c => {
+              try {
+                const newFrom = update.changes.mapPos(c.from, 1);
+                const newTo = c.type === 'insert' ? update.changes.mapPos(c.to, -1) : newFrom;
+                return { ...c, from: newFrom, to: newTo };
+              } catch { return null; }
+            })
+            .filter((c): c is TrackedChange => c !== null && (c.type === 'delete' || c.to > c.from));
+          const merged = [...mapped, ...newChanges];
+          setTrackedChanges(merged);
+        }
+      }
+
+      // Map comment positions through document changes
+      if (update.docChanged && commentsRef.current.length > 0) {
+        const mappedComments = commentsRef.current.map(c => {
+          try {
+            return {
+              ...c,
+              anchorFrom: update.changes.mapPos(c.anchorFrom, 1),
+              anchorTo: update.changes.mapPos(c.anchorTo, -1),
+            };
+          } catch { return c; }
+        });
+        setComments(mappedComments);
+      }
+
       if (update.selectionSet) {
         const sel = update.state.selection.main;
         setSelectionRange([sel.from, sel.to]);
@@ -912,6 +995,10 @@ export default function EditorPage() {
         search(),
         autocompletion({ override: [latexCompletionSource, createCiteKeyCompletion(bibEntriesRef)] }),
         browserSpellCheck,
+        trackChangesField,
+        trackChangesTheme,
+        commentField,
+        commentTheme,
         updateListener,
         keymapExtension
       ]
@@ -941,6 +1028,9 @@ export default function EditorPage() {
   }, []);
 
   const openFile = async (filePath: string) => {
+    // Flush pending review save for previous file
+    flushReviewSave();
+
     setActivePath(filePath);
     activePathRef.current = filePath;
     setSelectedPath(filePath);
@@ -956,6 +1046,27 @@ export default function EditorPage() {
         return next;
       });
     }
+
+    // Load review data for the new file
+    const loadReviewData = async (fp: string) => {
+      if (!projectId || !isTextPath(fp)) {
+        setComments([]);
+        setTrackedChanges([]);
+        return;
+      }
+      try {
+        const [commentsRes, changesRes] = await Promise.all([
+          getComments(projectId, fp),
+          getTrackedChanges(projectId, fp),
+        ]);
+        setComments(commentsRes.comments || []);
+        setTrackedChanges(changesRes.changes || []);
+      } catch {
+        setComments([]);
+        setTrackedChanges([]);
+      }
+    };
+
     if (Object.prototype.hasOwnProperty.call(files, filePath)) {
       const cached = files[filePath] ?? '';
       const collabTextFile = collabEnabled && isTextPath(filePath);
@@ -964,6 +1075,7 @@ export default function EditorPage() {
       if (!collabTextFile) {
         setEditorDoc(cached);
       }
+      loadReviewData(filePath);
       return cached;
     }
     let content = '';
@@ -985,6 +1097,7 @@ export default function EditorPage() {
     if (!collabTextFile) {
       setEditorDoc(content);
     }
+    loadReviewData(filePath);
     return content;
   };
 
@@ -1008,6 +1121,167 @@ export default function EditorPage() {
     if (view) {
       view.dispatch({ effects: setGhostEffect.of({ pos: null, text: '' }) });
     }
+  }, []);
+
+  // ─── Track Changes & Comments: Sync decorations to CodeMirror ───
+
+  useEffect(() => {
+    const view = cmViewRef.current;
+    if (!view) return;
+    view.dispatch({ effects: setTrackedChangesEffect.of(trackedChanges) });
+  }, [trackedChanges]);
+
+  useEffect(() => {
+    const view = cmViewRef.current;
+    if (!view) return;
+    view.dispatch({ effects: setCommentsEffect.of(comments) });
+  }, [comments]);
+
+  // ─── Review: debounced save ───
+
+  const scheduleReviewSave = useCallback(() => {
+    if (reviewSaveTimerRef.current) clearTimeout(reviewSaveTimerRef.current);
+    reviewSaveTimerRef.current = setTimeout(() => {
+      const file = activePathRef.current;
+      if (!file || !projectId) return;
+      saveComments(projectId, file, commentsRef.current).catch(() => {});
+      saveTrackedChanges(projectId, file, trackedChangesRef.current).catch(() => {});
+    }, 1500);
+  }, [projectId]);
+
+  const flushReviewSave = useCallback(() => {
+    if (reviewSaveTimerRef.current) {
+      clearTimeout(reviewSaveTimerRef.current);
+      reviewSaveTimerRef.current = null;
+    }
+    const file = activePathRef.current;
+    if (!file || !projectId) return;
+    saveComments(projectId, file, commentsRef.current).catch(() => {});
+    saveTrackedChanges(projectId, file, trackedChangesRef.current).catch(() => {});
+  }, [projectId]);
+
+  // ─── Track Changes Handlers ───
+
+  const handleTrackAccept = useCallback((id: string) => {
+    setTrackedChanges(prev => prev.filter(c => c.id !== id));
+    scheduleReviewSave();
+  }, [scheduleReviewSave]);
+
+  const handleTrackReject = useCallback((id: string) => {
+    const view = cmViewRef.current;
+    if (!view) return;
+    const change = trackedChangesRef.current.find(c => c.id === id);
+    if (!change) return;
+    isAcceptRejectRef.current = true;
+    if (change.type === 'insert') {
+      // Undo insertion: delete the inserted text
+      view.dispatch({ changes: { from: change.from, to: change.to } });
+    } else {
+      // Undo deletion: re-insert the deleted text
+      view.dispatch({ changes: { from: change.from, insert: change.text } });
+    }
+    isAcceptRejectRef.current = false;
+    setTrackedChanges(prev => prev.filter(c => c.id !== id));
+    scheduleReviewSave();
+  }, [scheduleReviewSave]);
+
+  const handleTrackAcceptAll = useCallback(() => {
+    setTrackedChanges([]);
+    scheduleReviewSave();
+  }, [scheduleReviewSave]);
+
+  const handleTrackRejectAll = useCallback(() => {
+    const view = cmViewRef.current;
+    if (!view) return;
+    const current = trackedChangesRef.current;
+    if (current.length === 0) return;
+    isAcceptRejectRef.current = true;
+    // Sort descending by position so earlier reversals don't shift later positions
+    const sorted = [...current].sort((a, b) => b.from - a.from);
+    const changes: { from: number; to: number; insert?: string }[] = [];
+    for (const c of sorted) {
+      if (c.type === 'insert') {
+        changes.push({ from: c.from, to: c.to });
+      } else {
+        changes.push({ from: c.from, to: c.from, insert: c.text });
+      }
+    }
+    view.dispatch({ changes });
+    isAcceptRejectRef.current = false;
+    setTrackedChanges([]);
+    scheduleReviewSave();
+  }, [scheduleReviewSave]);
+
+  const handleTrackJumpTo = useCallback((from: number, to: number) => {
+    const view = cmViewRef.current;
+    if (!view) return;
+    const safeFrom = Math.min(from, view.state.doc.length);
+    const safeTo = Math.min(to, view.state.doc.length);
+    view.dispatch({
+      selection: { anchor: safeFrom, head: safeTo },
+      scrollIntoView: true,
+    });
+    view.focus();
+  }, []);
+
+  // ─── Comments Handlers ───
+
+  const handleAddComment = useCallback((anchorFrom: number, anchorTo: number, anchorText: string, content: string) => {
+    const thread: CommentThread = {
+      id: crypto.randomUUID(),
+      anchorFrom,
+      anchorTo,
+      anchorText,
+      thread: [{
+        id: crypto.randomUUID(),
+        authorName: collabName || 'User',
+        authorColor: collabColorRef.current || '#4285f4',
+        content,
+        createdAt: new Date().toISOString(),
+      }],
+      resolved: false,
+    };
+    setComments(prev => [...prev, thread]);
+    scheduleReviewSave();
+  }, [collabName, scheduleReviewSave]);
+
+  const handleCommentReply = useCallback((commentId: string, content: string) => {
+    setComments(prev => prev.map(c => {
+      if (c.id !== commentId) return c;
+      return {
+        ...c,
+        thread: [...c.thread, {
+          id: crypto.randomUUID(),
+          authorName: collabName || 'User',
+          authorColor: collabColorRef.current || '#4285f4',
+          content,
+          createdAt: new Date().toISOString(),
+        }],
+      };
+    }));
+    scheduleReviewSave();
+  }, [collabName, scheduleReviewSave]);
+
+  const handleCommentResolve = useCallback((commentId: string, resolved: boolean) => {
+    setComments(prev => prev.map(c => c.id === commentId ? { ...c, resolved } : c));
+    scheduleReviewSave();
+  }, [scheduleReviewSave]);
+
+  const handleCommentDelete = useCallback((commentId: string) => {
+    setComments(prev => prev.filter(c => c.id !== commentId));
+    scheduleReviewSave();
+  }, [scheduleReviewSave]);
+
+  const handleCommentJumpTo = useCallback((from: number, to: number) => {
+    const view = cmViewRef.current;
+    if (!view) return;
+    const safeFrom = Math.min(from, view.state.doc.length);
+    const safeTo = Math.min(to, view.state.doc.length);
+    view.dispatch({
+      selection: { anchor: safeFrom, head: safeTo },
+      scrollIntoView: true,
+    });
+    view.focus();
   }, []);
 
   const nextSuggestionChunk = (text: string) => {
@@ -4505,26 +4779,26 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               <GitPanel projectId={projectId} />
             ) : activeSidebar === 'comments' ? (
               <CommentsPanel
-                comments={[]}
-                onAddComment={() => {}}
-                onReply={() => {}}
-                onResolve={() => {}}
-                onDelete={() => {}}
-                onJumpTo={() => {}}
-                selectionRange={null}
+                comments={comments}
+                onAddComment={handleAddComment}
+                onReply={handleCommentReply}
+                onResolve={handleCommentResolve}
+                onDelete={handleCommentDelete}
+                onJumpTo={handleCommentJumpTo}
+                selectionRange={selectionRange[0] !== selectionRange[1] ? { from: selectionRange[0], to: selectionRange[1], text: editorValue.slice(selectionRange[0], selectionRange[1]) } : null}
                 authorName={collabName || 'User'}
-                authorColor="#4285f4"
+                authorColor={collabColorRef.current || '#4285f4'}
               />
             ) : activeSidebar === 'trackchanges' ? (
               <TrackChangesPanel
-                enabled={false}
-                onToggle={() => {}}
-                changes={[]}
-                onAccept={() => {}}
-                onReject={() => {}}
-                onAcceptAll={() => {}}
-                onRejectAll={() => {}}
-                onJumpTo={() => {}}
+                enabled={trackChangesEnabled}
+                onToggle={setTrackChangesEnabled}
+                changes={trackedChanges}
+                onAccept={handleTrackAccept}
+                onReject={handleTrackReject}
+                onAcceptAll={handleTrackAcceptAll}
+                onRejectAll={handleTrackRejectAll}
+                onJumpTo={handleTrackJumpTo}
               />
             ) : null}
           </aside>

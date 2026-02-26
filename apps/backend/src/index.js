@@ -23,6 +23,7 @@ import { registerMendeleyRoutes } from './routes/mendeley.js';
 import { registerBackupRoutes } from './routes/backup.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
+import { registerReviewRoutes } from './routes/review.js';
 import { audit } from './services/auditService.js';
 import { recordRequest, getMetrics } from './services/metricsService.js';
 import { tryStartTunnel } from './services/tunnel.js';
@@ -139,6 +140,7 @@ registerMendeleyRoutes(fastify);
 registerBackupRoutes(fastify);
 registerAuthRoutes(fastify);
 registerAdminRoutes(fastify);
+registerReviewRoutes(fastify);
 
 // Serve frontend static files in tunnel/production mode
 const __filename = fileURLToPath(import.meta.url);

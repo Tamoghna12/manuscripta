@@ -862,6 +862,32 @@ export function authChangePassword(payload: { currentPassword: string; newPasswo
   });
 }
 
+// ─── Review / Track Changes API ───
+
+export function getComments(projectId: string, file: string) {
+  const qs = new URLSearchParams({ file }).toString();
+  return request<{ ok: boolean; comments: any[] }>(`/api/projects/${projectId}/review/comments?${qs}`);
+}
+
+export function saveComments(projectId: string, file: string, comments: any[]) {
+  return request<{ ok: boolean }>(`/api/projects/${projectId}/review/comments`, {
+    method: 'PUT',
+    body: JSON.stringify({ file, comments }),
+  });
+}
+
+export function getTrackedChanges(projectId: string, file: string) {
+  const qs = new URLSearchParams({ file }).toString();
+  return request<{ ok: boolean; changes: any[] }>(`/api/projects/${projectId}/review/changes?${qs}`);
+}
+
+export function saveTrackedChanges(projectId: string, file: string, changes: any[]) {
+  return request<{ ok: boolean }>(`/api/projects/${projectId}/review/changes`, {
+    method: 'PUT',
+    body: JSON.stringify({ file, changes }),
+  });
+}
+
 // ─── Ollama Model Discovery ───
 
 export async function ollamaListModels(endpoint?: string) {
