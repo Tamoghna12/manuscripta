@@ -68,7 +68,7 @@ const AUTH_TOKEN_KEY = 'manuscripta-auth-token';
 function getLangHeader() {
   if (typeof window === 'undefined') return 'en-US';
   const stored = window.localStorage.getItem(LANG_KEY);
-  return stored === 'zh-CN' ? 'zh-CN' : 'en-US';
+  return 'en-US';
 }
 
 export function setCollabToken(token: string) {

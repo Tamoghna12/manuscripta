@@ -1,9 +1,7 @@
 import { useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { buildSplitDiff } from '../utils/compileUtils';
 
 export default function SplitDiffView({ rows }: { rows: ReturnType<typeof buildSplitDiff> }) {
-  const { t } = useTranslation();
   const leftRef = useRef<HTMLDivElement | null>(null);
   const rightRef = useRef<HTMLDivElement | null>(null);
   const lockRef = useRef(false);
@@ -25,7 +23,7 @@ export default function SplitDiffView({ rows }: { rows: ReturnType<typeof buildS
         ref={leftRef}
         onScroll={() => syncScroll(leftRef.current, rightRef.current)}
       >
-        <div className="split-header">{t('Before')}</div>
+        <div className="split-header">{'Before'}</div>
         {rows.map((row, idx) => (
           <div key={`l-${idx}`} className={`split-row ${row.type}`}>
             <div className="line-no">{row.leftNo ?? ''}</div>
@@ -38,7 +36,7 @@ export default function SplitDiffView({ rows }: { rows: ReturnType<typeof buildS
         ref={rightRef}
         onScroll={() => syncScroll(rightRef.current, leftRef.current)}
       >
-        <div className="split-header">{t('After')}</div>
+        <div className="split-header">{'After'}</div>
         {rows.map((row, idx) => (
           <div key={`r-${idx}`} className={`split-row ${row.type}`}>
             <div className="line-no">{row.rightNo ?? ''}</div>

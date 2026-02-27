@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 
 export default function LoginPage() {
-  const { t } = useTranslation();
   const { login, register, authEnabled, oidcEnabled } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
@@ -39,16 +37,16 @@ export default function LoginPage() {
       <div className="login-card">
         <div className="login-brand">
           <h1>Manuscripta</h1>
-          <p className="login-subtitle">{t('auth.subtitle')}</p>
+          <p className="login-subtitle">{'Academic writing, reimagined.'}</p>
         </div>
 
         {oidcEnabled && (
           <>
             <button className="btn login-sso-btn" onClick={handleSSOLogin}>
-              {t('auth.ssoLogin')}
+              {'Sign in with SSO'}
             </button>
             <div className="login-divider">
-              <span>{t('auth.or')}</span>
+              <span>{'or'}</span>
             </div>
           </>
         )}
@@ -58,24 +56,24 @@ export default function LoginPage() {
             className={`login-tab ${mode === 'login' ? 'active' : ''}`}
             onClick={() => { setMode('login'); setError(''); }}
           >
-            {t('auth.login')}
+            {'Sign In'}
           </button>
           <button
             className={`login-tab ${mode === 'register' ? 'active' : ''}`}
             onClick={() => { setMode('register'); setError(''); }}
           >
-            {t('auth.register')}
+            {'Sign Up'}
           </button>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="field">
-            <label>{t('auth.username')}</label>
+            <label>{'Username'}</label>
             <input
               className="input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder={t('auth.usernamePlaceholder')}
+              placeholder={'your_username'}
               autoComplete="username"
               autoFocus
               required
@@ -84,24 +82,24 @@ export default function LoginPage() {
 
           {mode === 'register' && (
             <div className="field">
-              <label>{t('auth.displayName')}</label>
+              <label>{'Display Name'}</label>
               <input
                 className="input"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder={t('auth.displayNamePlaceholder')}
+                placeholder={'How others will see you'}
               />
             </div>
           )}
 
           <div className="field">
-            <label>{t('auth.password')}</label>
+            <label>{'Password'}</label>
             <input
               className="input"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === 'register' ? t('auth.passwordPlaceholderNew') : t('auth.passwordPlaceholder')}
+              placeholder={mode === 'register' ? 'At least 6 characters' : 'Enter your password'}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               required
               minLength={6}
@@ -111,14 +109,14 @@ export default function LoginPage() {
           {error && <div className="login-error">{error}</div>}
 
           <button className="btn login-submit" type="submit" disabled={busy}>
-            {busy ? t('auth.submitting') : mode === 'login' ? t('auth.loginBtn') : t('auth.registerBtn')}
+            {busy ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
         <div className="login-footer">
           {mode === 'login'
-            ? <span>{t('auth.noAccount')} <button className="link-btn" onClick={() => setMode('register')}>{t('auth.register')}</button></span>
-            : <span>{t('auth.hasAccount')} <button className="link-btn" onClick={() => setMode('login')}>{t('auth.login')}</button></span>
+            ? <span>{"Don't have an account?"} <button className="link-btn" onClick={() => setMode('register')}>{'Sign Up'}</button></span>
+            : <span>{'Already have an account?'} <button className="link-btn" onClick={() => setMode('login')}>{'Sign In'}</button></span>
           }
         </div>
       </div>

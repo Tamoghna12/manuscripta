@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   transferStart,
   transferStep,
@@ -26,8 +25,6 @@ type MineruSource = 'project' | 'upload';
 const ENGINES = ['pdflatex', 'xelatex', 'lualatex', 'latexmk'] as const;
 
 export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelProps) {
-  const { t } = useTranslation();
-
   // Transfer mode
   const [transferMode, setTransferMode] = useState<TransferMode>('mineru');
   const [mineruSource, setMineruSource] = useState<MineruSource>('project');
@@ -255,7 +252,7 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
     </svg>
   );
 
-  const modeLabel = transferMode === 'mineru' ? 'MinerU (PDF→MD→LaTeX)' : t('经典模式 (LaTeX→LaTeX)');
+  const modeLabel = transferMode === 'mineru' ? 'MinerU (PDF→MD→LaTeX)' : 'Classic mode (LaTeX→LaTeX)';
 
   const canStart = (() => {
     if (running || !targetTemplateId) return false;
@@ -271,7 +268,7 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
     <div className="transfer-panel">
       {/* Transfer mode selection */}
       <div className="field">
-        <label>{t('转换模式')}</label>
+        <label>{'Transfer mode'}</label>
         <div className="ios-select-wrapper" ref={modeRef}>
           <button className="ios-select-trigger" onClick={() => setModeDropdownOpen(!modeDropdownOpen)}>
             <span>{modeLabel}</span>
@@ -290,7 +287,7 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
                 className={`ios-dropdown-item ${transferMode === 'legacy' ? 'active' : ''}`}
                 onClick={() => { setTransferMode('legacy'); setModeDropdownOpen(false); }}
               >
-                {t('经典模式 (LaTeX→LaTeX)')}
+                {'Classic mode (LaTeX→LaTeX)'}
                 {transferMode === 'legacy' && checkSvg}
               </div>
             </div>
@@ -300,21 +297,21 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
       {/* MinerU mode: source selection (project or upload) */}
       {transferMode === 'mineru' && (
         <div className="field">
-          <label>{t('输入来源')}</label>
+          <label>{'Input source'}</label>
           <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
             <button
               className={`btn ${mineruSource === 'project' ? 'primary' : ''}`}
               style={{ flex: 1, fontSize: 12 }}
               onClick={() => setMineruSource('project')}
             >
-              {t('从当前项目编译')}
+              {'Compile from current project'}
             </button>
             <button
               className={`btn ${mineruSource === 'upload' ? 'primary' : ''}`}
               style={{ flex: 1, fontSize: 12 }}
               onClick={() => setMineruSource('upload')}
             >
-              {t('上传 PDF')}
+              {'Upload PDF'}
             </button>
           </div>
         </div>
@@ -323,10 +320,10 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
       {/* Source file selection — shown for legacy mode or MinerU project mode */}
       {(transferMode === 'legacy' || (transferMode === 'mineru' && mineruSource === 'project')) && (
         <div className="field">
-          <label>{t('源文件')}</label>
+          <label>{'Source File'}</label>
           <div className="ios-select-wrapper" ref={sourceRef}>
             <button className="ios-select-trigger" onClick={() => setSourceDropdownOpen(!sourceDropdownOpen)}>
-              <span>{sourceMainFile || t('选择源文件...')}</span>
+              <span>{sourceMainFile || 'Select source file...'}</span>
               {chevronSvg(sourceDropdownOpen)}
             </button>
             {sourceDropdownOpen && (
@@ -343,7 +340,7 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
                 ))}
                 {sourceFiles.length === 0 && (
                   <div className="ios-dropdown-item" style={{ color: 'var(--muted)', pointerEvents: 'none' }}>
-                    {t('未找到 .tex 文件')}
+                    {'No .tex files found'}
                   </div>
                 )}
               </div>
@@ -355,7 +352,7 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
       {/* PDF upload — shown for MinerU upload mode */}
       {transferMode === 'mineru' && mineruSource === 'upload' && (
         <div className="field">
-          <label>{t('上传 PDF 文件')}</label>
+          <label>{'Upload PDF file'}</label>
           <input
             ref={pdfInputRef}
             type="file"
@@ -371,17 +368,17 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
             style={{ width: '100%', fontSize: 12, marginBottom: 4 }}
             onClick={() => pdfInputRef.current?.click()}
           >
-            {uploadedPdf ? uploadedPdf.name : t('选择 PDF 文件...')}
+            {uploadedPdf ? uploadedPdf.name : 'Select PDF file...'}
           </button>
         </div>
       )}
 
       {/* Target template selection */}
       <div className="field">
-        <label>{t('目标模板')}</label>
+        <label>{'Target Template'}</label>
         <div className="ios-select-wrapper" ref={templateRef}>
           <button className="ios-select-trigger" onClick={() => setTemplateDropdownOpen(!templateDropdownOpen)}>
-            <span>{selectedTemplateName || t('选择目标模板...')}</span>
+            <span>{selectedTemplateName || 'Select target template...'}</span>
             {chevronSvg(templateDropdownOpen)}
           </button>
           {templateDropdownOpen && (
@@ -398,7 +395,7 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
               ))}
               {templates.length === 0 && (
                 <div className="ios-dropdown-item" style={{ color: 'var(--muted)', pointerEvents: 'none' }}>
-                  {t('暂无可选模板')}
+                  {'No templates available'}
                 </div>
               )}
             </div>
@@ -408,7 +405,7 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
 
       {/* Engine selection */}
       <div className="field">
-        <label>{t('编译引擎')}</label>
+        <label>{'Compile Engine'}</label>
         <div className="ios-select-wrapper" ref={engineRef}>
           <button className="ios-select-trigger" onClick={() => setEngineDropdownOpen(!engineDropdownOpen)}>
             <span>{engine}</span>
@@ -434,7 +431,7 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
       {/* Layout check toggle */}
       <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
         <input type="checkbox" checked={layoutCheck} onChange={e => setLayoutCheck(e.target.checked)} />
-        {t('启用排版检查 (VLM)')}
+        {'Enable layout check (VLM)'}
       </label>
 
       {/* MinerU API config — shown only in MinerU mode */}
@@ -459,7 +456,7 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
               <input
                 type="password"
                 className="ios-select-trigger"
-                placeholder={t('输入 MinerU API Token...')}
+                placeholder={'Enter MinerU API Token...'}
                 value={mineruToken}
                 onChange={e => setMineruToken(e.target.value)}
                 style={{ paddingRight: 12 }}
@@ -478,13 +475,13 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
         disabled={!canStart}
         onClick={handleStart}
       >
-        {running ? t('转换中...') : t('开始转换')}
+        {running ? 'Transferring...' : 'Start Transfer'}
       </button>
 
       {/* Status */}
       {status !== 'idle' && (
         <div style={{ fontSize: 12, marginBottom: 8 }}>
-          <strong>{t('状态')}:</strong> {status}
+          <strong>{'Status'}:</strong> {status}
         </div>
       )}
 

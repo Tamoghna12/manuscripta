@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   mendeleyStatus,
   mendeleyDisconnect,
@@ -25,7 +24,6 @@ interface MendeleyPanelProps {
 const PAGE_SIZE = 25;
 
 export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelProps) {
-  const { t } = useTranslation();
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'library' | 'catalog'>('library');
@@ -142,25 +140,25 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   if (loading) {
-    return <div className="mendeley-panel" style={{ padding: 12 }}>{t('Loading...')}</div>;
+    return <div className="mendeley-panel" style={{ padding: 12 }}>{'Loading...'}</div>;
   }
 
   return (
     <div className="mendeley-panel">
       <div className="panel-header">
-        <div>{t('Mendeley')}</div>
+        <div>{'Mendeley'}</div>
       </div>
 
       {!connected ? (
         <div style={{ padding: 12, textAlign: 'center' }}>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
-            {t('Connect your Mendeley account to browse and import references.')}
+            {'Connect your Mendeley account to browse and import references.'}
           </p>
           <button className="primary-btn" onClick={connect}>
-            {t('Connect Mendeley')}
+            {'Connect Mendeley'}
           </button>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8 }}>
-            {t('Requires OAuth app configuration.')}
+            {'Requires OAuth app configuration.'}
           </div>
         </div>
       ) : (
@@ -169,14 +167,14 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
             <button
               className={`tab-btn-sm ${tab === 'library' ? 'active' : ''}`}
               onClick={() => { setTab('library'); setItems([]); setSelected({}); setPage(0); }}
-            >{t('My Library')}</button>
+            >{'My Library'}</button>
             <button
               className={`tab-btn-sm ${tab === 'catalog' ? 'active' : ''}`}
               onClick={() => { setTab('catalog'); setItems([]); setSelected({}); setPage(0); }}
-            >{t('Catalog')}</button>
+            >{'Catalog'}</button>
             <div style={{ flex: 1 }} />
             <button className="small-btn" onClick={disconnect} disabled={busy} style={{ fontSize: 10, color: 'var(--error)' }}>
-              {t('Disconnect')}
+              {'Disconnect'}
             </button>
           </div>
 
@@ -185,12 +183,12 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
               className="input-field"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder={tab === 'library' ? t('Search your library...') : t('Search Mendeley catalog...')}
+              placeholder={tab === 'library' ? 'Search your library...' : 'Search Mendeley catalog...'}
               onKeyDown={e => e.key === 'Enter' && search(0)}
               style={{ flex: 1 }}
             />
             <button className="primary-btn" onClick={() => search(0)} disabled={busy}>
-              {busy ? '...' : t('Search')}
+              {busy ? '...' : 'Search'}
             </button>
           </div>
 
@@ -220,7 +218,7 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
             ))}
             {items.length === 0 && !busy && (
               <div style={{ padding: 12, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
-                {t('Search to browse references.')}
+                {'Search to browse references.'}
               </div>
             )}
           </div>
@@ -228,7 +226,7 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
           {items.length > 0 && (
             <div style={{ padding: '6px 8px', borderTop: '1px solid var(--border)', display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
               <button className="small-btn" onClick={selectAll} style={{ fontSize: 10 }}>
-                {items.every(i => selected[i.id]) ? t('Deselect All') : t('Select All')}
+                {items.every(i => selected[i.id]) ? 'Deselect All' : 'Select All'}
               </button>
               <button
                 className="primary-btn"
@@ -236,7 +234,7 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
                 disabled={busy || selectedCount === 0}
                 style={{ fontSize: 11 }}
               >
-                {t('Import to .bib')} ({selectedCount})
+                {'Import to .bib'} ({selectedCount})
               </button>
               {tab === 'library' && (
                 <div style={{ display: 'flex', gap: 2, fontSize: 10 }}>

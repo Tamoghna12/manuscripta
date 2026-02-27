@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, Dispatch, MouseEvent, SetStateAction, RefObject, DragEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { basicSetup } from 'codemirror';
@@ -134,22 +133,22 @@ import type { BibEntry } from '../utils/bibParser';
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
 
-const DEFAULT_TASKS = (t: (key: string) => string) => [
-  { value: 'polish', label: t('润色') },
-  { value: 'rewrite', label: t('改写') },
-  { value: 'structure', label: t('结构调整') },
-  { value: 'translate', label: t('翻译') },
-  { value: 'websearch', label: t('检索 (arXiv)') },
-  { value: 'custom', label: t('自定义') }
+const DEFAULT_TASKS = [
+  { value: 'polish', label: 'Polish' },
+  { value: 'rewrite', label: 'Rewrite' },
+  { value: 'structure', label: 'Restructure' },
+  { value: 'translate', label: 'Translate' },
+  { value: 'websearch', label: 'Search (arXiv)' },
+  { value: 'custom', label: 'Custom' }
 ];
 
-const RIGHT_VIEW_OPTIONS = (t: (key: string) => string) => [
+const RIGHT_VIEW_OPTIONS = [
   { value: 'pdf', label: 'PDF' },
-  { value: 'toc', label: t('目录') },
+  { value: 'toc', label: 'Table of contents' },
   { value: 'figures', label: 'FIG' },
   { value: 'diff', label: 'DIFF' },
   { value: 'log', label: 'LOG' },
-  { value: 'review', label: t('评审报告') }
+  { value: 'review', label: 'Review report' }
 ];
 
 /* Settings, collab, file, latex, JSON, compile utilities imported from ../utils/ */
@@ -160,7 +159,6 @@ function appendLog(setter: (val: string[] | ((prev: string[]) => string[])) => v
 
 export default function EditorPage() {
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { projectId: routeProjectId } = useParams();
   const projectId = routeProjectId || '';
@@ -183,7 +181,7 @@ export default function EditorPage() {
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [agentMessages, setAgentMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState('');
-  const [task, setTask] = useState(DEFAULT_TASKS(t)[0].value);
+  const [task, setTask] = useState(DEFAULT_TASKS[0].value);
   const [mode, setMode] = useState<'direct' | 'tools'>('direct');
   const [translateScope, setTranslateScope] = useState<'selection' | 'file' | 'project'>('selection');
   const [translateTarget, setTranslateTarget] = useState('English');
@@ -194,7 +192,7 @@ export default function EditorPage() {
   const [rightViewDropdownOpen, setRightViewDropdownOpen] = useState(false);
   const [mainFileDropdownOpen, setMainFileDropdownOpen] = useState(false);
   const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
-  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+
   const [agentFileNavOpen, setAgentFileNavOpen] = useState(false);
   const [topBarDropdownRect, setTopBarDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const [visionModeDropdownOpen, setVisionModeDropdownOpen] = useState(false);
@@ -600,13 +598,13 @@ export default function EditorPage() {
       .then((res) => {
         const current = res.projects.find((item) => item.id === projectId);
         if (!current) {
-          setStatus(t('项目不存在或已被删除。'));
+          setStatus('Project not found or deleted.');
           return;
         }
         setProjectName(current.name);
       })
-      .catch((err) => setStatus(t('加载项目信息失败: {{error}}', { error: String(err) })));
-  }, [navigate, projectId, t]);
+      .catch((err) => setStatus(`Failed to load project info: ${error}`));
+  }, [navigate, projectId]);
 
   useEffect(() => {
     activePathRef.current = activePath;
@@ -645,7 +643,7 @@ export default function EditorPage() {
       view.dispatch({ effects: collabCompartment.reconfigure([]) });
       setCollabStatus('disconnected');
       setCollabPeers([]);
-      setStatus(t('协作暂不支持该文件类型。'));
+      setStatus("Collaboration doesn't support this file type yet.");
       return;
     }
     const currentDoc = view.state.doc.toString();
@@ -671,7 +669,7 @@ export default function EditorPage() {
       doc: ydoc,
       awareness,
       onStatus: setCollabStatus,
-      onError: (error) => setStatus(t('协作连接失败: {{error}}', { error }))
+      onError: (error) => setStatus(`Collab connection failed: ${error}`)
     });
     collabProviderRef.current = provider;
     collabDocRef.current = { doc: ydoc, text: ytext, awareness };
@@ -721,7 +719,7 @@ export default function EditorPage() {
       view.dispatch({ effects: collabCompartment.reconfigure([]) });
       setCollabPeers([]);
     };
-  }, [activePath, collabCompartment, collabEnabled, collabName, collabServer, collabToken, projectId, t]);
+  }, [activePath, collabCompartment, collabEnabled, collabName, collabServer, collabToken, projectId]);
 
   const handleCreateInvite = useCallback(async () => {
     if (!projectId) return;
@@ -729,7 +727,7 @@ export default function EditorPage() {
     try {
       const res = await createCollabInvite(projectId);
       if (!res.ok || !res.token) {
-        throw new Error(t('邀请生成失败'));
+        throw new Error('Failed to generate invite');
       }
       const baseInput = normalizeServerUrl(collabServer) || (typeof window === 'undefined' ? '' : window.location.origin);
       const base = baseInput.replace(/\/$/, '');
@@ -738,23 +736,23 @@ export default function EditorPage() {
       if (!collabEnabled) {
         setCollabEnabled(true);
       }
-      setStatus(t('邀请链接已生成'));
+      setStatus('Invite link generated');
     } catch (err) {
-      setStatus(t('生成邀请失败: {{error}}', { error: String(err) }));
+      setStatus(`Failed to generate invite: ${error}`);
     } finally {
       setCollabInviteBusy(false);
     }
-  }, [collabServer, projectId, t]);
+  }, [collabServer, projectId]);
 
   const copyInviteLink = useCallback(async () => {
     if (!collabInviteLink) return;
     try {
       await navigator.clipboard.writeText(collabInviteLink);
-      setStatus(t('邀请链接已复制'));
+      setStatus('Invite link copied');
     } catch (err) {
-      setStatus(t('复制失败: {{error}}', { error: String(err) }));
+      setStatus(`Copy failed: ${error}`);
     }
-  }, [collabInviteLink, t]);
+  }, [collabInviteLink]);
 
   const refreshTree = async (keepActive = true) => {
     if (!projectId) return;
@@ -774,9 +772,9 @@ export default function EditorPage() {
     if (!projectId) return;
     setFiles({});
     setActivePath('');
-    refreshTree(false).catch((err) => setStatus(t('加载文件树失败: {{error}}', { error: String(err) })));
+    refreshTree(false).catch((err) => setStatus(`Failed to load file tree: ${error}`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, t]);
+  }, [projectId]);
 
 
   useEffect(() => {
@@ -1089,7 +1087,7 @@ export default function EditorPage() {
       const draft = await loadDraft(projectId, filePath).catch(() => null);
       if (draft) {
         content = draft.content;
-        setStatus(t('离线模式：已从本地缓存加载 {{path}}', { path: filePath }));
+        setStatus(`Offline: loaded ${path} from local cache`);
       }
     }
     setFiles((prev) => ({ ...prev, [filePath]: content }));
@@ -1318,7 +1316,7 @@ export default function EditorPage() {
       }
 
       if (newEntries.length === 0) {
-        toast(t('All entries already exist in {{target}}', { target }), 'warning');
+        toast(`All entries already exist in ${target}`, 'warning');
         return;
       }
 
@@ -1331,13 +1329,13 @@ export default function EditorPage() {
       setFiles(prev => ({ ...prev, [target]: finalContent }));
 
       const msg = skippedKeys.length > 0
-        ? t('Imported {{count}} entries to {{target}} ({{skipped}} duplicates skipped)', { count: newEntries.length, target, skipped: skippedKeys.length })
-        : t('Imported {{count}} entries to {{target}}', { count: newEntries.length, target });
+        ? `Imported ${count} entries to ${target} (${skipped} duplicates skipped)`
+        : `Imported ${count} entries to ${target}`;
       toast(msg, 'success');
     } catch (err: any) {
-      toast(t('Failed to import BibTeX: {{error}}', { error: err.message || 'Unknown error' }), 'error');
+      toast(`Failed to import BibTeX: ${error}`, 'error');
     }
-  }, [projectId, bibTarget, t, toast]);
+  }, [projectId, bibTarget, toast]);
 
   const nextSuggestionChunk = (text: string) => {
     const match = text.match(/^(\s*\S+\s*)/);
@@ -1421,12 +1419,12 @@ export default function EditorPage() {
       const res = await runAgent({
         task: 'autocomplete',
         prompt: [
-          t('You are a LaTeX writing assistant.'),
-          t('Continue after <CURSOR> with a coherent next block (1-2 paragraphs or a full environment).'),
-          heading ? t('Current section: {{title}} ({{level}}).', { title: heading.title, level: heading.level }) : '',
-          env ? t('You are inside environment: {{env}}.', { env }) : '',
-          t('Preserve style and formatting.'),
-          t('Return only the continuation text, no commentary.')
+          'You are a LaTeX writing assistant.',
+          'Continue after <CURSOR> with a coherent next block (1-2 paragraphs or a full environment).',
+          heading ? `Current section: ${title} (${level}).` : '',
+          env ? `You are inside environment: ${env}.` : '',
+          'Preserve style and formatting.',
+          'Return only the continuation text, no commentary.'
         ].filter(Boolean).join(' '),
         selection: '',
         content: `${before}<CURSOR>${after}`,
@@ -1445,14 +1443,14 @@ export default function EditorPage() {
         effects: setGhostEffect.of({ pos, text: suggestion })
       });
     } catch (err) {
-      setStatus(t('补全失败: {{error}}', { error: String(err) }));
+      setStatus(`Completion failed: ${error}`);
     } finally {
       setIsSuggesting(false);
       if (!inlineSuggestionRef.current) {
         setSuggestionPos(null);
       }
     }
-  }, [activePath, clearInlineSuggestion, compileLog, isSuggesting, llmConfig, projectId, updateSuggestionPosition, t]);
+  }, [activePath, clearInlineSuggestion, compileLog, isSuggesting, llmConfig, projectId, updateSuggestionPosition]);
 
   useEffect(() => {
     if (!inlineSuggestionText) {
@@ -1500,10 +1498,10 @@ export default function EditorPage() {
           setSavePulse(true);
           window.setTimeout(() => setSavePulse(false), 1200);
           if (!opts?.silent) {
-            setStatus(t('协作已同步 {{path}}', { path: activePath }));
+            setStatus(`Synced ${path}`);
           }
         } catch (err) {
-          setStatus(t('协作同步失败: {{error}}', { error: String(err) }));
+          setStatus(`Sync failed: ${error}`);
         } finally {
           setIsSaving(false);
         }
@@ -1518,7 +1516,7 @@ export default function EditorPage() {
         // Clear any offline draft on successful save
         deleteDraft(projectId, activePath).catch(() => {});
         if (!opts?.silent) {
-          setStatus(t('已保存 {{path}}', { path: activePath }));
+          setStatus(`Saved ${path}`);
         }
       } catch (err) {
         // Server unreachable — save to IndexedDB for offline recovery
@@ -1526,16 +1524,16 @@ export default function EditorPage() {
           await saveDraft(projectId, activePath, editorValue);
           setIsDirty(false);
           if (!opts?.silent) {
-            setStatus(t('离线已保存 {{path}}（服务器不可用）', { path: activePath }));
+            setStatus(`Saved offline ${path} (server unavailable)`);
           }
         } catch {
-          setStatus(t('保存失败: {{error}}', { error: String(err) }));
+          setStatus(`Save failed: ${error}`);
         }
       } finally {
         setIsSaving(false);
       }
     },
-    [activePath, editorValue, projectId, t]
+    [activePath, editorValue, projectId]
   );
 
   const writeFileCompat = useCallback(
@@ -1689,7 +1687,7 @@ export default function EditorPage() {
       }
       const outline = parseOutline(content).slice(0, 12);
       const headings = outline.map((item) => `${'  '.repeat(item.level - 1)}- ${item.title}`);
-      summaries.push(t('File: {{file}}\n{{headings}}', { file: current, headings: headings.join('\n') }));
+      summaries.push(`File: ${current}\n${headings.join('\n')}`);
       const baseDir = getParentPath(current);
       const includes = extractIncludeTargets(content);
       includes.forEach((raw) => {
@@ -1704,8 +1702,8 @@ export default function EditorPage() {
       });
     }
     const filesList = Array.from(visited).join(', ');
-    return t('Project files: {{files}}\nOutline:\n{{summaries}}', { files: filesList, summaries: summaries.join('\n') });
-  }, [activePath, ensureFileContent, mainFile, t]);
+    return `Project files: ${filesList}\nOutline:\n${summaries.join('\n')}`;
+  }, [activePath, ensureFileContent, mainFile]);
 
   const extractBibKey = (bibtex: string) => {
     const match = bibtex.match(/@\w+\s*{\s*([^,\s]+)\s*,/);
@@ -1715,7 +1713,7 @@ export default function EditorPage() {
   const handleArxivSearch = useCallback(async () => {
     const query = arxivQuery.trim();
     if (!query) {
-      setArxivStatus(t('请输入检索关键词。'));
+      setArxivStatus('Enter search keywords.');
       return;
     }
     setArxivBusy(true);
@@ -1726,11 +1724,11 @@ export default function EditorPage() {
         const res = await runAgent({
           task: 'websearch',
           prompt: [
-            t('Search arXiv for the user query.'),
-            t('Return at most {{max}} papers.', { max: arxivMaxResults }),
-            t('Use arxiv_search and arxiv_bibtex tools.'),
-            t('Return JSON ONLY in this schema:'),
-            t('{"papers":[{"title":"","authors":[],"arxivId":"","bibtex":""}]}.')
+            'Search arXiv for the user query.',
+            `Return at most ${max} papers.`,
+            'Use arxiv_search and arxiv_bibtex tools.',
+            'Return JSON ONLY in this schema:',
+            '{"papers":[{"title":"","authors":[],"arxivId":"","bibtex":""}]}.'
           ].join(' '),
           selection: '',
           content: query,
@@ -1748,16 +1746,16 @@ export default function EditorPage() {
         }
         const jsonBlock = extractJsonBlock(raw);
         if (!jsonBlock) {
-          throw new Error(t('LLM 输出无法解析为 JSON。'));
+          throw new Error('LLM output is not valid JSON.');
         }
         const parsed = safeJsonParse<{ papers?: { title: string; authors?: string[]; arxivId: string; bibtex?: string }[] }>(jsonBlock);
         if (!parsed) {
-          throw new Error(t('LLM 输出 JSON 解析失败。'));
+          throw new Error('Failed to parse LLM JSON output.');
         }
         const papers = parsed.papers || [];
         setArxivResults(
           papers.map((paper) => ({
-            title: paper.title || t('(untitled)'),
+            title: paper.title || '(untitled)',
             abstract: '',
             authors: paper.authors || [],
             url: paper.arxivId ? `https://arxiv.org/abs/${paper.arxivId}` : '',
@@ -1773,31 +1771,31 @@ export default function EditorPage() {
         setArxivBibtexCache(cache);
         setArxivSelected({});
         if (papers.length === 0) {
-          setArxivStatus(t('没有匹配结果。'));
+          setArxivStatus('No matches.');
         }
       } else {
         const res = await arxivSearch({ query, maxResults: arxivMaxResults });
         if (!res.ok) {
-          throw new Error(res.error || t('检索失败'));
+          throw new Error(res.error || 'Search failed');
         }
         setArxivResults(res.papers || []);
         setArxivSelected({});
         if ((res.papers || []).length === 0) {
-          setArxivStatus(t('没有匹配结果。'));
+          setArxivStatus('No matches.');
         }
       }
     } catch (err) {
-      setArxivStatus(t('检索失败: {{error}}', { error: String(err) }));
+      setArxivStatus(`Search failed: ${error}`);
     } finally {
       setArxivBusy(false);
     }
-  }, [arxivQuery, arxivMaxResults, useLlmSearch, projectId, activePath, compileLog, searchLlmConfig, t]);
+  }, [arxivQuery, arxivMaxResults, useLlmSearch, projectId, activePath, compileLog, searchLlmConfig]);
 
   const handleArxivApply = useCallback(async () => {
     if (!projectId) return;
     const selected = arxivResults.filter((paper) => arxivSelected[paper.arxivId]);
     if (selected.length === 0) {
-      setArxivStatus(t('请选择要导入的论文。'));
+      setArxivStatus('Select papers to import.');
       return;
     }
     let targetBib = bibTarget;
@@ -1809,11 +1807,11 @@ export default function EditorPage() {
       }
     }
     if (!targetBib) {
-      setArxivStatus(t('请先创建 Bib 文件。'));
+      setArxivStatus('Please create a Bib file first.');
       return;
     }
     setArxivBusy(true);
-    setArxivStatus(t('正在写入 Bib...'));
+    setArxivStatus('Writing Bib...');
     try {
       let content = await ensureFileContent(targetBib);
       const keys: string[] = [];
@@ -1822,7 +1820,7 @@ export default function EditorPage() {
         if (!bibtexSource) {
           const res = await arxivBibtex({ arxivId: paper.arxivId });
           if (!res.ok || !res.bibtex) {
-            throw new Error(res.error || t('生成 BibTeX 失败: {{id}}', { id: paper.arxivId }));
+            throw new Error(res.error || `Failed to generate BibTeX: ${id}`);
           }
           bibtexSource = res.bibtex;
         }
@@ -1851,7 +1849,7 @@ export default function EditorPage() {
         if (activePath && activePath.toLowerCase().endsWith('.tex')) {
           insertAtCursor(`\\cite{${keys.join(',')}}`);
         } else {
-          setArxivStatus(t('Bib 已写入。打开 TeX 文件后可插入引用。'));
+          setArxivStatus('Bib written. Open a TeX file to insert citations.');
           setArxivBusy(false);
           return;
         }
@@ -1859,7 +1857,7 @@ export default function EditorPage() {
       if (autoInsertToMain && keys.length > 0) {
         const targetFile = citeTargetFile || mainFile;
         if (!targetFile) {
-          setArxivStatus(t('未选择引用插入文件。'));
+          setArxivStatus('No target file selected for citation insert.');
           setArxivBusy(false);
           return;
         }
@@ -1870,13 +1868,13 @@ export default function EditorPage() {
             arxivId: paper.arxivId
           }));
         const prompt = [
-          t('Insert citations into the target TeX file.'),
-          t('Target file: {{file}}.', { file: targetFile }),
-          t('Use \\\\cite{{{keys}}}.', { keys: keys.join(',') }),
-          t('If a Related Work section exists, add the citations there.'),
-          t('Otherwise add a Related Work subsection near the end and cite the papers.'),
-          t('Keep edits minimal and preserve formatting.'),
-          citePayload.length > 0 ? t('Papers: {{payload}}', { payload: JSON.stringify(citePayload) }) : ''
+          'Insert citations into the target TeX file.',
+          `Target file: ${file}.`,
+          `Use \\\\cite{${keys.join(',')}}.`,
+          'If a Related Work section exists, add the citations there.',
+          'Otherwise add a Related Work subsection near the end and cite the papers.',
+          'Keep edits minimal and preserve formatting.',
+          citePayload.length > 0 ? `Papers: ${payload}` : ''
         ].filter(Boolean).join(' ');
         try {
           const targetContent = await ensureFileContent(targetFile);
@@ -1902,27 +1900,27 @@ export default function EditorPage() {
             }));
             setPendingChanges(nextPending);
             setRightView('diff');
-            setArxivStatus(t('已生成引用插入建议，请在 Diff 面板应用。'));
+            setArxivStatus('Citation insert suggestion generated. Apply in Diff panel.');
           } else {
-            setArxivStatus(t('未生成可应用的引用修改。'));
+            setArxivStatus('No applicable citation edits generated.');
           }
         } catch (err) {
-          setArxivStatus(t('引用插入失败: {{error}}', { error: String(err) }));
+          setArxivStatus(`Citation insert failed: ${error}`);
         }
       } else {
-        setArxivStatus(t('已写入 Bib。'));
+        setArxivStatus('Bib written.');
       }
     } catch (err) {
-      setArxivStatus(t('写入失败: {{error}}', { error: String(err) }));
+      setArxivStatus(`Write failed: ${error}`);
     } finally {
       setArxivBusy(false);
     }
-  }, [activePath, arxivResults, arxivSelected, autoInsertCite, autoInsertToMain, bibTarget, projectId, createBibFile, ensureFileContent, setEditorDoc, arxivBibtexCache, compileLog, searchLlmConfig, mainFile, files, citeTargetFile, t]);
+  }, [activePath, arxivResults, arxivSelected, autoInsertCite, autoInsertToMain, bibTarget, projectId, createBibFile, ensureFileContent, setEditorDoc, arxivBibtexCache, compileLog, searchLlmConfig, mainFile, files, citeTargetFile]);
 
   const handlePlotGenerate = async () => {
     if (!projectId) return;
     if (!selectionText || (!selectionText.includes('\\begin{tabular') && !selectionText.includes('\\begin{table'))) {
-      setPlotStatus(t('请在编辑器中选择一个 LaTeX 表格 (tabular)。'));
+      setPlotStatus('Select a LaTeX table (tabular) in the editor.');
       return;
     }
     setPlotBusy(true);
@@ -1939,16 +1937,16 @@ export default function EditorPage() {
         llmConfig
       });
       if (!res.ok || !res.assetPath) {
-        throw new Error(res.error || t('图表生成失败'));
+        throw new Error(res.error || 'Chart generation failed');
       }
       setPlotAssetPath(res.assetPath);
-      setPlotStatus(t('图表已生成'));
+      setPlotStatus('Chart generated');
       await refreshTree();
       if (plotAutoInsert) {
         insertFigureSnippet(res.assetPath);
       }
     } catch (err) {
-      setPlotStatus(t('生成失败: {{error}}', { error: String(err) }));
+      setPlotStatus(`Generation failed: ${error}`);
     } finally {
       setPlotBusy(false);
     }
@@ -1957,7 +1955,7 @@ export default function EditorPage() {
   const runWebsearch = async () => {
     const query = websearchQuery.trim();
     if (!query) {
-      setWebsearchLog([t('请输入查询关键词。')]);
+      setWebsearchLog(['Enter query keywords.']);
       return;
     }
     setWebsearchBusy(true);
@@ -1968,57 +1966,57 @@ export default function EditorPage() {
     setWebsearchParagraph('');
     setWebsearchItemNotes({});
     try {
-      appendLog(setWebsearchLog, t('拆分查询...'));
+      appendLog(setWebsearchLog, 'Splitting query...');
       const splitRes = await callLLM({
         llmConfig: searchLlmConfig,
         messages: [
-          { role: 'system', content: t('Split the query into 2-4 targeted search queries. Return JSON only: {"queries":["..."]}.') },
-          { role: 'user', content: t('用户问题: {{query}}', { query }) }
+          { role: 'system', content: 'Split the query into 2-4 targeted search queries. Return JSON only: {"queries":["..."]}.' },
+          { role: 'user', content: `User query: ${query}` }
         ]
       });
       if (!splitRes.ok || !splitRes.content) {
-        throw new Error(splitRes.error || t('Query split failed'));
+        throw new Error(splitRes.error || 'Query split failed');
       }
       const jsonBlock = extractJsonBlock(splitRes.content);
       if (!jsonBlock) {
-        throw new Error(t('无法解析拆分结果 JSON。'));
+        throw new Error('Failed to parse split JSON.');
       }
       const parsed = safeJsonParse<{ queries?: string[] }>(jsonBlock);
       if (!parsed) {
-        throw new Error(t('拆分结果 JSON 解析失败。'));
+        throw new Error('Failed to parse split JSON.');
       }
       const queries = (parsed.queries || []).filter(Boolean).slice(0, 4);
       if (queries.length === 0) {
-        throw new Error(t('拆分结果为空。'));
+        throw new Error('Split result is empty.');
       }
-      appendLog(setWebsearchLog, t('并行检索: {{queries}}', { queries: queries.join(' | ') }));
+      appendLog(setWebsearchLog, `Parallel search: ${queries}`);
       const aggregated: WebsearchItem[] = [];
       await Promise.all(
         queries.map(async (q, idx) => {
-          appendLog(setWebsearchLog, t('检索中: {{query}}', { query: q }));
+          appendLog(setWebsearchLog, `Searching: ${query}`);
           const res = await callLLM({
             llmConfig: searchLlmConfig,
             messages: [
               {
                 role: 'system',
                 content:
-                  t('You are a search assistant. Use the provider search. Return JSON only: {"results":[{"title":"","summary":"","url":"","bibtex":""}]}.')
+                  'You are a search assistant. Use the provider search. Return JSON only: {"results":[{"title":"","summary":"","url":"","bibtex":""}]}.'
               },
-              { role: 'user', content: t('帮我检索: {{query}}', { query: q }) }
+              { role: 'user', content: `Search for me: ${query}` }
             ]
           });
           if (!res.ok || !res.content) {
-            appendLog(setWebsearchLog, t('检索失败: {{query}}', { query: q }));
+            appendLog(setWebsearchLog, `Search failed: ${query}`);
             return;
           }
           const block = extractJsonBlock(res.content);
           if (!block) {
-            appendLog(setWebsearchLog, t('结果解析失败: {{query}}', { query: q }));
+            appendLog(setWebsearchLog, `Failed to parse results: ${query}`);
             return;
           }
           const parsedRes = safeJsonParse<{ results?: { title?: string; summary?: string; url?: string; bibtex?: string }[] }>(block);
           if (!parsedRes) {
-            appendLog(setWebsearchLog, t('结果 JSON 解析失败: {{query}}', { query: q }));
+            appendLog(setWebsearchLog, `Failed to parse result JSON: ${query}`);
             return;
           }
           const results = parsedRes.results || [];
@@ -2027,14 +2025,14 @@ export default function EditorPage() {
             const citeKey = bibtex ? extractBibKey(bibtex.replace(/\\n/g, '\n')) : '';
             aggregated.push({
               id: `${idx}-${i}-${item.url || item.title || 'result'}`,
-              title: item.title || t('Untitled'),
+              title: item.title || 'Untitled',
               summary: item.summary || '',
               url: item.url || '',
               bibtex,
               citeKey
             });
           });
-          appendLog(setWebsearchLog, t('完成: {{query}} ({{count}})', { query: q, count: results.length }));
+          appendLog(setWebsearchLog, `Done: ${query} (${count})`);
         })
       );
       const deduped: WebsearchItem[] = [];
@@ -2044,19 +2042,19 @@ export default function EditorPage() {
         }
       });
       setWebsearchResults(deduped);
-      appendLog(setWebsearchLog, t('聚合结果: {{count}} 条', { count: deduped.length }));
+      appendLog(setWebsearchLog, `Aggregated results: ${count}`);
       if (deduped.length === 0) {
         setWebsearchBusy(false);
         return;
       }
-      appendLog(setWebsearchLog, t('生成逐条总结...'));
+      appendLog(setWebsearchLog, 'Generating per-paper summaries...');
       const summariesRes = await callLLM({
         llmConfig: searchLlmConfig,
         messages: [
           {
             role: 'system',
             content:
-              t('你是论文检索助手。请为每篇论文写一条简短总结（1-2 句）。返回 JSON：{"summaries":[{"id":"","summary":""}]}.')
+              'You are a paper search assistant. Write a 1-2 sentence summary for each paper. Return JSON: {"summaries":[{"id":"","summary":""}]}.'
           },
           {
             role: 'user',
@@ -2085,15 +2083,15 @@ export default function EditorPage() {
             }
           });
           setWebsearchItemNotes(notes);
-          appendLog(setWebsearchLog, t('逐条总结已生成。'));
+          appendLog(setWebsearchLog, 'Per-paper summaries generated.');
         } else {
-          appendLog(setWebsearchLog, t('逐条总结解析失败。'));
+          appendLog(setWebsearchLog, 'Failed to parse per-paper summaries.');
         }
       } else {
-        appendLog(setWebsearchLog, t('逐条总结生成失败。'));
+        appendLog(setWebsearchLog, 'Failed to generate per-paper summaries.');
       }
 
-      appendLog(setWebsearchLog, t('生成综合总结...'));
+      appendLog(setWebsearchLog, 'Generating overall summary...');
       const citeKeys = deduped.map((item) => item.citeKey).filter(Boolean);
       const paragraphRes = await callLLM({
         llmConfig: searchLlmConfig,
@@ -2101,7 +2099,7 @@ export default function EditorPage() {
           {
             role: 'system',
             content:
-              t('请根据提供论文生成 3-5 句中文综合总结（不要分条）。可以使用 \\cite{...} 引用。只返回总结文本。')
+              'Generate a 3-5 sentence overall summary. You may use \\cite{...}. Return only the text.'
           },
           {
             role: 'user',
@@ -2111,12 +2109,12 @@ export default function EditorPage() {
       });
       if (paragraphRes.ok && paragraphRes.content) {
         setWebsearchParagraph(paragraphRes.content.trim());
-        appendLog(setWebsearchLog, t('段落已生成。'));
+        appendLog(setWebsearchLog, 'Paragraph generated.');
       } else {
-        appendLog(setWebsearchLog, t('段落生成失败。'));
+        appendLog(setWebsearchLog, 'Paragraph generation failed.');
       }
     } catch (err) {
-      appendLog(setWebsearchLog, t('错误: {{error}}', { error: String(err) }));
+      appendLog(setWebsearchLog, `Error: ${error}`);
     } finally {
       setWebsearchBusy(false);
     }
@@ -2130,14 +2128,14 @@ export default function EditorPage() {
       if (created) targetBib = created;
     }
     if (!targetBib) {
-      setWebsearchLog((prev) => [...prev, t('缺少 Bib 文件。')]);
+      setWebsearchLog((prev) => [...prev, 'Missing Bib file.']);
       return;
     }
     let content = await ensureFileContent(targetBib);
     const keys: string[] = [];
     const selectedItems = websearchResults.filter((item) => websearchSelected[item.id]);
     if (selectedItems.length === 0) {
-      appendLog(setWebsearchLog, t('请选择至少一条结果。'));
+      appendLog(setWebsearchLog, 'Select at least one result.');
       return;
     }
     const perItemLines = selectedItems.map((item) => {
@@ -2160,16 +2158,16 @@ export default function EditorPage() {
     });
     await writeFileCompat(targetBib, content);
     setFiles((prev) => ({ ...prev, [targetBib]: content }));
-    appendLog(setWebsearchLog, t('Bib 写入完成: {{path}}', { path: targetBib }));
+    appendLog(setWebsearchLog, `Bib written: ${path}`);
 
     const targetFile = websearchTargetFile || mainFile || activePath;
     const perItemBlock = perItemLines.length
-      ? `\\paragraph{${t('逐条总结')}}\n\\begin{itemize}\n${perItemLines.join('\n')}\n\\end{itemize}\n\n`
+      ? `\\paragraph{${'Per-paper summaries'}}\n\\begin{itemize}\n${perItemLines.join('\n')}\n\\end{itemize}\n\n`
       : '';
-    const finalBlock = websearchParagraph ? `\\paragraph{${t('综合总结')}}\n${websearchParagraph}\n` : '';
+    const finalBlock = websearchParagraph ? `\\paragraph{${'Overall summary'}}\n${websearchParagraph}\n` : '';
     const insertBlock = `${perItemBlock}${finalBlock}`.trim();
     if (!insertBlock) {
-      appendLog(setWebsearchLog, t('没有可插入的总结内容。'));
+      appendLog(setWebsearchLog, 'No summary to insert.');
       return;
     }
     if (targetFile && targetFile.toLowerCase().endsWith('.tex')) {
@@ -2184,19 +2182,19 @@ export default function EditorPage() {
           setEditorDoc(nextContent);
         }
       }
-      appendLog(setWebsearchLog, t('段落已插入 {{path}}', { path: targetFile }));
+      appendLog(setWebsearchLog, `Paragraph inserted into ${path}`);
     } else if (activePath && activePath.toLowerCase().endsWith('.tex')) {
       if (insertBlock) {
         insertAtCursor(insertBlock, { block: true });
       }
-      appendLog(setWebsearchLog, t('段落已插入光标位置。'));
+      appendLog(setWebsearchLog, 'Paragraph inserted at cursor.');
     }
   };
 
   const handleUpload = async (fileList: FileList | null, basePath = '') => {
     if (!projectId || !fileList || fileList.length === 0) return;
     const fileArr = Array.from(fileList);
-    setStatus(t('正在上传 {{num}} 个文件…', { num: String(fileArr.length) }));
+    setStatus(`Uploading ${num} files...`);
     const res = await uploadFiles(projectId, fileArr, basePath);
     // Evict cached content for any overwritten files so re-open fetches fresh data
     if (res.files && res.files.length > 0) {
@@ -2213,13 +2211,13 @@ export default function EditorPage() {
     if (activePath && res.files?.includes(activePath)) {
       await openFile(activePath);
     }
-    setStatus(t('已上传 {{num}} 个文件。', { num: String(res.files?.length ?? fileArr.length) }));
+    setStatus(`Uploaded ${num} files.`);
   };
 
   const handleVisionSubmit = async () => {
     if (!projectId) return;
     if (!visionFile) {
-      setStatus(t('请先选择图片。'));
+      setStatus('Please select an image first.');
       return;
     }
     setVisionBusy(true);
@@ -2228,11 +2226,11 @@ export default function EditorPage() {
       let extraPrompt = visionPrompt.trim();
       if (!extraPrompt) {
         if (visionMode === 'table') {
-          extraPrompt = t('只输出表格的 LaTeX（tabular 或 table），不要包含文档结构。');
+          extraPrompt = 'Only output LaTeX table (tabular/table), no document wrapper.';
         } else if (visionMode === 'algorithm') {
-          extraPrompt = t('只输出 algorithm/algorithmic 环境，不要包含文档结构。');
+          extraPrompt = 'Only output algorithm/algorithmic environment, no document wrapper.';
         } else if (visionMode === 'equation') {
-          extraPrompt = t('只输出 equation 环境，不要包含文档结构。');
+          extraPrompt = 'Only output equation environment, no document wrapper.';
         }
       }
       const res = await visionToLatex({
@@ -2243,11 +2241,11 @@ export default function EditorPage() {
         llmConfig: visionLlmConfig
       });
       if (!res.ok) {
-        throw new Error(res.error || t('识别失败'));
+        throw new Error(res.error || 'Recognition failed');
       }
       setVisionResult(res.latex || '');
     } catch (err) {
-      setStatus(t('识别失败: {{error}}', { error: String(err) }));
+      setStatus(`Recognition failed: ${error}`);
     } finally {
       setVisionBusy(false);
     }
@@ -2281,7 +2279,7 @@ export default function EditorPage() {
     const target = selectedPath || activePath;
     if (!target) return;
 
-    const confirmMessage = t('确定要删除 "{name}" 吗？此操作不可恢复。', { name: target.split('/').pop() || target });
+    const confirmMessage = `Are you sure you want to delete "${target.split('/').pop() || target}"? This action cannot be undone.`;
     if (!window.confirm(confirmMessage)) return;
 
     try {
@@ -2295,11 +2293,11 @@ export default function EditorPage() {
         // Refresh the file tree
         refreshTree();
       } else {
-        toast(result.error || t('删除失败'), 'error');
+        toast(result.error || 'Delete failed', 'error');
       }
     } catch (err) {
       console.error('Delete error:', err);
-      toast(t('删除失败') + ': ' + String(err), 'error');
+      toast('Delete failed' + ': ' + String(err), 'error');
     }
   };
 
@@ -2405,10 +2403,10 @@ export default function EditorPage() {
       try {
         await updateFileOrder(projectId, folder, order);
       } catch (err) {
-        setStatus(t('保存排序失败: {{error}}', { error: String(err) }));
+        setStatus(`Failed to save order: ${error}`);
       }
     },
-    [projectId, t]
+    [projectId]
   );
 
   const filteredTreeItems = useMemo(() => {
@@ -2457,10 +2455,10 @@ export default function EditorPage() {
 
   const translateTargetOptions = useMemo(
     () => [
-      { value: 'English', label: t('English') },
-      { value: '中文', label: t('中文') }
+      { value: 'English', label: 'English' },
+      { value: 'Chinese', label: 'Chinese' }
     ],
-    [t]
+    []
   );
 
   const outlineItems = useMemo(() => {
@@ -2576,7 +2574,7 @@ export default function EditorPage() {
       return;
     }
     if (!isTextFile(path)) {
-      setStatus(t('该文件为二进制文件，暂不支持直接编辑。'));
+      setStatus('Binary file; editing not supported.');
       return;
     }
     await openFile(path);
@@ -2597,7 +2595,7 @@ export default function EditorPage() {
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault();
-                confirmInlineEdit().catch((err) => setStatus(t('操作失败: {{error}}', { error: String(err) })));
+                confirmInlineEdit().catch((err) => setStatus(`Operation failed: ${error}`));
               }
               if (event.key === 'Escape') {
                 event.preventDefault();
@@ -2605,7 +2603,7 @@ export default function EditorPage() {
               }
             }}
             onBlur={() => cancelInlineEdit()}
-            placeholder={isFolder ? t('新建文件夹') : t('新建文件')}
+            placeholder={isFolder ? 'New folder' : 'New file'}
           />
         </div>
       </div>
@@ -2654,7 +2652,7 @@ export default function EditorPage() {
                 setDragOverPath(node.path);
                 setDragOverKind('folder');
                 if (draggingPath) {
-                  updateDragHint(t('移动到 {{name}} 文件夹', { name: node.name }), event);
+                  updateDragHint(`Move to folder ${name}`, event);
                 }
               }}
               onDragLeave={() => {
@@ -2665,7 +2663,7 @@ export default function EditorPage() {
               onDrop={(event) => {
                 event.preventDefault();
                 if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-                  handleUpload(event.dataTransfer.files, node.path).catch((err) => setStatus(t('上传失败: {{error}}', { error: String(err) })));
+                  handleUpload(event.dataTransfer.files, node.path).catch((err) => setStatus(`Upload failed: ${error}`));
                   setDragOverPath('');
                   setDragOverKind('');
                   setDragHint(null);
@@ -2677,10 +2675,10 @@ export default function EditorPage() {
                 setDragHint(null);
                 if (from) {
                   if (fileFilter.trim()) {
-                    setStatus(t('搜索过滤中无法拖拽移动。'));
+                    setStatus('Cannot move while filtering.');
                     return;
                   }
-                  moveFileWithOrder(from, node.path).catch((err) => setStatus(t('移动失败: {{error}}', { error: String(err) })));
+                  moveFileWithOrder(from, node.path).catch((err) => setStatus(`Move failed: ${error}`));
                 }
               }}
             >
@@ -2695,7 +2693,7 @@ export default function EditorPage() {
                   onKeyDown={(event) => {
                   if (event.key === 'Enter') {
                     event.preventDefault();
-                    confirmInlineEdit().catch((err) => setStatus(t('操作失败: {{error}}', { error: String(err) })));
+                    confirmInlineEdit().catch((err) => setStatus(`Operation failed: ${error}`));
                   }
                     if (event.key === 'Escape') {
                       event.preventDefault();
@@ -2740,11 +2738,11 @@ export default function EditorPage() {
             if (draggingPath) {
               const targetParent = getParentPath(node.path);
               const fromParent = getParentPath(draggingPath);
-              const parentLabel = targetParent || t('根目录');
+              const parentLabel = targetParent || 'Root';
               const hint =
                 fromParent === targetParent
-                  ? t('插入到 {{name}} 前', { name: node.name })
-                  : t('移动到 {{parent}} 并插入到 {{name}} 前', { parent: parentLabel, name: node.name });
+                  ? `Insert before ${name}`
+                  : `Move to ${parent} and insert before ${name}`;
               updateDragHint(hint, event);
             }
           }}
@@ -2760,22 +2758,22 @@ export default function EditorPage() {
             setDragHint(null);
             if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
               const targetParent = getParentPath(node.path);
-              handleUpload(event.dataTransfer.files, targetParent).catch((err) => setStatus(t('上传失败: {{error}}', { error: String(err) })));
+              handleUpload(event.dataTransfer.files, targetParent).catch((err) => setStatus(`Upload failed: ${error}`));
               return;
             }
             const from = event.dataTransfer.getData('text/plain');
             if (!from) return;
             if (fileFilter.trim()) {
-              setStatus(t('搜索过滤中无法拖拽排序。'));
+              setStatus('Cannot reorder while filtering.');
               return;
             }
             const targetParent = getParentPath(node.path);
             const fromParent = getParentPath(from);
             if (fromParent === targetParent) {
-              reorderWithinFolder(from, node.path).catch((err) => setStatus(t('排序失败: {{error}}', { error: String(err) })));
+              reorderWithinFolder(from, node.path).catch((err) => setStatus(`Reorder failed: ${error}`));
               return;
             }
-            moveFileWithOrder(from, targetParent, node.name).catch((err) => setStatus(t('移动失败: {{error}}', { error: String(err) })));
+            moveFileWithOrder(from, targetParent, node.name).catch((err) => setStatus(`Move failed: ${error}`));
           }}
         >
           <span className={`tree-icon file ext-${getFileTypeLabel(node.path).toLowerCase()}`}>{getFileTypeLabel(node.path)}</span>
@@ -2788,7 +2786,7 @@ export default function EditorPage() {
               onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault();
-                confirmInlineEdit().catch((err) => setStatus(t('操作失败: {{error}}', { error: String(err) })));
+                confirmInlineEdit().catch((err) => setStatus(`Operation failed: ${error}`));
               }
                 if (event.key === 'Escape') {
                   event.preventDefault();
@@ -2809,14 +2807,14 @@ export default function EditorPage() {
   const compile = async () => {
     if (!projectId) return;
     setIsCompiling(true);
-    setCompilePhase(t('compile.saving'));
+    setCompilePhase('Saving...');
     setRightView('log');
     try {
       // Save current editor buffer to disk before compiling
       await saveActiveFile({ silent: true });
 
-      setCompilePhase(t('compile.pass', { n: 1, total: '...' }));
-      setStatus(t('编译中...'));
+      setCompilePhase(`Pass ${n}/${total}...`);
+      setStatus('Compiling...');
 
       // Stream compile logs in real-time
       let logAccum = '';
@@ -2830,9 +2828,9 @@ export default function EditorPage() {
           const passMatch = text.match(/\[compile\] Pass (\d)(?:\/(\d))?/);
           const bibMatch = text.match(/\[compile\] Bibliography/);
           if (bibMatch) {
-            setCompilePhase(t('compile.bibliography'));
+            setCompilePhase('Bibliography...');
           } else if (passMatch) {
-            setCompilePhase(t('compile.pass', { n: passMatch[1], total: passMatch[2] || '...' }));
+            setCompilePhase(`Pass ${n}/${total}...`);
           }
           // Throttle log updates to ~100ms
           if (!logFlushTimer) {
@@ -2846,10 +2844,10 @@ export default function EditorPage() {
 
       if (!res.ok || !res.pdf) {
         const detail = [res.error, res.log].filter(Boolean).join('\n');
-        throw new Error(detail || t('后端编译失败'));
+        throw new Error(detail || 'Backend compile failed');
       }
 
-      setCompilePhase(t('compile.loadingPdf'));
+      setCompilePhase('Loading PDF...');
       const result: CompileOutcome = {
         pdf: Uint8Array.from(atob(res.pdf), (c) => c.charCodeAt(0)),
         log: res.log || '',
@@ -2858,11 +2856,11 @@ export default function EditorPage() {
       };
 
       const meta = [
-        t('Engine: {{engine}}', { engine: compileEngine }),
-        t('Main file: {{file}}', { file: mainFile })
+        `Engine: ${engine}`,
+        `Main file: ${file}`
       ].filter(Boolean).join('\n');
       setEngineName(compileEngine);
-      setCompileLog(`${meta}\n\n${result.log || t('No log')}`.trim());
+      setCompileLog(`${meta}\n\n${result.log || 'No log'}`.trim());
 
       const blob = new Blob([result.pdf], { type: 'application/pdf' });
       const nextUrl = URL.createObjectURL(blob);
@@ -2872,11 +2870,11 @@ export default function EditorPage() {
       setPdfUrl(nextUrl);
       setHasSynctex(!!res.hasSynctex);
       setRightView('pdf');
-      setStatus(t('编译完成 ({{engine}})', { engine: compileEngine }));
+      setStatus(`Compile done (${engine})`);
     } catch (err) {
       console.error('Compilation error:', err);
-      setCompileLog(`${t('编译错误: {{error}}', { error: String(err) })}\n${(err as Error).stack || ''}`);
-      setStatus(t('编译失败: {{error}}', { error: String(err) }));
+      setCompileLog(`${`Compile error: ${error}`}\n${(err as Error).stack || ''}`);
+      setStatus(`Compile failed: ${error}`);
     } finally {
       setIsCompiling(false);
       setCompilePhase('');
@@ -2930,10 +2928,10 @@ export default function EditorPage() {
   const pdfScaleLabel = useMemo(() => {
     if (pdfFitWidth) {
       const fitValue = pdfFitScale ?? pdfScale;
-      return t('Fit · {{percent}}%', { percent: Math.round(fitValue * 100) });
+      return `Fit · ${percent}%`;
     }
     return `${Math.round(pdfScale * 100)}%`;
-  }, [pdfFitScale, pdfFitWidth, pdfScale, t]);
+  }, [pdfFitScale, pdfFitWidth, pdfScale]);
 
   const breadcrumbParts = useMemo(() => (activePath ? activePath.split('/').filter(Boolean) : []), [activePath]);
 
@@ -2962,11 +2960,11 @@ export default function EditorPage() {
   }, []);
 
   const addPdfAnnotation = useCallback((page: number, x: number, y: number) => {
-    const text = window.prompt(t('输入注释内容'))?.trim();
+    const text = window.prompt('Enter annotation')?.trim();
     if (!text) return;
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
     setPdfAnnotations((prev) => [...prev, { id, page, x, y, text }]);
-  }, [t]);
+  }, []);
 
   const downloadPdf = useCallback(() => {
     if (!pdfUrl) return;
@@ -3078,11 +3076,11 @@ export default function EditorPage() {
     if (!activePath && !isChat) return;
     if (isChat === false && task === 'translate') {
       if (translateScope === 'selection' && !selectionText) {
-        setStatus(t('请选择要翻译的文本。'));
+        setStatus('Select text to translate.');
         return;
       }
     }
-    const userMsg: Message = { role: 'user', content: prompt || t('(empty)') };
+    const userMsg: Message = { role: 'user', content: prompt || '(empty)' };
     const setHistory = isChat ? setChatMessages : setAgentMessages;
     const history = isChat ? chatMessages : agentMessages;
     const nextHistory = [...history, userMsg];
@@ -3095,17 +3093,17 @@ export default function EditorPage() {
       let effectiveTask = task;
 
       if (!isChat && task === 'translate') {
-        const note = prompt ? `\n${t('User note')}: ${prompt}` : '';
+        const note = prompt ? `\n${'User note'}: ${prompt}` : '';
         if (translateScope === 'project') {
           effectiveMode = 'tools';
           effectiveSelection = '';
           effectiveContent = '';
-          effectivePrompt = t('Translate all .tex files in the project to {{target}}. Preserve LaTeX commands and structure.{{note}}', { target: translateTarget, note });
+          effectivePrompt = `Translate all .tex files in the project to ${target}. Preserve LaTeX commands and structure.${note}`;
         } else if (translateScope === 'file') {
           effectiveSelection = '';
-          effectivePrompt = t('Translate the current file to {{target}}. Preserve LaTeX commands and structure.{{note}}', { target: translateTarget, note });
+          effectivePrompt = `Translate the current file to ${target}. Preserve LaTeX commands and structure.${note}`;
         } else {
-          effectivePrompt = t('Translate the selected text to {{target}}. Preserve LaTeX commands and structure.{{note}}', { target: translateTarget, note });
+          effectivePrompt = `Translate the selected text to ${target}. Preserve LaTeX commands and structure.${note}`;
         }
         effectiveTask = 'translate';
       }
@@ -3115,8 +3113,8 @@ export default function EditorPage() {
         effectiveSelection = '';
         effectiveContent = '';
         effectivePrompt = prompt
-          ? t('Search arXiv and return 3-5 relevant papers with BibTeX entries. User query: {{query}}', { query: prompt })
-          : t('Search arXiv and return 3-5 relevant papers with BibTeX entries.');
+          ? `Search arXiv and return 3-5 relevant papers with BibTeX entries. User query: ${query}`
+          : 'Search arXiv and return 3-5 relevant papers with BibTeX entries.';
         effectiveTask = 'websearch';
       }
 
@@ -3141,7 +3139,7 @@ export default function EditorPage() {
         interaction: isChat ? 'chat' : 'agent',
         history: nextHistory.slice(-8)
       });
-      const replyText = res.reply || t('已生成建议。');
+      const replyText = res.reply || 'Suggestion generated.';
       setHistory((prev) => [...prev, { role: 'assistant', content: '' }]);
       window.setTimeout(() => startTypewriter(setHistory, replyText), 0);
 
@@ -3163,24 +3161,24 @@ export default function EditorPage() {
         setRightView('diff');
       }
     } catch (err) {
-      setHistory((prev) => [...prev, { role: 'assistant', content: t('请求失败: {{error}}', { error: String(err) }) }]);
+      setHistory((prev) => [...prev, { role: 'assistant', content: `Request failed: ${error}` }]);
     }
   };
 
   const diagnoseCompile = async () => {
     if (!compileLog) {
-      setStatus(t('暂无编译日志可诊断。'));
+      setStatus('No compile log to diagnose.');
       return;
     }
     if (!activePath) return;
     setDiagnoseBusy(true);
-    const userMsg: Message = { role: 'user', content: t('诊断并修复编译错误') };
+    const userMsg: Message = { role: 'user', content: 'Diagnose and fix compile errors' };
     const nextHistory = [...agentMessages, userMsg];
     setAgentMessages(nextHistory);
     try {
       const res = await runAgent({
         task: 'debug_compile',
-        prompt: t('基于编译日志诊断并修复错误，给出可应用的 diff。'),
+        prompt: 'Diagnose and fix compile errors based on the log; return applicable diffs.',
         selection: compileLog,
         content: editorValue,
         mode: 'tools',
@@ -3193,7 +3191,7 @@ export default function EditorPage() {
       });
       const assistant: Message = {
         role: 'assistant',
-        content: res.reply || t('已生成编译修复建议。')
+        content: res.reply || 'Compile fix suggestion generated.'
       };
       setAgentMessages((prev) => [...prev, assistant]);
       if (res.patches && res.patches.length > 0) {
@@ -3207,7 +3205,7 @@ export default function EditorPage() {
         setRightView('diff');
       }
     } catch (err) {
-      setAgentMessages((prev) => [...prev, { role: 'assistant', content: t('请求失败: {{error}}', { error: String(err) }) }]);
+      setAgentMessages((prev) => [...prev, { role: 'assistant', content: `Request failed: ${error}` }]);
     } finally {
       setDiagnoseBusy(false);
     }
@@ -3231,7 +3229,7 @@ export default function EditorPage() {
       setPendingChanges([]);
       setDiffFocus(null);
     }
-    setStatus(t('已应用修改'));
+    setStatus('Changes applied');
   };
 
   const discardPending = (change?: PendingChange) => {
@@ -3305,36 +3303,36 @@ export default function EditorPage() {
 
   return (
     <div className="app-shell">
-      <a href="#editor-main" className="skip-link">{t('跳转到编辑器')}</a>
+      <a href="#editor-main" className="skip-link">{'Skip to editor'}</a>
       <header className="top-bar" role="banner">
         <div className="brand">
           <div className="brand-title">Manuscripta</div>
-          <div className="brand-sub">{projectName || t('Editor Workspace')}</div>
+          <div className="brand-sub">{projectName || 'Editor Workspace'}</div>
         </div>
-        <div className="toolbar" role="toolbar" aria-label={t('主工具栏')}>
-          <Link to="/projects" className="btn ghost">{t('Projects')}</Link>
+        <div className="toolbar" role="toolbar" aria-label={'Main toolbar'}>
+          <Link to="/projects" className="btn ghost">{'Projects'}</Link>
           <button className="btn ghost" onClick={() => setSidebarOpen((prev) => !prev)}>
-            {sidebarOpen ? t('隐藏侧栏') : t('显示侧栏')}
+            {sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           </button>
           <div className="layout-toggle">
             <button
               className={`btn ghost layout-btn ${layoutMode === 'editor' ? 'active' : ''}`}
               onClick={() => setLayoutMode(layoutMode === 'editor' ? 'split' : 'editor')}
-              title={t('仅编辑器')}
+              title={'Editor only'}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/></svg>
             </button>
             <button
               className={`btn ghost layout-btn ${layoutMode === 'split' ? 'active' : ''}`}
               onClick={() => setLayoutMode('split')}
-              title={t('分栏视图')}
+              title={'Split view'}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="8" y1="2" x2="8" y2="14"/></svg>
             </button>
             <button
               className={`btn ghost layout-btn ${layoutMode === 'preview' ? 'active' : ''}`}
               onClick={() => setLayoutMode(layoutMode === 'preview' ? 'split' : 'preview')}
-              title={t('仅预览')}
+              title={'Preview only'}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="7" y1="5" x2="11" y2="5"/><line x1="7" y1="8" x2="11" y2="8"/><line x1="7" y1="11" x2="10" y2="11"/></svg>
             </button>
@@ -3342,8 +3340,7 @@ export default function EditorPage() {
           <div className="ios-select-wrapper">
             <button className="ios-select-trigger" onClick={(e) => {
               const opening = !mainFileDropdownOpen;
-              setMainFileDropdownOpen(opening); setEngineDropdownOpen(false); setLangDropdownOpen(false);
-              if (opening) { const r = e.currentTarget.getBoundingClientRect(); setTopBarDropdownRect({ top: r.bottom + 6, left: r.left, width: r.width }); }
+              setMainFileDropdownOpen(opening); setEngineDropdownOpen(false);              if (opening) { const r = e.currentTarget.getBoundingClientRect(); setTopBarDropdownRect({ top: r.bottom + 6, left: r.left, width: r.width }); }
             }}>
               <span>{mainFile}</span>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={mainFileDropdownOpen ? 'rotate' : ''}><path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -3352,19 +3349,18 @@ export default function EditorPage() {
           <div className="ios-select-wrapper">
             <button className="ios-select-trigger" onClick={(e) => {
               const opening = !engineDropdownOpen;
-              setEngineDropdownOpen(opening); setMainFileDropdownOpen(false); setLangDropdownOpen(false);
-              if (opening) { const r = e.currentTarget.getBoundingClientRect(); setTopBarDropdownRect({ top: r.bottom + 6, left: r.left, width: r.width }); }
+              setEngineDropdownOpen(opening); setMainFileDropdownOpen(false);              if (opening) { const r = e.currentTarget.getBoundingClientRect(); setTopBarDropdownRect({ top: r.bottom + 6, left: r.left, width: r.width }); }
             }}>
               <span>{({'pdflatex':'pdfLaTeX','xelatex':'XeLaTeX','lualatex':'LuaLaTeX','latexmk':'Latexmk','tectonic':'Tectonic'} as Record<string,string>)[compileEngine] || compileEngine}</span>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={engineDropdownOpen ? 'rotate' : ''}><path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </div>
-          <button onClick={saveActiveFile} className="btn ghost">{t('保存')}</button>
+          <button onClick={saveActiveFile} className="btn ghost">{'Save'}</button>
           <button onClick={compile} className="btn compile-btn" disabled={isCompiling}>
             {isCompiling && <span className="spinner" />}
-            {isCompiling ? (compilePhase || t('编译中...')) : t('编译 PDF')}
+            {isCompiling ? (compilePhase || 'Compiling...') : 'Compile PDF'}
           </button>
-          <button className="btn ghost" onClick={() => setSettingsOpen(true)}>{t('设置')}</button>
+          <button className="btn ghost" onClick={() => setSettingsOpen(true)}>{'Settings'}</button>
           <button
             className="btn ghost dark-mode-toggle"
             onClick={() => setDarkMode((prev) => !prev)}
@@ -3376,16 +3372,6 @@ export default function EditorPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             )}
           </button>
-          <div className="ios-select-wrapper">
-            <button className="ios-select-trigger" onClick={(e) => {
-              const opening = !langDropdownOpen;
-              setLangDropdownOpen(opening); setMainFileDropdownOpen(false); setEngineDropdownOpen(false);
-              if (opening) { const r = e.currentTarget.getBoundingClientRect(); setTopBarDropdownRect({ top: r.bottom + 6, left: r.left, width: r.width }); }
-            }}>
-              <span>{i18n.language === 'zh-CN' ? t('中文') : t('English')}</span>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={langDropdownOpen ? 'rotate' : ''}><path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-          </div>
         </div>
       </header>
 
@@ -3394,7 +3380,7 @@ export default function EditorPage() {
           <div>{status}</div>
           <div className={`save-indicator ${isSaving ? 'saving' : isDirty ? 'dirty' : 'saved'} ${savePulse ? 'pulse' : ''}`}>
             <span className="dot" />
-            <span>{isSaving ? t('保存中...') : isDirty ? t('未保存') : t('已保存')}</span>
+            <span>{isSaving ? 'Saving...' : isDirty ? 'Unsaved' : 'Saved'}</span>
           </div>
           {offlineDraftCount > 0 && (
             <div className="offline-sync-indicator" title={syncStatus === 'syncing' ? 'Syncing...' : `${offlineDraftCount} offline draft(s)`}>
@@ -3404,7 +3390,7 @@ export default function EditorPage() {
           )}
         </div>
         <div className="status-right">
-          {t('Compile')}: {compileEngine} · {t('Engine')}: {engineName || compileEngine}
+          {'Compile'}: {compileEngine} · {'Engine'}: {engineName || compileEngine}
         </div>
       </div>
 
@@ -3421,120 +3407,120 @@ export default function EditorPage() {
         } as CSSProperties}
       >
         {sidebarOpen && (
-          <aside className="panel side-panel" aria-label={t('侧边栏')}>
+          <aside className="panel side-panel" aria-label={'Sidebar'}>
             <div className="sidebar-tabs">
               <div className="tab-group">
                 <button
                   className={`tab-btn ${activeSidebar === 'files' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('files')}
-                  title={t('Files')}
+                  title={'Files'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
-                  <span className="tab-text">{t('Files')}</span>
+                  <span className="tab-text">{'Files'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'collab' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('collab')}
-                  title={t('协作')}
+                  title={'Collaboration'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-3-3.87"/><path d="M7 21v-2a4 4 0 0 1 3-3.87"/><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/></svg></span>
-                  <span className="tab-text">{t('协作')}</span>
+                  <span className="tab-text">{'Collaboration'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'agent' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('agent')}
-                  title={t('Agent')}
+                  title={'Agent'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg></span>
-                  <span className="tab-text">{t('Agent')}</span>
+                  <span className="tab-text">{'Agent'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'vision' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('vision')}
-                  title={t('图像识别')}
+                  title={'Vision'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span>
-                  <span className="tab-text">{t('图像识别')}</span>
+                  <span className="tab-text">{'Vision'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'search' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('search')}
-                  title={t('论文检索')}
+                  title={'Paper search'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-                  <span className="tab-text">{t('论文检索')}</span>
+                  <span className="tab-text">{'Paper search'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'references' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('references')}
-                  title={t('引用管理')}
+                  title={'References'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/><path d="M8 15h4"/></svg></span>
-                  <span className="tab-text">{t('引用管理')}</span>
+                  <span className="tab-text">{'References'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'websearch' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('websearch')}
-                  title={t('Websearch')}
+                  title={'Websearch'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-                  <span className="tab-text">{t('Websearch')}</span>
+                  <span className="tab-text">{'Websearch'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'plot' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('plot')}
-                  title={t('绘图')}
+                  title={'Plot'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-                  <span className="tab-text">{t('绘图')}</span>
+                  <span className="tab-text">{'Plot'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'review' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('review')}
-                  title={t('Review')}
+                  title={'Review'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
-                  <span className="tab-text">{t('Review')}</span>
+                  <span className="tab-text">{'Review'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'zotero' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('zotero')}
-                  title={t('Zotero')}
+                  title={'Zotero'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
-                  <span className="tab-text">{t('Zotero')}</span>
+                  <span className="tab-text">{'Zotero'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'mendeley' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('mendeley')}
-                  title={t('Mendeley')}
+                  title={'Mendeley'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span>
-                  <span className="tab-text">{t('Mendeley')}</span>
+                  <span className="tab-text">{'Mendeley'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'git' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('git')}
-                  title={t('Git')}
+                  title={'Git'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><line x1="1.05" y1="12" x2="7" y2="12"/><line x1="17.01" y1="12" x2="22.96" y2="12"/></svg></span>
-                  <span className="tab-text">{t('Git')}</span>
+                  <span className="tab-text">{'Git'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'comments' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('comments')}
-                  title={t('Comments')}
+                  title={'Comments'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-                  <span className="tab-text">{t('Comments')}</span>
+                  <span className="tab-text">{'Comments'}</span>
                 </button>
                 <button
                   className={`tab-btn ${activeSidebar === 'trackchanges' ? 'active' : ''}`}
                   onClick={() => setActiveSidebar('trackchanges')}
-                  title={t('Track Changes')}
+                  title={'Track Changes'}
                 >
                   <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
-                  <span className="tab-text">{t('Track Changes')}</span>
+                  <span className="tab-text">{'Track Changes'}</span>
                 </button>
               </div>
               <button className="icon-btn" onClick={() => setSidebarOpen(false)}>✕</button>
@@ -3542,7 +3528,7 @@ export default function EditorPage() {
             {activeSidebar === 'files' ? (
               <>
                 <div className="panel-header">
-                  <div>{t('Project Files')}</div>
+                  <div>{'Project Files'}</div>
                 </div>
                 <input
                   ref={fileInputRef}
@@ -3550,7 +3536,7 @@ export default function EditorPage() {
                   multiple
                   style={{ display: 'none' }}
                   onChange={(event) => {
-                    handleUpload(event.target.files).catch((err) => setStatus(t('上传失败: {{error}}', { error: String(err) })));
+                    handleUpload(event.target.files).catch((err) => setStatus(`Upload failed: ${error}`));
                     if (event.target) {
                       event.target.value = '';
                     }
@@ -3563,7 +3549,7 @@ export default function EditorPage() {
                   style={{ display: 'none' }}
                   {...({ webkitdirectory: 'true', directory: 'true' } as Record<string, string>)}
                   onChange={(event) => {
-                    handleUpload(event.target.files).catch((err) => setStatus(t('上传失败: {{error}}', { error: String(err) })));
+                    handleUpload(event.target.files).catch((err) => setStatus(`Upload failed: ${error}`));
                     if (event.target) {
                       event.target.value = '';
                     }
@@ -3574,10 +3560,10 @@ export default function EditorPage() {
                     className="input"
                     value={fileFilter}
                     onChange={(e) => setFileFilter(e.target.value)}
-                    placeholder={t('搜索文件...')}
+                    placeholder={'Search files...'}
                   />
                 </div>
-                <div className="drag-hint muted">{t('拖拽文件：同级排序 / 跨文件夹移动')}</div>
+                <div className="drag-hint muted">{'Drag files: reorder / move across folders'}</div>
                 <div
                   className="file-tree-body"
                   ref={fileTreeRef}
@@ -3594,22 +3580,22 @@ export default function EditorPage() {
                     setDragOverPath('');
                     setDragOverKind('');
                     if (draggingPath) {
-                      updateDragHint(t('移动到 根目录'), event);
+                      updateDragHint('Move to root', event);
                     }
                   }}
                   onDrop={(event) => {
                     event.preventDefault();
                     if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-                      handleUpload(event.dataTransfer.files).catch((err) => setStatus(t('上传失败: {{error}}', { error: String(err) })));
+                      handleUpload(event.dataTransfer.files).catch((err) => setStatus(`Upload failed: ${error}`));
                       return;
                     }
                     const from = event.dataTransfer.getData('text/plain');
                     if (from) {
                       if (fileFilter.trim()) {
-                        setStatus(t('搜索过滤中无法拖拽移动。'));
+                        setStatus('Cannot move while filtering.');
                         return;
                       }
-                      moveFileWithOrder(from, '').catch((err) => setStatus(t('移动失败: {{error}}', { error: String(err) })));
+                      moveFileWithOrder(from, '').catch((err) => setStatus(`Move failed: ${error}`));
                     }
                     setDragHint(null);
                   }}
@@ -3628,7 +3614,7 @@ export default function EditorPage() {
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transform: outlineCollapsed ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.2s ease' }}>
                         <path d="M2 3L5 6L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                      {t('Outline')}
+                      {'Outline'}
                     </div>
                     <div className="muted">{mainFile || 'main.tex'}</div>
                   </div>
@@ -3659,20 +3645,20 @@ export default function EditorPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="muted outline-empty">{t('未发现 Section 标题。')}</div>
+                      <div className="muted outline-empty">{'No section headings found.'}</div>
                     )
                   ) : (
-                    <div className="muted outline-empty">{t('打开 .tex 文件以显示 Outline。')}</div>
+                    <div className="muted outline-empty">{'Open a .tex file to show outline.'}</div>
                   ))}
                 </div>
               </>
             ) : activeSidebar === 'collab' ? (
               <>
                 <div className="panel-header">
-                  <div>{t('协作')}</div>
+                  <div>{'Collaboration'}</div>
                   <div className="panel-actions">
                     <div className="collab-status">
-                      <span>{collabStatus === 'connected' ? t('已连接') : collabStatus === 'connecting' ? t('连接中...') : t('未连接')}</span>
+                      <span>{collabStatus === 'connected' ? 'Connected' : collabStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}</span>
                     </div>
                   </div>
                 </div>
@@ -3682,7 +3668,7 @@ export default function EditorPage() {
                       className="input"
                       value={collabServer}
                       onChange={(e) => setCollabServerState(e.target.value)}
-                      placeholder={t('协作服务器地址')}
+                      placeholder={'Collab server address'}
                     />
                   </div>
                   <div className="collab-row">
@@ -3690,14 +3676,14 @@ export default function EditorPage() {
                       className="input"
                       value={collabName}
                       onChange={(e) => setCollabName(e.target.value)}
-                      placeholder={t('显示名称')}
+                      placeholder={'Display name'}
                     />
                     <button
                       className="ios-btn secondary"
                       onClick={() => setCollabEnabled((prev) => !prev)}
                       disabled={!activePath || !isTextPath(activePath)}
                     >
-                      {collabEnabled ? t('断开') : t('连接')}
+                      {collabEnabled ? 'Disconnect' : 'Connect'}
                     </button>
                   </div>
                   <div className="collab-row">
@@ -3706,14 +3692,14 @@ export default function EditorPage() {
                       onClick={() => handleCreateInvite()}
                       disabled={collabInviteBusy || !projectId}
                     >
-                      {collabInviteBusy ? t('生成中...') : t('生成邀请链接')}
+                      {collabInviteBusy ? 'Generating...' : 'Generate invite link'}
                     </button>
                     <button
                       className="ios-btn secondary"
                       onClick={() => copyInviteLink()}
                       disabled={!collabInviteLink}
                     >
-                      {t('复制')}
+                      {'Copy'}
                     </button>
                   </div>
                   <div className="collab-row">
@@ -3721,17 +3707,17 @@ export default function EditorPage() {
                       className="input"
                       readOnly
                       value={collabInviteLink || ''}
-                      placeholder={t('尚未生成邀请链接')}
+                      placeholder={'Invite link not generated'}
                     />
                   </div>
                   <div className="collab-row">
                     <div className="muted">
-                      {activePath ? t('当前文件: {{path}}', { path: activePath }) : t('未选择文件')}
+                      {activePath ? `Current file: ${path}` : 'No file selected'}
                     </div>
                   </div>
                   <div className="collab-users">
                     {collabPeers.length === 0 ? (
-                      <div className="muted">{t('暂无协作者在线')}</div>
+                      <div className="muted">{'No collaborators online'}</div>
                     ) : (
                       collabPeers.map((peer) => (
                         <div key={peer.id} className="collab-user">
@@ -3746,20 +3732,20 @@ export default function EditorPage() {
             ) : activeSidebar === 'agent' ? (
               <>
                 <div className="panel-header">
-                  <div>{assistantMode === 'chat' ? t('Chat') : t('Agent')}</div>
+                  <div>{assistantMode === 'chat' ? 'Chat' : 'Agent'}</div>
                   <div className="panel-actions">
                     <div className="mode-toggle">
                       <button
                         className={`mode-btn ${assistantMode === 'chat' ? 'active' : ''}`}
                         onClick={() => setAssistantMode('chat')}
                       >
-                        {t('Chat')}
+                        {'Chat'}
                       </button>
                       <button
                         className={`mode-btn ${assistantMode === 'agent' ? 'active' : ''}`}
                         onClick={() => setAssistantMode('agent')}
                       >
-                        {t('Agent')}
+                        {'Agent'}
                       </button>
                     </div>
                   </div>
@@ -3796,17 +3782,17 @@ export default function EditorPage() {
                 </div>
                 {assistantMode === 'chat' && (
                   <div className="context-tags">
-                    <span className="context-tag">{t('只读当前文件')}</span>
-                    {selectionText && <span className="context-tag">{t('只读选区')}</span>}
-                    {compileLog && <span className="context-tag">{t('只读编译日志')}</span>}
+                    <span className="context-tag">{'Read-only current file'}</span>
+                    {selectionText && <span className="context-tag">{'Read-only selection'}</span>}
+                    {compileLog && <span className="context-tag">{'Read-only compile log'}</span>}
                   </div>
                 )}
                 <div className="chat-messages">
                   {assistantMode === 'chat' && chatMessages.length === 0 && (
-                    <div className="muted">{t('输入问题，进行只读对话。')}</div>
+                    <div className="muted">{'Ask a question for read-only chat.'}</div>
                   )}
                   {assistantMode === 'agent' && agentMessages.length === 0 && (
-                    <div className="muted">{t('输入任务描述，生成修改建议。')}</div>
+                    <div className="muted">{'Describe the task to generate suggestions.'}</div>
                   )}
                   {(assistantMode === 'chat' ? chatMessages : agentMessages).map((msg, idx) => (
                     <div key={idx} className={`chat-msg ${msg.role}`}>
@@ -3833,14 +3819,14 @@ export default function EditorPage() {
                               setModeDropdownOpen(false);
                             }}
                           >
-                            <span>{DEFAULT_TASKS(t).find((item) => item.value === task)?.label || t('选择任务')}</span>
+                            <span>{DEFAULT_TASKS.find((item) => item.value === task)?.label || 'Select task'}</span>
                             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={taskDropdownOpen ? 'rotate' : ''}>
                               <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </button>
                           {taskDropdownOpen && (
                             <div className="ios-dropdown">
-                              {DEFAULT_TASKS(t).map((item) => (
+                              {DEFAULT_TASKS.map((item) => (
                                 <div
                                   key={item.value}
                                   className={`ios-dropdown-item ${task === item.value ? 'active' : ''}`}
@@ -3869,7 +3855,7 @@ export default function EditorPage() {
                                 setTaskDropdownOpen(false);
                               }}
                             >
-                              <span>{mode === 'direct' ? t('Direct') : t('Tools')}</span>
+                              <span>{mode === 'direct' ? 'Direct' : 'Tools'}</span>
                               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={modeDropdownOpen ? 'rotate' : ''}>
                                 <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
@@ -3883,7 +3869,7 @@ export default function EditorPage() {
                                     setModeDropdownOpen(false);
                                   }}
                                 >
-                                  {t('Direct')}
+                                  {'Direct'}
                                   {mode === 'direct' && (
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                       <path d="M3 8L6.5 11.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -3897,7 +3883,7 @@ export default function EditorPage() {
                                     setModeDropdownOpen(false);
                                   }}
                                 >
-                                  {t('Tools')}
+                                  {'Tools'}
                                   {mode === 'tools' && (
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                       <path d="M3 8L6.5 11.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -3913,12 +3899,12 @@ export default function EditorPage() {
                               <path d="M8 7V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                               <circle cx="8" cy="5" r="0.5" fill="currentColor"/>
                             </svg>
-                            <span className="tooltip">{t('Direct: 单轮生成 · Tools: 多轮工具调用/多文件修改')}</span>
+                            <span className="tooltip">{'Direct: single-turn · Tools: multi-step tools / multi-file edits'}</span>
                           </span>
                         </div>
                       </>
                     ) : (
-                      <div className="muted">{t('Chat 模式仅对话，不会改动文件。')}</div>
+                      <div className="muted">{"Chat mode is read-only and won't modify files."}</div>
                     )}
                   </div>
                   {assistantMode === 'agent' && task === 'translate' && (
@@ -3932,7 +3918,7 @@ export default function EditorPage() {
                           }}
                           >
                           <span>
-                            {translateScope === 'selection' ? t('选区') : translateScope === 'file' ? t('当前文件') : t('整个项目')}
+                            {translateScope === 'selection' ? 'Selection' : translateScope === 'file' ? 'Current file' : 'Whole project'}
                           </span>
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={translateScopeDropdownOpen ? 'rotate' : ''}>
                             <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -3941,9 +3927,9 @@ export default function EditorPage() {
                         {translateScopeDropdownOpen && (
                           <div className="ios-dropdown">
                             {[
-                              { value: 'selection', label: t('选区') },
-                              { value: 'file', label: t('当前文件') },
-                              { value: 'project', label: t('整个项目') }
+                              { value: 'selection', label: 'Selection' },
+                              { value: 'file', label: 'Current file' },
+                              { value: 'project', label: 'Whole project' }
                             ].map((item) => (
                               <div
                                 key={item.value}
@@ -4005,40 +3991,40 @@ export default function EditorPage() {
                     className="chat-input"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder={assistantMode === 'chat' ? t('例如：帮我解释这一段的实验设计。') : t('例如：润色这个段落，使其更符合 ACL 风格。')}
+                    placeholder={assistantMode === 'chat' ? 'e.g. explain this experiment design' : 'e.g. polish this paragraph to match ACL style'}
                   />
                   <button onClick={sendPrompt} className="btn full">
-                    {assistantMode === 'chat' ? t('发送') : t('生成建议')}
+                    {assistantMode === 'chat' ? 'Send' : 'Generate suggestion'}
                   </button>
                   {selectionText && assistantMode === 'agent' && (
-                    <div className="muted">{t('已选择 {{count}} 字符，将用于任务输入', { count: selectionText.length })}</div>
+                    <div className="muted">{`Selected ${count} characters for the task`}</div>
                   )}
                   {assistantMode === 'agent' && task === 'translate' && translateScope === 'selection' && !selectionText && (
-                    <div className="muted">{t('翻译选区前请先选择文本。')}</div>
+                    <div className="muted">{'Select text before translating.'}</div>
                   )}
                 </div>
               </>
             ) : activeSidebar === 'vision' ? (
               <>
                 <div className="panel-header">
-                  <div>{t('图像识别')}</div>
+                  <div>{'Vision'}</div>
                   <div className="panel-actions">
-                    <button className="btn ghost" onClick={() => setVisionResult('')}>{t('清空结果')}</button>
+                    <button className="btn ghost" onClick={() => setVisionResult('')}>{'Clear result'}</button>
                   </div>
                 </div>
                 <div className="tools-body">
                   <div className="tool-section">
-                    <div className="tool-title">{t('图像转 LaTeX')}</div>
+                    <div className="tool-title">{'Image to LaTeX'}</div>
                     <div className="field">
-                      <label>{t('识别类型')}</label>
+                      <label>{'Recognition type'}</label>
                       <div className="ios-select-wrapper">
                         <button className="ios-select-trigger" onClick={() => setVisionModeDropdownOpen(!visionModeDropdownOpen)}>
-                          <span>{({'equation':t('公式'),'table':t('表格'),'figure':t('图像 + 图注'),'algorithm':t('算法'),'ocr':t('仅提取文字')} as Record<string,string>)[visionMode]}</span>
+                          <span>{({'equation':'Equation','table':'Table','figure':'Figure + caption','algorithm':'Algorithm','ocr':'Text only'} as Record<string,string>)[visionMode]}</span>
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={visionModeDropdownOpen ? 'rotate' : ''}><path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         </button>
                         {visionModeDropdownOpen && (
                           <div className="ios-dropdown dropdown-down">
-                            {([['equation',t('公式')],['table',t('表格')],['figure',t('图像 + 图注')],['algorithm',t('算法')],['ocr',t('仅提取文字')]] as [string,string][]).map(([val,lbl]) => (
+                            {([['equation','Equation'],['table','Table'],['figure','Figure + caption'],['algorithm','Algorithm'],['ocr','Text only']] as [string,string][]).map(([val,lbl]) => (
                               <div key={val} className={`ios-dropdown-item ${visionMode === val ? 'active' : ''}`} onClick={() => { setVisionMode(val as 'equation'|'table'|'figure'|'algorithm'|'ocr'); setVisionResult(''); setVisionModeDropdownOpen(false); }}>
                                 {lbl}
                                 {visionMode === val && <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
@@ -4049,7 +4035,7 @@ export default function EditorPage() {
                       </div>
                     </div>
                     <div className="field">
-                      <label>{t('上传图片')}</label>
+                      <label>{'Upload image'}</label>
                       <div
                         className={`image-drop-zone ${visionFile ? 'has-file' : ''}`}
                         onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }}
@@ -4098,7 +4084,7 @@ export default function EditorPage() {
                         ) : (
                           <label htmlFor="vision-file-input" className="drop-zone-content">
                             <span className="drop-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
-                            <span className="drop-text">{t('点击选择、拖拽或粘贴图片')}</span>
+                            <span className="drop-text">{'Click, drag, or paste an image'}</span>
                           </label>
                         )}
                       </div>
@@ -4109,24 +4095,24 @@ export default function EditorPage() {
                       </div>
                     )}
                     <div className="field">
-                      <label>{t('附加约束 (可选)')}</label>
+                      <label>{'Extra constraints (optional)'}</label>
                       <textarea
                         className="input"
                         value={visionPrompt}
                         onChange={(event) => setVisionPrompt(event.target.value)}
-                        placeholder={t('例如：只输出 tabular，不要表格标题')}
+                        placeholder={'e.g. output tabular only, no table caption'}
                         rows={2}
                       />
                     </div>
                     <div className="vision-actions">
                       <button className="ios-btn secondary" onClick={handleVisionSubmit} disabled={visionBusy}>
-                        {visionBusy ? t('识别中...') : t('开始识别')}
+                        {visionBusy ? 'Recognizing...' : 'Start recognition'}
                       </button>
-                      <button className="ios-btn primary" onClick={handleVisionInsert} disabled={!visionResult}>{t('插入到光标')}</button>
+                      <button className="ios-btn primary" onClick={handleVisionInsert} disabled={!visionResult}>{'Insert at cursor'}</button>
                     </div>
                     {visionResult && (
                       <div className="vision-result">
-                        <div className="muted">{t('识别结果 (可编辑)：')}</div>
+                        <div className="muted">{'Result (editable):'}</div>
                         <textarea
                           className="input"
                           value={visionResult}
@@ -4141,18 +4127,18 @@ export default function EditorPage() {
             ) : activeSidebar === 'search' ? (
               <>
                 <div className="panel-header">
-                  <div>{t('论文检索')}</div>
+                  <div>{'Paper search'}</div>
                 </div>
                 <div className="tools-body">
                   <div className="tool-section">
-                    <div className="tool-title">{t('arXiv 检索')}</div>
+                    <div className="tool-title">{'arXiv Search'}</div>
                     <div className="field">
-                      <label>{t('关键词')}</label>
+                      <label>{'Keywords'}</label>
                       <input
                         className="input"
                         value={arxivQuery}
                         onChange={(event) => setArxivQuery(event.target.value)}
-                        placeholder={t('例如: diffusion transformer compression')}
+                        placeholder={'e.g. diffusion transformer compression'}
                       />
                     </div>
                     <div className="row">
@@ -4165,7 +4151,7 @@ export default function EditorPage() {
                         onChange={(event) => setArxivMaxResults(Number(event.target.value) || 5)}
                       />
                       <button className="btn ghost" onClick={handleArxivSearch} disabled={arxivBusy}>
-                        {arxivBusy ? t('检索中...') : useLlmSearch ? t('LLM 检索') : t('检索')}
+                        {arxivBusy ? 'Searching...' : useLlmSearch ? 'LLM Search' : 'Search'}
                       </button>
                     </div>
                     <label className="checkbox-row">
@@ -4174,12 +4160,12 @@ export default function EditorPage() {
                         checked={useLlmSearch}
                         onChange={(event) => setUseLlmSearch(event.target.checked)}
                       />
-                      {t('使用 Websearch 模型')}
+                      {'Use Websearch model'}
                     </label>
                     {arxivStatus && <div className="muted">{arxivStatus}</div>}
                     {llmSearchOutput && (
                       <div className="vision-result">
-                        <div className="muted">{t('LLM 原始输出')}</div>
+                        <div className="muted">{'Raw LLM output'}</div>
                         <textarea
                           className="input"
                           value={llmSearchOutput}
@@ -4202,7 +4188,7 @@ export default function EditorPage() {
                             />
                             <div>
                               <div className="tool-item-title">{paper.title}</div>
-                              <div className="muted">{paper.authors?.join(', ') || t('Unknown authors')}</div>
+                              <div className="muted">{paper.authors?.join(', ') || 'Unknown authors'}</div>
                               <div className="muted">{paper.arxivId}</div>
                             </div>
                           </label>
@@ -4210,16 +4196,16 @@ export default function EditorPage() {
                       </div>
                     )}
                     <div className="field">
-                      <label>{t('Bib 文件')}</label>
+                      <label>{'Bib file'}</label>
                       <div className="ios-select-wrapper">
                         <button className="ios-select-trigger" onClick={() => setBibTargetDropdownOpen(!bibTargetDropdownOpen)}>
-                          <span>{bibTarget || t('(新建/选择 Bib 文件)')}</span>
+                          <span>{bibTarget || '(Create/Select Bib file)'}</span>
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={bibTargetDropdownOpen ? 'rotate' : ''}><path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         </button>
                         {bibTargetDropdownOpen && (
                           <div className="ios-dropdown dropdown-down">
                             <div className={`ios-dropdown-item ${bibTarget === '' ? 'active' : ''}`} onClick={() => { setBibTarget(''); setBibTargetDropdownOpen(false); }}>
-                              {t('(新建/选择 Bib 文件)')}
+                              {'(Create/Select Bib file)'}
                               {bibTarget === '' && <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                             </div>
                             {bibFiles.map((p) => (
@@ -4234,7 +4220,7 @@ export default function EditorPage() {
                       <button className="btn ghost" onClick={async () => {
                         const created = await createBibFile();
                         if (created) setBibTarget(created);
-                      }}>{t('新建 Bib')}</button>
+                      }}>{'New Bib'}</button>
                     </div>
                     <label className="checkbox-row">
                       <input
@@ -4242,7 +4228,7 @@ export default function EditorPage() {
                         checked={autoInsertCite}
                         onChange={(event) => setAutoInsertCite(event.target.checked)}
                       />
-                      {t('自动插入引用到当前 TeX')}
+                      {'Auto-insert citations into current TeX'}
                     </label>
                     <label className="checkbox-row">
                       <input
@@ -4250,11 +4236,11 @@ export default function EditorPage() {
                         checked={autoInsertToMain}
                         onChange={(event) => setAutoInsertToMain(event.target.checked)}
                       />
-                      {t('AI 插入引用到指定 TeX')}
+                      {'AI insert citations into selected TeX'}
                     </label>
                     {autoInsertToMain && (
                       <div className="field">
-                        <label>{t('引用插入目标')}</label>
+                        <label>{'Citation insert target'}</label>
                         <div className="ios-select-wrapper">
                           <button className="ios-select-trigger" onClick={() => setCiteTargetDropdownOpen(!citeTargetDropdownOpen)}>
                             <span>{citeTargetFile || texFiles[0] || 'main.tex'}</span>
@@ -4275,7 +4261,7 @@ export default function EditorPage() {
                     )}
                     <div className="row">
                       <button className="btn" onClick={handleArxivApply} disabled={arxivBusy}>
-                        {t('写入 Bib / 插入引用')}
+                        {'Write Bib / insert citations'}
                       </button>
                     </div>
                   </div>
@@ -4284,28 +4270,28 @@ export default function EditorPage() {
             ) : activeSidebar === 'websearch' ? (
               <>
                 <div className="panel-header">
-                  <div>{t('Websearch')}</div>
+                  <div>{'Websearch'}</div>
                 </div>
                 <div className="tools-body">
                   <div className="tool-section">
-                    <div className="tool-title">{t('多点检索')}</div>
+                    <div className="tool-title">{'Multi-query search'}</div>
                     <div className="field">
-                      <label>{t('Query')}</label>
+                      <label>{'Query'}</label>
                       <input
                         className="input"
                         value={websearchQuery}
                         onChange={(event) => setWebsearchQuery(event.target.value)}
-                        placeholder={t('例如: diffusion editing for safety')}
+                        placeholder={'e.g. diffusion editing for safety'}
                       />
                     </div>
                     <div className="row">
                       <button className="btn" onClick={runWebsearch} disabled={websearchBusy}>
-                        {websearchBusy ? t('检索中...') : t('开始检索')}
+                        {websearchBusy ? 'Searching...' : 'Start search'}
                       </button>
                     </div>
                     <div className="websearch-log">
                       {websearchLog.length === 0 ? (
-                        <div className="muted">{t('等待查询...')}</div>
+                        <div className="muted">{'Waiting for query...'}</div>
                       ) : (
                         websearchLog.map((line, idx) => (
                           <div key={idx} className="websearch-line">{line}</div>
@@ -4329,7 +4315,7 @@ export default function EditorPage() {
                                 setWebsearchSelected(next);
                               }}
                             />
-                            {t('全选')}
+                            {'Select all'}
                           </label>
                           <button
                             className="btn ghost small"
@@ -4340,11 +4326,11 @@ export default function EditorPage() {
                                 .filter(Boolean);
                               if (keys.length > 0) {
                                 insertAtCursor(`\\cite{${keys.join(',')}}`);
-                                appendLog(setWebsearchLog, t('已插入选中引用到光标。'));
+                                appendLog(setWebsearchLog, 'Inserted selected citations at cursor.');
                               }
                             }}
                           >
-                            {t('插入选中引用')}
+                            {'Insert selected citations'}
                           </button>
                         </div>
                         <div className="tool-list">
@@ -4362,30 +4348,30 @@ export default function EditorPage() {
                                 <div className="tool-item-title">{paper.title}</div>
                                 {paper.summary && <div className="muted">{paper.summary}</div>}
                                 {paper.url && <div className="muted">{paper.url}</div>}
-                                {paper.citeKey && <div className="muted">{t('cite')}: {paper.citeKey}</div>}
+                                {paper.citeKey && <div className="muted">{'cite'}: {paper.citeKey}</div>}
                               </div>
                               <button
                                 className="btn ghost small"
                                 onClick={() => {
                                   if (paper.citeKey) {
                                     insertAtCursor(`\\cite{${paper.citeKey}}`);
-                                    appendLog(setWebsearchLog, t('已插入: {{cite}}', { cite: paper.citeKey }));
+                                    appendLog(setWebsearchLog, `Inserted: ${cite}`);
                                   }
                                 }}
                               >
-                                {t('插入引用')}
+                                {'Insert citation'}
                               </button>
                             </label>
                           ))}
                         </div>
                         <div className="vision-result">
-                          <div className="muted">{t('逐条总结')}</div>
+                          <div className="muted">{'Per-paper summaries'}</div>
                           <div className="tool-list">
                             {websearchResults.map((paper) => (
                               <div key={paper.id} className="tool-item summary-item">
                                 <div>
                                   <div className="tool-item-title">{paper.title}</div>
-                                  {paper.citeKey && <div className="muted">{t('cite')}: {paper.citeKey}</div>}
+                                  {paper.citeKey && <div className="muted">{'cite'}: {paper.citeKey}</div>}
                                 </div>
                                 <textarea
                                   className="input"
@@ -4403,7 +4389,7 @@ export default function EditorPage() {
                     )}
                     {websearchParagraph && (
                       <div className="vision-result">
-                        <div className="muted">{t('综合总结')}</div>
+                        <div className="muted">{'Overall summary'}</div>
                         <textarea
                           className="input"
                           value={websearchParagraph}
@@ -4413,16 +4399,16 @@ export default function EditorPage() {
                       </div>
                     )}
                     <div className="field">
-                      <label>{t('Bib 文件')}</label>
+                      <label>{'Bib file'}</label>
                       <div className="ios-select-wrapper">
                         <button className="ios-select-trigger" onClick={() => setWsBibDropdownOpen(!wsBibDropdownOpen)}>
-                          <span>{websearchTargetBib || t('(新建/选择 Bib 文件)')}</span>
+                          <span>{websearchTargetBib || '(Create/Select Bib file)'}</span>
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={wsBibDropdownOpen ? 'rotate' : ''}><path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         </button>
                         {wsBibDropdownOpen && (
                           <div className="ios-dropdown dropdown-down">
                             <div className={`ios-dropdown-item ${!websearchTargetBib ? 'active' : ''}`} onClick={() => { setWebsearchTargetBib(''); setWsBibDropdownOpen(false); }}>
-                              {t('(新建/选择 Bib 文件)')}
+                              {'(Create/Select Bib file)'}
                               {!websearchTargetBib && <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                             </div>
                             {bibFiles.map((p) => (
@@ -4437,10 +4423,10 @@ export default function EditorPage() {
                       <button className="btn ghost small" onClick={async () => {
                         const created = await createBibFile();
                         if (created) setWebsearchTargetBib(created);
-                      }}>{t('新建 Bib')}</button>
+                      }}>{'New Bib'}</button>
                     </div>
                     <div className="field">
-                      <label>{t('插入目标 TeX')}</label>
+                      <label>{'Insert target TeX'}</label>
                       <div className="ios-select-wrapper">
                         <button className="ios-select-trigger" onClick={() => { setWsTexDropdownOpen(!wsTexDropdownOpen); setWsBibDropdownOpen(false); }}>
                           <span>{websearchTargetFile || '—'}</span>
@@ -4464,7 +4450,7 @@ export default function EditorPage() {
                     </div>
                     <div className="row">
                       <button className="btn" onClick={applyWebsearchInsert} disabled={websearchBusy}>
-                        {t('一键写入 Bib + 插入总结')}
+                        {'Write Bib + insert summary'}
                       </button>
                     </div>
                   </div>
@@ -4473,24 +4459,24 @@ export default function EditorPage() {
             ) : activeSidebar === 'plot' ? (
               <>
                 <div className="panel-header">
-                  <div>{t('绘图')}</div>
+                  <div>{'Plot'}</div>
                 </div>
                 <div className="tools-body">
                   <div className="tool-section">
-                    <div className="tool-title">{t('表格 → 图表')}</div>
-                    <div className="muted">{t('从选区表格生成图表（seaborn）')}</div>
+                    <div className="tool-title">{'Table → Chart'}</div>
+                    <div className="muted">{'Generate chart from selected table (seaborn)'}</div>
                     <div className="field">
-                      <label>{t('图表类型')}</label>
+                      <label>{'Chart type'}</label>
                       <div className="ios-select-wrapper">
                         <button className="ios-select-trigger" onClick={() => setPlotTypeDropdownOpen(!plotTypeDropdownOpen)}>
-                          <span>{{ bar: t('Bar'), line: t('Line'), heatmap: t('Heatmap') }[plotType]}</span>
+                          <span>{{ bar: 'Bar', line: 'Line', heatmap: 'Heatmap' }[plotType]}</span>
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={plotTypeDropdownOpen ? 'rotate' : ''}>
                             <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
                         </button>
                         {plotTypeDropdownOpen && (
                           <div className="ios-dropdown dropdown-down">
-                            {([['bar', t('Bar')], ['line', t('Line')], ['heatmap', t('Heatmap')]] as [string, string][]).map(([val, label]) => (
+                            {([['bar', 'Bar'], ['line', 'Line'], ['heatmap', 'Heatmap']] as [string, string][]).map(([val, label]) => (
                               <div key={val} className={`ios-dropdown-item ${plotType === val ? 'active' : ''}`} onClick={() => { setPlotType(val as 'bar' | 'line' | 'heatmap'); setPlotTypeDropdownOpen(false); }}>
                                 {label}
                                 {plotType === val && (
@@ -4503,16 +4489,16 @@ export default function EditorPage() {
                       </div>
                     </div>
                     <div className="field">
-                      <label>{t('标题 (可选)')}</label>
+                      <label>{'Title (optional)'}</label>
                       <input
                         className="input"
                         value={plotTitle}
                         onChange={(event) => setPlotTitle(event.target.value)}
-                        placeholder={t('Chart title')}
+                        placeholder={'Chart title'}
                       />
                     </div>
                     <div className="field">
-                      <label>{t('文件名 (可选)')}</label>
+                      <label>{'Filename (optional)'}</label>
                       <input
                         className="input"
                         value={plotFilename}
@@ -4521,17 +4507,17 @@ export default function EditorPage() {
                       />
                     </div>
                     <div className="field">
-                      <label>{t('补充提示 (可选)')}</label>
+                      <label>{'Extra prompt (optional)'}</label>
                       <textarea
                         className="input"
                         value={plotPrompt}
                         onChange={(event) => setPlotPrompt(event.target.value)}
-                        placeholder={t('例如：使用折线图，突出 Method A；加上 legend；设置 y 轴为 Accuracy')}
+                        placeholder={'e.g. use a line chart, highlight Method A, add legend, set y-axis to Accuracy'}
                         rows={2}
                       />
                     </div>
                     <div className="field">
-                      <label>{t('Debug 重试次数')}</label>
+                      <label>{'Debug retries'}</label>
                       <input
                         className="input"
                         type="number"
@@ -4547,24 +4533,24 @@ export default function EditorPage() {
                         checked={plotAutoInsert}
                         onChange={(event) => setPlotAutoInsert(event.target.checked)}
                       />
-                      {t('生成后插入 Figure')}
+                      {'Insert Figure after generation'}
                     </label>
                     <div className="row">
                       <button className="btn" onClick={handlePlotGenerate} disabled={plotBusy}>
-                        {plotBusy ? t('生成中...') : t('生成图表')}
+                        {plotBusy ? 'Generating...' : 'Generate chart'}
                       </button>
                     </div>
                     {plotStatus && <div className="muted">{plotStatus}</div>}
                     {plotAssetPath && (
                       <div className="vision-result">
-                        <div className="muted">{t('预览')}</div>
+                        <div className="muted">{'Preview'}</div>
                         <img
                           src={`/api/projects/${projectId}/blob?path=${encodeURIComponent(plotAssetPath)}`}
                           alt={plotAssetPath}
                           style={{ width: '100%', borderRadius: '8px' }}
                         />
                         <div className="row">
-                          <button className="btn ghost" onClick={() => insertFigureSnippet(plotAssetPath)}>{t('插入图模板')}</button>
+                          <button className="btn ghost" onClick={() => insertFigureSnippet(plotAssetPath)}>{'Insert figure template'}</button>
                         </div>
                       </div>
                     )}
@@ -4574,23 +4560,23 @@ export default function EditorPage() {
             ) : activeSidebar === 'review' ? (
               <>
                 <div className="panel-header">
-                  <div>{t('Review')}</div>
+                  <div>{'Review'}</div>
                 </div>
                 <div className="tools-body">
                   {/* ── English Correction Panel ── */}
                   <div className="tool-section">
-                    <div className="tool-title">{t('grammar.label')}</div>
+                    <div className="tool-title">{'English Correction'}</div>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                       <button
                         className="btn"
                         onClick={handleGrammarCheck}
                         disabled={grammarBusy}
                       >
-                        {grammarBusy ? t('grammar.checking') : t('grammar.check')}
+                        {grammarBusy ? 'Checking...' : 'Check English'}
                       </button>
                       {grammarIssues.length > 0 && (
                         <button className="btn ghost" onClick={handleGrammarFixAll}>
-                          {t('grammar.fixAll')}
+                          {'Fix All'}
                         </button>
                       )}
                     </div>
@@ -4598,7 +4584,7 @@ export default function EditorPage() {
                       <>
                         <div className="grammar-summary" style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                           <span className="muted" style={{ fontSize: 11 }}>
-                            {t('grammar.issueCount', { count: grammarIssues.length })}
+                            {`${count} issues found`}
                           </span>
                           {(['error', 'warning', 'suggestion'] as const).map((sev) => {
                             const count = grammarIssues.filter((i) => i.severity === sev).length;
@@ -4637,7 +4623,7 @@ export default function EditorPage() {
                       </>
                     )}
                     {grammarIssues.length === 0 && !grammarBusy && (
-                      <div className="muted">{t('grammar.noIssues')}</div>
+                      <div className="muted">{'No issues found.'}</div>
                     )}
                     <div className="grammar-issues-list">
                       {grammarIssues
@@ -4651,7 +4637,7 @@ export default function EditorPage() {
                         >
                           <div className="grammar-issue-header">
                             <span className={`grammar-badge grammar-badge-${issue.severity}`}>
-                              {issue.severity === 'error' ? t('grammar.error') : issue.severity === 'warning' ? t('grammar.warning') : t('grammar.suggestion')}
+                              {issue.severity === 'error' ? 'Error' : issue.severity === 'warning' ? 'Warning' : 'Suggestion'}
                             </span>
                             <span className="grammar-category">{t(`grammar.category.${issue.category}`)}</span>
                           </div>
@@ -4664,7 +4650,7 @@ export default function EditorPage() {
                             <div className="grammar-explanation">{issue.explanation}</div>
                           )}
                           <button className="btn ghost grammar-fix-btn" onClick={(e) => { e.stopPropagation(); handleGrammarFix(issue); }}>
-                            {t('grammar.applyFix')}
+                            {'Apply Fix'}
                           </button>
                         </div>
                       ))}
@@ -4673,20 +4659,20 @@ export default function EditorPage() {
 
                   {/* ── Quality Checks Panel ── */}
                   <div className="tool-section">
-                    <div className="tool-title">{t('质量检查')}</div>
-                    <div className="tool-desc">{t('AI 辅助检查论文质量，发现潜在问题')}</div>
+                    <div className="tool-title">{'Quality checks'}</div>
+                    <div className="tool-desc">{'AI-assisted quality check for papers'}</div>
                     <div className="review-buttons">
                       <button
                         className="review-btn"
                         onClick={async () => {
                           if (reviewReportBusy) return;
                           setReviewReportBusy(true);
-                          setReviewReport(t('生成中...'));
+                          setReviewReport('Generating...');
                           setRightView('review');
                           try {
                             const res = await runAgent({
                               task: 'peer_review',
-                              prompt: t('Read all .tex files in the project (start from the main file and any included sections). Use list_files and read_file tools to inspect content. Write a detailed reviewer-style report. Include: Summary, Strengths, Weaknesses, Questions, Missing Experiments, Writing/Clarity, Suggestions, Score (1-10), and Confidence. Output report text only; do not propose patches or code.'),
+                              prompt: 'Read all .tex files in the project (start from the main file and any included sections). Use list_files and read_file tools to inspect content. Write a detailed reviewer-style report. Include: Summary, Strengths, Weaknesses, Questions, Missing Experiments, Writing/Clarity, Suggestions, Score (1-10), and Confidence. Output report text only; do not propose patches or code.',
                               selection: '',
                               content: '',
                               mode: 'tools',
@@ -4697,17 +4683,17 @@ export default function EditorPage() {
                               interaction: 'agent',
                               history: []
                             });
-                            setReviewReport(res.reply || t('无结果'));
+                            setReviewReport(res.reply || 'No result');
                           } catch (err) {
-                            setReviewReport(t('生成失败: {{error}}', { error: String(err) }));
+                            setReviewReport(`Generation failed: ${error}`);
                           } finally {
                             setReviewReportBusy(false);
                           }
                         }}
                       >
                         <span className="review-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span>
-                        <span className="review-btn-label">{t('详细评审报告')}</span>
-                        <span className="review-btn-desc">{t('阅读项目并输出完整审稿意见')}</span>
+                        <span className="review-btn-label">{'Full review report'}</span>
+                        <span className="review-btn-desc">{'Read the project and produce a full reviewer report'}</span>
                       </button>
                       <button
                         className="review-btn"
@@ -4774,7 +4760,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                             interaction: 'agent',
                             history: []
                           });
-                          setReviewNotes((prev) => [{ title: t('一致性检查'), content: res.reply || t('无结果') }, ...prev]);
+                          setReviewNotes((prev) => [{ title: 'Consistency check', content: res.reply || 'No result' }, ...prev]);
                           if (res.patches && res.patches.length > 0) {
                             const nextPending = res.patches.map((patch) => ({
                               filePath: patch.path,
@@ -4788,15 +4774,15 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                         }}
                       >
                         <span className="review-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-                        <span className="review-btn-label">{t('一致性检查')}</span>
-                        <span className="review-btn-desc">{t('检查术语、符号一致性')}</span>
+                        <span className="review-btn-label">{'Consistency check'}</span>
+                        <span className="review-btn-desc">{'Check terminology and symbols'}</span>
                       </button>
                       <button
                         className="review-btn"
                         onClick={async () => {
                           const res = await runAgent({
                             task: 'missing_citations',
-                            prompt: t('Find claims that likely need citations and list them.'),
+                            prompt: 'Find claims that likely need citations and list them.',
                             selection: '',
                             content: '',
                             mode: 'tools',
@@ -4807,19 +4793,19 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                             interaction: 'agent',
                             history: []
                           });
-                          setReviewNotes((prev) => [{ title: t('引用缺失'), content: res.reply || t('无结果') }, ...prev]);
+                          setReviewNotes((prev) => [{ title: 'Missing citations', content: res.reply || 'No result' }, ...prev]);
                         }}
                       >
                         <span className="review-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
-                        <span className="review-btn-label">{t('引用缺失')}</span>
-                        <span className="review-btn-desc">{t('查找需要引用的论述')}</span>
+                        <span className="review-btn-label">{'Missing citations'}</span>
+                        <span className="review-btn-desc">{'Find statements needing citations'}</span>
                       </button>
                       <button
                         className="review-btn"
                         onClick={async () => {
                           const res = await runAgent({
                             task: 'compile_summary',
-                            prompt: t('Summarize compile log errors and suggested fixes.'),
+                            prompt: 'Summarize compile log errors and suggested fixes.',
                             selection: compileLog,
                             content: '',
                             mode: 'direct',
@@ -4830,18 +4816,18 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                             interaction: 'agent',
                             history: []
                           });
-                          setReviewNotes((prev) => [{ title: t('编译日志总结'), content: res.reply || t('无结果') }, ...prev]);
+                          setReviewNotes((prev) => [{ title: 'Compile log summary', content: res.reply || 'No result' }, ...prev]);
                         }}
                       >
                         <span className="review-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
-                        <span className="review-btn-label">{t('编译日志总结')}</span>
-                        <span className="review-btn-desc">{t('总结错误并给出修复建议')}</span>
+                        <span className="review-btn-label">{'Compile log summary'}</span>
+                        <span className="review-btn-desc">{'Summarize errors and fixes'}</span>
                       </button>
                     </div>
                   </div>
                   {reviewNotes.length > 0 && (
                     <div className="tool-section">
-                      <div className="tool-title">{t('结果')}</div>
+                      <div className="tool-title">{'Results'}</div>
                       {reviewNotes.map((note, idx) => (
                         <div key={`${note.title}-${idx}`} className="review-item">
                           <div className="review-title">{note.title}</div>
@@ -4908,9 +4894,9 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
         )}
 
         {layoutMode !== 'preview' && <section className="panel editor-panel">
-          <div className="panel-header">{t('Editor')}</div>
+          <div className="panel-header">{'Editor'}</div>
           <div className="breadcrumb-bar">
-            <span className="breadcrumb-item">{projectName || t('Project')}</span>
+            <span className="breadcrumb-item">{projectName || 'Project'}</span>
             {breadcrumbParts.map((part, idx) => (
               <span key={`${part}-${idx}`} className="breadcrumb-item">{part}</span>
             ))}
@@ -4918,38 +4904,38 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               <span className="breadcrumb-item heading">{currentHeading.title}</span>
             )}
           </div>
-          <div className="editor-toolbar" role="toolbar" aria-label={t('编辑器工具栏')}>
+          <div className="editor-toolbar" role="toolbar" aria-label={'Editor toolbar'}>
             <div className="toolbar-group">
-              <button className="toolbar-btn" onClick={insertSectionSnippet}>{t('Section')}</button>
-              <button className="toolbar-btn" onClick={insertSubsectionSnippet}>{t('Subsection')}</button>
-              <button className="toolbar-btn" onClick={insertSubsubsectionSnippet}>{t('Subsubsection')}</button>
+              <button className="toolbar-btn" onClick={insertSectionSnippet}>{'Section'}</button>
+              <button className="toolbar-btn" onClick={insertSubsectionSnippet}>{'Subsection'}</button>
+              <button className="toolbar-btn" onClick={insertSubsubsectionSnippet}>{'Subsubsection'}</button>
             </div>
             <div className="toolbar-divider" />
             <div className="toolbar-group">
-              <button className="toolbar-btn" onClick={insertItemizeSnippet}>{t('Itemize')}</button>
-              <button className="toolbar-btn" onClick={insertEnumerateSnippet}>{t('Enumerate')}</button>
-              <button className="toolbar-btn" onClick={insertEquationSnippet}>{t('Equation')}</button>
-              <button className="toolbar-btn" onClick={insertAlgorithmSnippet}>{t('Algorithm')}</button>
+              <button className="toolbar-btn" onClick={insertItemizeSnippet}>{'Itemize'}</button>
+              <button className="toolbar-btn" onClick={insertEnumerateSnippet}>{'Enumerate'}</button>
+              <button className="toolbar-btn" onClick={insertEquationSnippet}>{'Equation'}</button>
+              <button className="toolbar-btn" onClick={insertAlgorithmSnippet}>{'Algorithm'}</button>
             </div>
             <div className="toolbar-divider" />
             <div className="toolbar-group">
-              <button className="toolbar-btn" onClick={insertFigureTemplate}>{t('Figure')}</button>
-              <button className="toolbar-btn" onClick={insertTableSnippet}>{t('Table')}</button>
-              <button className="toolbar-btn" onClick={insertListingSnippet}>{t('Listing')}</button>
+              <button className="toolbar-btn" onClick={insertFigureTemplate}>{'Figure'}</button>
+              <button className="toolbar-btn" onClick={insertTableSnippet}>{'Table'}</button>
+              <button className="toolbar-btn" onClick={insertListingSnippet}>{'Listing'}</button>
             </div>
             <div className="toolbar-divider" />
             <div className="toolbar-group">
-              <button className="toolbar-btn" onClick={insertCiteSnippet}>{t('Cite')}</button>
-              <button className="toolbar-btn" onClick={insertRefSnippet}>{t('Ref')}</button>
-              <button className="toolbar-btn" onClick={insertLabelSnippet}>{t('Label')}</button>
+              <button className="toolbar-btn" onClick={insertCiteSnippet}>{'Cite'}</button>
+              <button className="toolbar-btn" onClick={insertRefSnippet}>{'Ref'}</button>
+              <button className="toolbar-btn" onClick={insertLabelSnippet}>{'Label'}</button>
             </div>
             <div className="toolbar-spacer" />
             <div className="toolbar-group font-size-group">
-              <button className="toolbar-btn icon-only" onClick={() => setEditorFontSize((s) => Math.max(8, s - 1))} title={t('放大')}>
+              <button className="toolbar-btn icon-only" onClick={() => setEditorFontSize((s) => Math.max(8, s - 1))} title={'Zoom'}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
               <span className="font-size-label">{editorFontSize}px</span>
-              <button className="toolbar-btn icon-only" onClick={() => setEditorFontSize((s) => Math.min(24, s + 1))} title={t('放大')}>
+              <button className="toolbar-btn icon-only" onClick={() => setEditorFontSize((s) => Math.min(24, s + 1))} title={'Zoom'}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M3 7h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
             </div>
@@ -4960,7 +4946,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
           >
             <div className="editor-area" ref={editorAreaRef}>
               <div ref={editorHostRef} className="editor-host" style={{ '--editor-font-size': `${editorFontSize}px` } as React.CSSProperties} />
-              <div className="editor-hint muted">{t('快捷键: Cmd/Ctrl+Enter 编译；Cmd/Ctrl+B 粗体；Cmd/Ctrl+I 斜体；Cmd/Ctrl+S 保存；Cmd/Ctrl+/ 注释；Alt+/ 补全')}</div>
+              <div className="editor-hint muted">{'Shortcuts: Cmd/Ctrl+Enter (compile); Cmd/Ctrl+B (bold); Cmd/Ctrl+I (italic); Cmd/Ctrl+S (save); Cmd/Ctrl+/ (comment); Alt+/ (complete)'}</div>
               {(inlineSuggestionText || isSuggesting) && suggestionPos && (
                 <div
                   className={`suggestion-popover ${isSuggesting && !inlineSuggestionText ? 'loading' : ''}`}
@@ -4969,14 +4955,14 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                   {isSuggesting && !inlineSuggestionText ? (
                     <div className="suggestion-loading">
                       <span className="spinner" />
-                      {t('AI 补全中...')}
+                      {'AI completion...'}
                     </div>
                   ) : (
                     <>
                       <div className="suggestion-preview">{inlineSuggestionText}</div>
                       <div className="row">
-                        <button className="btn" onClick={() => acceptSuggestionRef.current()}>{t('接受')}</button>
-                        <button className="btn ghost" onClick={() => clearSuggestionRef.current()}>{t('拒绝')}</button>
+                        <button className="btn" onClick={() => acceptSuggestionRef.current()}>{'Accept'}</button>
+                        <button className="btn ghost" onClick={() => clearSuggestionRef.current()}>{'Reject'}</button>
                       </div>
                     </>
                   )}
@@ -4995,21 +4981,21 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
 
         {layoutMode !== 'editor' && <section className="panel pdf-panel">
           <div className="panel-header">
-            <div>{t('Preview')}</div>
+            <div>{'Preview'}</div>
             <div className="header-controls">
               <div className="ios-select-wrapper">
                 <button
                   className="ios-select-trigger"
                   onClick={() => setRightViewDropdownOpen(!rightViewDropdownOpen)}
                 >
-                  <span>{RIGHT_VIEW_OPTIONS(t).find((item) => item.value === rightView)?.label || 'PDF'}</span>
+                  <span>{RIGHT_VIEW_OPTIONS.find((item) => item.value === rightView)?.label || 'PDF'}</span>
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={rightViewDropdownOpen ? 'rotate' : ''}>
                     <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
                 {rightViewDropdownOpen && (
                   <div className="ios-dropdown dropdown-down">
-                    {RIGHT_VIEW_OPTIONS(t).map((item) => (
+                    {RIGHT_VIEW_OPTIONS.map((item) => (
                       <div
                         key={item.value}
                         className={`ios-dropdown-item ${rightView === item.value ? 'active' : ''}`}
@@ -5040,7 +5026,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                       <button className="icon-btn" onClick={() => zoomPdf(-0.1)} disabled={!pdfUrl}>−</button>
                       <div className="zoom-label">{pdfScaleLabel}</div>
                       <button className="icon-btn" onClick={() => zoomPdf(0.1)} disabled={!pdfUrl}>＋</button>
-                      <button className="btn ghost small" onClick={() => setPdfFitWidth(true)} disabled={!pdfUrl}>{t('适合宽度')}</button>
+                      <button className="btn ghost small" onClick={() => setPdfFitWidth(true)} disabled={!pdfUrl}>{'Fit width'}</button>
                       <button
                         className="btn ghost small"
                         onClick={() => {
@@ -5053,30 +5039,30 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                       </button>
                     </div>
                     <div className="toolbar-group">
-                      <button className="btn ghost small" onClick={downloadPdf} disabled={!pdfUrl}>{t('下载 PDF')}</button>
-                      <button className="btn ghost small" onClick={() => projectId && exportProjectZip(projectId)} disabled={!projectId}>{t('导出 ZIP')}</button>
+                      <button className="btn ghost small" onClick={downloadPdf} disabled={!pdfUrl}>{'Download PDF'}</button>
+                      <button className="btn ghost small" onClick={() => projectId && exportProjectZip(projectId)} disabled={!projectId}>{'Export ZIP'}</button>
                       <button
                         className={`btn ghost small ${pdfSpread ? 'active' : ''}`}
                         onClick={() => setPdfSpread((prev) => !prev)}
                         disabled={!pdfUrl}
                       >
-                        {t('双页')}
+                        {'Spread'}
                       </button>
                       <button
                         className={`btn ghost small ${pdfAnnotateMode ? 'active' : ''}`}
                         onClick={() => setPdfAnnotateMode((prev) => !prev)}
                         disabled={!pdfUrl}
                       >
-                        {t('注释')}
+                        {'Annotations'}
                       </button>
                       {hasSynctex && (
                         <button
                           className="btn ghost small"
                           onClick={handleSynctexForward}
                           disabled={!pdfUrl}
-                          title={t('跳转到 PDF 位置 (SyncTeX)')}
+                          title={'Jump to PDF position (SyncTeX)'}
                         >
-                          {t('定位')}
+                          {'Locate'}
                         </button>
                       )}
                     </div>
@@ -5112,11 +5098,11 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                       }}
                     />
                   ) : (
-                    <div className="muted pdf-empty-message">{t('尚未生成 PDF')}</div>
+                    <div className="muted pdf-empty-message">{'PDF not generated yet'}</div>
                   )}
                   {pdfAnnotations.length > 0 && (
                     <div className="pdf-annotations">
-                      <div className="muted">{t('注释')}</div>
+                      <div className="muted">{'Annotations'}</div>
                       <div className="annotation-list">
                         {pdfAnnotations.map((note) => (
                           <div key={note.id} className="annotation-item">
@@ -5144,9 +5130,9 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               )}
               {rightView === 'toc' && (
                 <div className="toc-panel">
-                  <div className="toc-title">{t('目录')}</div>
+                  <div className="toc-title">{'Table of contents'}</div>
                   {pdfOutline.length === 0 ? (
-                    <div className="muted">{t('暂无目录信息。')}</div>
+                    <div className="muted">{'No outline data.'}</div>
                   ) : (
                     <div className="toc-list">
                       {pdfOutline.map((item, idx) => (
@@ -5173,7 +5159,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                   <div className="figure-topbar">
                     <div className="ios-select-wrapper" style={{ flex: 1 }}>
                       <button className="ios-select-trigger" onClick={() => setFigureDropdownOpen(!figureDropdownOpen)}>
-                        <span>{selectedFigure || t('选择图片进行预览。')}</span>
+                        <span>{selectedFigure || 'Select an image to preview.'}</span>
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={figureDropdownOpen ? 'rotate' : ''}>
                           <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
@@ -5197,7 +5183,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                         onClick={() => insertFigureSnippet(selectedFigure)}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-                        {t('插入到光标')}
+                        {'Insert at cursor'}
                       </button>
                     )}
                   </div>
@@ -5211,7 +5197,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                     ) : (
                       <div className="figure-empty">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                        <span>{t('选择图片进行预览。')}</span>
+                        <span>{'Select an image to preview.'}</span>
                       </div>
                     )}
                   </div>
@@ -5219,8 +5205,8 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               )}
               {rightView === 'diff' && (
                 <div className="diff-panel">
-                  <div className="diff-title">{t('Diff Preview ({{count}})', { count: pendingGrouped.length })}</div>
-                  {pendingGrouped.length === 0 && <div className="muted">{t('暂无待确认修改。')}</div>}
+                  <div className="diff-title">{`Diff Preview (${count})`}</div>
+                  {pendingGrouped.length === 0 && <div className="muted">{'No pending changes.'}</div>}
                   {pendingGrouped.map((change) => (
                     (() => {
                       const rows = buildSplitDiff(change.original, change.proposed);
@@ -5228,12 +5214,12 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                         <div key={change.filePath} className="diff-item">
                           <div className="diff-header">
                             <div className="diff-path">{change.filePath}</div>
-                            <button className="btn ghost" onClick={() => setDiffFocus(change)}>{t('放大')}</button>
+                            <button className="btn ghost" onClick={() => setDiffFocus(change)}>{'Zoom'}</button>
                           </div>
                           <SplitDiffView rows={rows} />
                           <div className="row">
-                            <button className="btn" onClick={() => applyPending(change)}>{t('应用此修改')}</button>
-                            <button className="btn ghost" onClick={() => discardPending(change)}>{t('放弃')}</button>
+                            <button className="btn" onClick={() => applyPending(change)}>{'Apply change'}</button>
+                            <button className="btn ghost" onClick={() => discardPending(change)}>{'Discard'}</button>
                           </div>
                         </div>
                       );
@@ -5241,8 +5227,8 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                   ))}
                   {pendingGrouped.length > 1 && (
                     <div className="row">
-                      <button className="btn" onClick={() => applyPending()}>{t('应用全部')}</button>
-                      <button className="btn ghost" onClick={() => discardPending()}>{t('全部放弃')}</button>
+                      <button className="btn" onClick={() => applyPending()}>{'Apply all'}</button>
+                      <button className="btn ghost" onClick={() => discardPending()}>{'Discard all'}</button>
                     </div>
                   )}
                 </div>
@@ -5252,16 +5238,16 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                   <div className="log-title">
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       {isCompiling && <span className="spinner" />}
-                      {t('Compile Log')}
+                      {'Compile Log'}
                     </span>
                     <button className="btn ghost log-action" onClick={diagnoseCompile} disabled={diagnoseBusy}>
                       {diagnoseBusy ? (
                         <span className="suggestion-loading">
                           <span className="spinner" />
-                          {t('诊断中...')}
+                          {'Diagnosing...'}
                         </span>
                       ) : (
-                        t('一键诊断')
+                        'Diagnose'
                       )}
                     </button>
                   </div>
@@ -5280,17 +5266,17 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                       ))}
                     </div>
                   )}
-                  <pre className="log-content" ref={logContentRef}>{compileLog || t('暂无编译日志')}</pre>
+                  <pre className="log-content" ref={logContentRef}>{compileLog || 'No compile log.'}</pre>
                 </div>
               )}
               {rightView === 'review' && (
                 <div className="log-panel">
-                  <div className="log-title">{t('评审报告')}</div>
+                  <div className="log-title">{'Review report'}</div>
                   <div className="log-content markdown-body">
                     {reviewReport ? (
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{reviewReport}</ReactMarkdown>
                     ) : (
-                      t('暂无评审报告')
+                      'No review report yet'
                     )}
                   </div>
                 </div>
@@ -5301,8 +5287,8 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
       </main>
 
       {/* Top-bar dropdown portals — rendered outside top-bar to escape backdrop-filter stacking context */}
-      {(mainFileDropdownOpen || engineDropdownOpen || langDropdownOpen) && (
-        <div className="topbar-dropdown-backdrop" onClick={() => { setMainFileDropdownOpen(false); setEngineDropdownOpen(false); setLangDropdownOpen(false); }} />
+      {(mainFileDropdownOpen || engineDropdownOpen) && (
+        <div className="topbar-dropdown-backdrop" onClick={() => { setMainFileDropdownOpen(false); setEngineDropdownOpen(false); }} />
       )}
       {mainFileDropdownOpen && topBarDropdownRect && (
         <div className="ios-dropdown dropdown-fixed" style={{ top: topBarDropdownRect.top, left: topBarDropdownRect.left, minWidth: topBarDropdownRect.width }}>
@@ -5324,35 +5310,25 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
           ))}
         </div>
       )}
-      {langDropdownOpen && topBarDropdownRect && (
-        <div className="ios-dropdown dropdown-fixed" style={{ top: topBarDropdownRect.top, left: topBarDropdownRect.left, minWidth: topBarDropdownRect.width }}>
-          {[['zh-CN', t('中文')], ['en-US', t('English')]].map(([val, lbl]) => (
-            <div key={val} className={`ios-dropdown-item ${i18n.language === val ? 'active' : ''}`} onClick={() => { i18n.changeLanguage(val); setLangDropdownOpen(false); }}>
-              {lbl}
-              {i18n.language === val && <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-            </div>
-          ))}
-        </div>
-      )}
 
       {fileContextMenu && (
         <div className="ctx-menu-backdrop" onClick={() => setFileContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setFileContextMenu(null); }}>
           <div className="ctx-menu" style={{ left: fileContextMenu.x, top: fileContextMenu.y }} onClick={(e) => e.stopPropagation()}>
-            <div className="ctx-menu-group">{t('创建')}</div>
-            <button className="ctx-menu-item" onClick={() => { beginInlineCreate('new-file'); setFileContextMenu(null); }}>{t('新建文件')}</button>
-            <button className="ctx-menu-item" onClick={() => { beginInlineCreate('new-folder'); setFileContextMenu(null); }}>{t('新建文件夹')}</button>
-            <button className="ctx-menu-item" onClick={() => { createBibFile(); setFileContextMenu(null); }}>{t('新建 Bib')}</button>
+            <div className="ctx-menu-group">{'Create'}</div>
+            <button className="ctx-menu-item" onClick={() => { beginInlineCreate('new-file'); setFileContextMenu(null); }}>{'New file'}</button>
+            <button className="ctx-menu-item" onClick={() => { beginInlineCreate('new-folder'); setFileContextMenu(null); }}>{'New folder'}</button>
+            <button className="ctx-menu-item" onClick={() => { createBibFile(); setFileContextMenu(null); }}>{'New Bib'}</button>
             <div className="ctx-menu-sep" />
-            <div className="ctx-menu-group">{t('上传')}</div>
-            <button className="ctx-menu-item" onClick={() => { fileInputRef.current?.click(); setFileContextMenu(null); }}>{t('上传文件')}</button>
-            <button className="ctx-menu-item" onClick={() => { folderInputRef.current?.click(); setFileContextMenu(null); }}>{t('上传文件夹')}</button>
+            <div className="ctx-menu-group">{'Upload'}</div>
+            <button className="ctx-menu-item" onClick={() => { fileInputRef.current?.click(); setFileContextMenu(null); }}>{'Upload files'}</button>
+            <button className="ctx-menu-item" onClick={() => { folderInputRef.current?.click(); setFileContextMenu(null); }}>{'Upload folder'}</button>
             <div className="ctx-menu-sep" />
-            <button className="ctx-menu-item" onClick={() => { setAllFolders(true); setFileContextMenu(null); }}>{t('展开全部')}</button>
-            <button className="ctx-menu-item" onClick={() => { setAllFolders(false); setFileContextMenu(null); }}>{t('收起全部')}</button>
-            <button className="ctx-menu-item" onClick={() => { beginInlineRename(); setFileContextMenu(null); }}>{t('重命名')}</button>
+            <button className="ctx-menu-item" onClick={() => { setAllFolders(true); setFileContextMenu(null); }}>{'Expand all'}</button>
+            <button className="ctx-menu-item" onClick={() => { setAllFolders(false); setFileContextMenu(null); }}>{'Collapse all'}</button>
+            <button className="ctx-menu-item" onClick={() => { beginInlineRename(); setFileContextMenu(null); }}>{'Rename'}</button>
             <div className="ctx-menu-sep" />
-            <button className="ctx-menu-item ctx-menu-danger" onClick={() => { handleDeleteFile(); setFileContextMenu(null); }}>{t('删除')}</button>
-            <button className="ctx-menu-item" onClick={() => { refreshTree(); setFileContextMenu(null); }}>{t('刷新')}</button>
+            <button className="ctx-menu-item ctx-menu-danger" onClick={() => { handleDeleteFile(); setFileContextMenu(null); }}>{'Delete'}</button>
+            <button className="ctx-menu-item" onClick={() => { refreshTree(); setFileContextMenu(null); }}>{'Refresh'}</button>
           </div>
         </div>
       )}
@@ -5365,9 +5341,9 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
       )}
       {diffFocus && (
         <div className="modal-backdrop" onClick={() => setDiffFocus(null)} role="presentation">
-          <div className="modal diff-modal" role="dialog" aria-modal="true" aria-label={t('Diff 预览')} onClick={(event) => event.stopPropagation()}>
+          <div className="modal diff-modal" role="dialog" aria-modal="true" aria-label={'Diff preview'} onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <div>{t('Diff')} · {diffFocus.filePath}</div>
+              <div>{'Diff'} · {diffFocus.filePath}</div>
               <button className="icon-btn" onClick={() => setDiffFocus(null)}>✕</button>
             </div>
             <div className="modal-body diff-modal-body">

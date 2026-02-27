@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   gitStatus,
   gitInit,
@@ -48,7 +47,6 @@ const STATUS_BADGES: Record<string, { label: string; color: string }> = {
 };
 
 export default function GitPanel({ projectId }: GitPanelProps) {
-  const { t } = useTranslation();
   const [tab, setTab] = useState<'status' | 'history' | 'branches' | 'remote'>('status');
   const [initialized, setInitialized] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -254,20 +252,20 @@ export default function GitPanel({ projectId }: GitPanelProps) {
   }, [tab, initialized]);
 
   if (loading) {
-    return <div className="git-panel" style={{ padding: 12 }}>{t('Loading...')}</div>;
+    return <div className="git-panel" style={{ padding: 12 }}>{'Loading...'}</div>;
   }
 
   return (
     <div className="git-panel">
       <div className="panel-header">
-        <div>{t('Git')}{currentBranch ? ` (${currentBranch})` : ''}</div>
+        <div>{'Git'}{currentBranch ? ` (${currentBranch})` : ''}</div>
       </div>
 
       {!initialized ? (
         <div style={{ padding: 12, textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{t('Not a Git repository.')}</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>{'Not a Git repository.'}</p>
           <button className="primary-btn" onClick={handleInit} disabled={busy} style={{ marginTop: 8 }}>
-            {t('Initialize Git')}
+            {'Initialize Git'}
           </button>
         </div>
       ) : (
@@ -289,7 +287,7 @@ export default function GitPanel({ projectId }: GitPanelProps) {
               <div style={{ flex: 1, overflow: 'auto', padding: '4px 8px' }}>
                 {changes.length === 0 ? (
                   <div style={{ padding: 12, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
-                    {t('Working tree clean.')}
+                    {'Working tree clean.'}
                   </div>
                 ) : (
                   changes.map(c => {
@@ -317,11 +315,11 @@ export default function GitPanel({ projectId }: GitPanelProps) {
                   className="input-field"
                   value={commitMsg}
                   onChange={e => setCommitMsg(e.target.value)}
-                  placeholder={t('Commit message...')}
+                  placeholder={'Commit message...'}
                   onKeyDown={e => e.key === 'Enter' && handleCommit()}
                 />
                 <button className="primary-btn" onClick={handleCommit} disabled={busy || !commitMsg.trim() || changes.length === 0}>
-                  {t('Commit All')} ({changes.length})
+                  {'Commit All'} ({changes.length})
                 </button>
               </div>
             </div>
@@ -363,7 +361,7 @@ export default function GitPanel({ projectId }: GitPanelProps) {
               ))}
               {commits.length === 0 && (
                 <div style={{ padding: 12, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
-                  {t('No commits yet.')}
+                  {'No commits yet.'}
                 </div>
               )}
             </div>
@@ -372,14 +370,14 @@ export default function GitPanel({ projectId }: GitPanelProps) {
           {tab === 'branches' && (
             <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
               <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('Current')}: <strong>{currentBranch}</strong></div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{'Current'}: <strong>{currentBranch}</strong></div>
               </div>
               {branches.map(b => (
                 <div key={b} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', fontSize: 12 }}>
                   <span style={{ flex: 1 }}>{b === currentBranch ? `* ${b}` : b}</span>
                   {b !== currentBranch && (
                     <button className="small-btn" onClick={() => handleCheckout(b)} disabled={busy} style={{ fontSize: 10 }}>
-                      {t('Checkout')}
+                      {'Checkout'}
                     </button>
                   )}
                 </div>
@@ -389,11 +387,11 @@ export default function GitPanel({ projectId }: GitPanelProps) {
                   className="input-field"
                   value={newBranchName}
                   onChange={e => setNewBranchName(e.target.value)}
-                  placeholder={t('New branch name...')}
+                  placeholder={'New branch name...'}
                   style={{ flex: 1 }}
                 />
                 <button className="primary-btn" onClick={handleCreateBranch} disabled={busy || !newBranchName.trim()}>
-                  {t('Create')}
+                  {'Create'}
                 </button>
               </div>
             </div>
@@ -401,21 +399,21 @@ export default function GitPanel({ projectId }: GitPanelProps) {
 
           {tab === 'remote' && (
             <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 11 }}>{t('Remote URL')}</label>
+              <label style={{ fontSize: 11 }}>{'Remote URL'}</label>
               <input
                 className="input-field"
                 value={remoteUrl}
                 onChange={e => setRemoteUrl(e.target.value)}
                 placeholder="https://github.com/user/repo.git"
               />
-              <label style={{ fontSize: 11 }}>{t('Username')}</label>
+              <label style={{ fontSize: 11 }}>{'Username'}</label>
               <input
                 className="input-field"
                 value={remoteUsername}
                 onChange={e => setRemoteUsername(e.target.value)}
                 placeholder="github-username"
               />
-              <label style={{ fontSize: 11 }}>{t('Personal Access Token')}</label>
+              <label style={{ fontSize: 11 }}>{'Personal Access Token'}</label>
               <input
                 className="input-field"
                 type="password"
@@ -423,7 +421,7 @@ export default function GitPanel({ projectId }: GitPanelProps) {
                 onChange={e => setRemotePat(e.target.value)}
                 placeholder={remoteHasToken ? '(saved)' : 'ghp_...'}
               />
-              <label style={{ fontSize: 11 }}>{t('Branch')}</label>
+              <label style={{ fontSize: 11 }}>{'Branch'}</label>
               <input
                 className="input-field"
                 value={remoteBranch}
@@ -431,14 +429,14 @@ export default function GitPanel({ projectId }: GitPanelProps) {
                 placeholder="main"
               />
               <button className="primary-btn" onClick={saveRemote} disabled={busy}>
-                {t('Save Remote')}
+                {'Save Remote'}
               </button>
               <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
                 <button className="primary-btn" onClick={handlePush} disabled={busy} style={{ flex: 1 }}>
-                  {t('Push')}
+                  {'Push'}
                 </button>
                 <button className="primary-btn" onClick={handlePull} disabled={busy} style={{ flex: 1 }}>
-                  {t('Pull')}
+                  {'Pull'}
                 </button>
               </div>
             </div>

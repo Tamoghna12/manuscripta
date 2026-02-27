@@ -109,7 +109,6 @@ export function registerAgentRoutes(fastify) {
         promptLower.includes('compil') || promptLower.includes('error') ||
         promptLower.includes('log') || promptLower.includes('debug') ||
         promptLower.includes('fix') || promptLower.includes('warning') ||
-        promptLower.includes('编译') || promptLower.includes('错误') || promptLower.includes('日志')
       );
 
       const user = [

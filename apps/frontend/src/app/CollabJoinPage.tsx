@@ -1,43 +1,41 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { resolveCollabToken, setCollabServer, setCollabToken } from '../api/client';
 
 export default function CollabJoinPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const [status, setStatus] = useState(t('正在加入协作...'));
+  const [status, setStatus] = useState('Joining collaboration...');
 
-  useEffect(() => { document.title = `${t('加入协作')} — Manuscripta`; }, [t]);
+  useEffect(() => { document.title = `${'Join Collaboration'} — Manuscripta`; }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token') || '';
     if (!token) {
-      setStatus(t('邀请链接缺少 token。'));
+      setStatus('Invite link missing token.');
       return;
     }
     setCollabServer(window.location.origin);
-    setStatus(t('正在验证邀请...'));
+    setStatus('Validating invite...');
     resolveCollabToken(token)
       .then((res) => {
         if (!res.ok || !res.projectId) {
-          setStatus(t('邀请无效或已过期。'));
+          setStatus('Invite is invalid or expired.');
           return;
         }
         setCollabToken(token);
-        setStatus(t('已加入协作，正在打开项目...'));
+        setStatus('Joined. Opening project...');
         navigate(`/editor/${res.projectId}`, { replace: true });
       })
       .catch((err) => {
-        setStatus(t('加入失败: {{error}}', { error: String(err) }));
+        setStatus(`Join failed: ${error}`);
       });
-  }, [navigate, t]);
+  }, [navigate]);
 
   return (
     <div className="collab-join">
       <div className="panel collab-join-card">
-        <div className="panel-header">{t('协作加入')}</div>
+        <div className="panel-header">{'Join Collaboration'}</div>
         <div className="collab-join-body">
           <div className="muted">{status}</div>
         </div>

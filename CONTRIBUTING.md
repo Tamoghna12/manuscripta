@@ -29,8 +29,8 @@ Optional (for specific features):
 
 ```bash
 # Clone the repository
-git clone https://github.com/OpenDCAI/Manuscripta.git
-cd Manuscripta
+git clone https://github.com/Tamoghna12/manuscripta.git
+cd manuscripta
 
 # Install dependencies
 npm install --legacy-peer-deps

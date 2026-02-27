@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { TrackedChange } from '../TrackChangesExtension';
 
 interface TrackChangesPanelProps {
@@ -25,15 +24,13 @@ export default function TrackChangesPanel({
   onJumpTo,
   readOnly,
 }: TrackChangesPanelProps) {
-  const { t } = useTranslation();
-
   const inserts = useMemo(() => changes.filter(c => c.type === 'insert'), [changes]);
   const deletes = useMemo(() => changes.filter(c => c.type === 'delete'), [changes]);
 
   return (
     <div className="track-changes-panel">
       <div className="panel-header">
-        <div>{t('Track Changes')}</div>
+        <div>{'Track Changes'}</div>
       </div>
 
       <div style={{ padding: '8px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -43,17 +40,17 @@ export default function TrackChangesPanel({
             checked={enabled}
             onChange={e => onToggle(e.target.checked)}
           />
-          {t('Enable Track Changes')}
+          {'Enable Track Changes'}
         </label>
       </div>
 
       {enabled && changes.length > 0 && !readOnly && (
         <div style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 4 }}>
           <button className="primary-btn" onClick={onAcceptAll} style={{ fontSize: 10, flex: 1 }}>
-            {t('Accept All')} ({changes.length})
+            {'Accept All'} ({changes.length})
           </button>
           <button className="small-btn" onClick={onRejectAll} style={{ fontSize: 10, flex: 1, color: 'var(--error)' }}>
-            {t('Reject All')} ({changes.length})
+            {'Reject All'} ({changes.length})
           </button>
         </div>
       )}
@@ -61,13 +58,13 @@ export default function TrackChangesPanel({
       <div style={{ flex: 1, overflow: 'auto' }}>
         {changes.length === 0 && enabled && (
           <div style={{ padding: 12, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
-            {t('No tracked changes.')}
+            {'No tracked changes.'}
           </div>
         )}
 
         {!enabled && (
           <div style={{ padding: 12, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
-            {t('Track changes is disabled. Enable it to record edits.')}
+            {'Track changes is disabled. Enable it to record edits.'}
           </div>
         )}
 
@@ -118,7 +115,7 @@ export default function TrackChangesPanel({
                 textDecoration: c.type === 'delete' ? 'line-through' : 'none',
               }}
               onClick={() => onJumpTo(c.from, c.to)}
-              title={t('Jump to change')}
+              title={'Jump to change'}
             >
               {c.text.length > 80 ? c.text.slice(0, 80) + '...' : c.text}
             </div>
@@ -126,10 +123,10 @@ export default function TrackChangesPanel({
             {!readOnly && (
               <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
                 <button className="small-btn" onClick={() => onAccept(c.id)} style={{ fontSize: 10 }}>
-                  {t('Accept')}
+                  {'Accept'}
                 </button>
                 <button className="small-btn" onClick={() => onReject(c.id)} style={{ fontSize: 10, color: 'var(--error)' }}>
-                  {t('Reject')}
+                  {'Reject'}
                 </button>
               </div>
             )}
@@ -138,7 +135,7 @@ export default function TrackChangesPanel({
 
         {changes.length > 0 && (
           <div style={{ padding: '4px 8px', fontSize: 10, color: 'var(--text-muted)' }}>
-            {inserts.length} {t('insertions')}, {deletes.length} {t('deletions')}
+            {inserts.length} {'insertions'}, {deletes.length} {'deletions'}
           </div>
         )}
       </div>

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import {
   createProject,
   copyProject,
@@ -64,18 +63,17 @@ function formatRelativeTime(iso: string, t: (k: string, o?: Record<string, unkno
   const now = Date.now();
   const then = new Date(iso).getTime();
   const diff = now - then;
-  if (diff < 60_000) return t('刚刚');
-  if (diff < 3_600_000) return t('{{n}} 分钟前', { n: Math.floor(diff / 60_000) });
-  if (diff < 86_400_000) return t('{{n}} 小时前', { n: Math.floor(diff / 3_600_000) });
-  return t('{{n}} 天前', { n: Math.floor(diff / 86_400_000) });
+  if (diff < 60_000) return 'Just now';
+  if (diff < 3_600_000) return `${n} min ago`;
+  if (diff < 86_400_000) return `${n} hr ago`;
+  return `${n} days ago`;
 }
 
 export default function ProjectPage() {
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
   const { authEnabled, user, logout } = useAuth();
 
-  useEffect(() => { document.title = `${t('项目')} — Manuscripta`; }, [t]);
+  useEffect(() => { document.title = `${'Projects'} — Manuscripta`; }, []);
 
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
   const [templates, setTemplates] = useState<TemplateMeta[]>([]);
@@ -98,7 +96,7 @@ export default function ProjectPage() {
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<{ phase: string; percent: number } | null>(null);
   const zipInputRef = useRef<HTMLInputElement | null>(null);
-  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+
   const [templateDropdownOpen, setTemplateDropdownOpen] = useState(false);
 
   // Settings modal state
@@ -136,8 +134,8 @@ export default function ProjectPage() {
   }, []);
 
   useEffect(() => {
-    loadProjects().catch((err) => setStatus(t('加载项目失败: {{error}}', { error: String(err) })));
-  }, [loadProjects, t]);
+    loadProjects().catch((err) => setStatus(`Failed to load projects: ${error}`));
+  }, [loadProjects]);
 
   useEffect(() => {
     listTemplates()
@@ -148,8 +146,8 @@ export default function ProjectPage() {
           setCreateTemplate(res.templates[0].id);
         }
       })
-      .catch((err) => setStatus(t('模板加载失败: {{error}}', { error: String(err) })));
-  }, [createTemplate, t]);
+      .catch((err) => setStatus(`Failed to load templates: ${error}`));
+  }, [createTemplate]);
 
   const allTags = useMemo(() => {
     const s = new Set<string>();
@@ -197,7 +195,7 @@ export default function ProjectPage() {
   const handleCreate = async () => {
     const name = createName.trim();
     if (!name) {
-      setStatus(t('请输入项目名称。'));
+      setStatus('Enter a project name.');
       return;
     }
     try {
@@ -207,7 +205,7 @@ export default function ProjectPage() {
       await loadProjects();
       navigate(`/editor/${created.id}`);
     } catch (err) {
-      setStatus(t('创建失败: {{error}}', { error: String(err) }));
+      setStatus(`Create failed: ${error}`);
     }
   };
 
@@ -223,17 +221,17 @@ export default function ProjectPage() {
       setRenameState(null);
       await loadProjects();
     } catch (err) {
-      setStatus(t('重命名失败: {{error}}', { error: String(err) }));
+      setStatus(`Rename failed: ${error}`);
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(t('删除项目 {{name}}？此操作不可撤销。', { name }))) return;
+    if (!window.confirm(`Delete project ${name}? This cannot be undone.`)) return;
     try {
       await deleteProject(id);
       await loadProjects();
     } catch (err) {
-      setStatus(t('删除失败: {{error}}', { error: String(err) }));
+      setStatus(`Delete failed: ${error}`);
     }
   };
 
@@ -242,7 +240,7 @@ export default function ProjectPage() {
       await archiveProject(id, archived);
       await loadProjects();
     } catch (err) {
-      setStatus(t('操作失败: {{error}}', { error: String(err) }));
+      setStatus(`Operation failed: ${error}`);
     }
   };
 
@@ -251,22 +249,22 @@ export default function ProjectPage() {
       await trashProject(id, trashed);
       await loadProjects();
     } catch (err) {
-      setStatus(t('操作失败: {{error}}', { error: String(err) }));
+      setStatus(`Operation failed: ${error}`);
     }
   };
 
   const handlePermanentDelete = async (id: string, name: string) => {
-    if (!window.confirm(t('确定永久删除项目 {{name}}？此操作不可撤销。', { name }))) return;
+    if (!window.confirm(`Permanently delete project ${name}? This cannot be undone.`)) return;
     try {
       await permanentDeleteProject(id);
       await loadProjects();
     } catch (err) {
-      setStatus(t('删除失败: {{error}}', { error: String(err) }));
+      setStatus(`Delete failed: ${error}`);
     }
   };
 
   const handleEmptyTrash = async () => {
-    if (!window.confirm(t('确定清空回收站？所有项目将被永久删除。'))) return;
+    if (!window.confirm('Empty trash? All projects will be permanently deleted.')) return;
     const trashItems = projects.filter((p) => p.trashed);
     for (const p of trashItems) {
       try { await permanentDeleteProject(p.id); } catch {}
@@ -282,7 +280,7 @@ export default function ProjectPage() {
       await updateProjectTags(id, tags);
       await loadProjects();
     } catch (err) {
-      setStatus(t('操作失败: {{error}}', { error: String(err) }));
+      setStatus(`Operation failed: ${error}`);
     }
   };
 
@@ -294,7 +292,7 @@ export default function ProjectPage() {
       await updateProjectTags(id, tags);
       await loadProjects();
     } catch (err) {
-      setStatus(t('操作失败: {{error}}', { error: String(err) }));
+      setStatus(`Operation failed: ${error}`);
     }
   };
 
@@ -308,7 +306,7 @@ export default function ProjectPage() {
       await loadProjects();
       navigate(`/editor/${created.id}`);
     } catch (err) {
-      setStatus(t('创建失败: {{error}}', { error: String(err) }));
+      setStatus(`Create failed: ${error}`);
     }
   };
 
@@ -322,9 +320,9 @@ export default function ProjectPage() {
       const res = await listTemplates();
       setTemplates(res.templates || []);
       setCategories(res.categories || []);
-      setStatus(t('模板上传成功'));
+      setStatus('Template uploaded successfully');
     } catch (err) {
-      setStatus(t('模板上传失败: {{error}}', { error: String(err) }));
+      setStatus(`Template upload failed: ${error}`);
     } finally {
       setUploadingTemplate(false);
       if (templateZipRef.current) templateZipRef.current.value = '';
@@ -337,22 +335,22 @@ export default function ProjectPage() {
       if (!res.ok || !res.project) throw new Error(res.error || 'Copy failed');
       await loadProjects();
     } catch (err) {
-      setStatus(t('复制失败: {{error}}', { error: String(err) }));
+      setStatus(`Copy failed: ${error}`);
     }
   };
 
   const handleImportZip = async (file: File) => {
     setImporting(true);
     try {
-      const res = await importZip({ file, projectName: file.name.replace(/\.zip$/i, '') || t('Imported Project') });
+      const res = await importZip({ file, projectName: file.name.replace(/\.zip$/i, '') || 'Imported Project' });
       if (!res.ok || !res.project) {
-        throw new Error(res.error || t('导入失败'));
+        throw new Error(res.error || 'Import failed');
       }
       setImportOpen(false);
       await loadProjects();
       navigate(`/editor/${res.project.id}`);
     } catch (err) {
-      setStatus(t('Zip 导入失败: {{error}}', { error: String(err) }));
+      setStatus(`Zip import failed: ${error}`);
     } finally {
       setImporting(false);
     }
@@ -360,7 +358,7 @@ export default function ProjectPage() {
 
   const handleImportArxiv = async () => {
     if (!arxivInput.trim()) {
-      setStatus(t('请输入 arXiv URL 或 ID。'));
+      setStatus('Enter an arXiv URL or ID.');
       return;
     }
     setImporting(true);
@@ -371,14 +369,14 @@ export default function ProjectPage() {
         (prog) => setImportProgress(prog)
       );
       if (!res.ok || !res.project) {
-        throw new Error(res.error || t('导入失败'));
+        throw new Error(res.error || 'Import failed');
       }
       setArxivInput('');
       setImportOpen(false);
       await loadProjects();
       navigate(`/editor/${res.project.id}`);
     } catch (err) {
-      setStatus(t('arXiv 导入失败: {{error}}', { error: String(err) }));
+      setStatus(`arXiv import failed: ${error}`);
     } finally {
       setImporting(false);
       setImportProgress(null);
@@ -393,10 +391,10 @@ export default function ProjectPage() {
     trash: <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5h10M6 4.5V3a1 1 0 011-1h2a1 1 0 011 1v1.5"/><path d="M4.5 4.5l.5 8.5a1 1 0 001 1h4a1 1 0 001-1l.5-8.5"/></svg>,
   };
   const navItems: { key: ViewFilter; label: string }[] = [
-    { key: 'all', label: t('所有项目') },
-    { key: 'mine', label: t('我的项目') },
-    { key: 'archived', label: t('已归档') },
-    { key: 'trash', label: t('回收站') },
+    { key: 'all', label: 'All Projects' },
+    { key: 'mine', label: 'My Projects' },
+    { key: 'archived', label: 'Archived' },
+    { key: 'trash', label: 'Trash' },
   ];
 
   return (
@@ -405,15 +403,15 @@ export default function ProjectPage() {
       <aside className="project-sidebar">
         <div className="sidebar-brand">
           <div className="brand-title">Manuscripta</div>
-          <div className="brand-sub">{t('Projects Workspace')}</div>
+          <div className="brand-sub">{'Projects Workspace'}</div>
         </div>
 
         <button className="sidebar-create-btn" onClick={() => setCreateOpen(true)}>
-          + {t('新建项目')}
+          + {'New project'}
         </button>
         <div className="sidebar-actions-row">
-          <button className="btn ghost" style={{ flex: 1 }} onClick={() => setImportOpen(true)}>{t('导入项目')}</button>
-          <button className="btn ghost" style={{ flex: 1 }} onClick={() => setTemplateGalleryOpen(true)}>{t('模板库')}</button>
+          <button className="btn ghost" style={{ flex: 1 }} onClick={() => setImportOpen(true)}>{'Import project'}</button>
+          <button className="btn ghost" style={{ flex: 1 }} onClick={() => setTemplateGalleryOpen(true)}>{'Templates'}</button>
         </div>
 
         <nav className="sidebar-nav">
@@ -432,7 +430,7 @@ export default function ProjectPage() {
 
         <div className="sidebar-tags-section">
           <div className="sidebar-tags-header" onClick={() => setTagsExpanded(!tagsExpanded)}>
-            <span>{tagsExpanded ? '\u25BE' : '\u25B8'} {t('整理标签')}</span>
+            <span>{tagsExpanded ? '\u25BE' : '\u25B8'} {'Tags'}</span>
           </div>
           {tagsExpanded && (
             <div className="sidebar-tags-list">
@@ -452,7 +450,7 @@ export default function ProjectPage() {
                   autoFocus
                   value={newSidebarTag}
                   onChange={(e) => setNewSidebarTag(e.target.value)}
-                  placeholder={t('输入标签名称')}
+                  placeholder={'Enter tag name'}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && newSidebarTag.trim()) {
                       setAddingSidebarTag(false);
@@ -464,7 +462,7 @@ export default function ProjectPage() {
                 />
               ) : (
                 <div className="sidebar-new-tag-btn" onClick={() => setAddingSidebarTag(true)}>
-                  + {t('新建标签')}
+                  + {'New Tag'}
                 </div>
               )}
             </div>
@@ -475,7 +473,7 @@ export default function ProjectPage() {
           <div className="sidebar-auth-footer">
             <div className="sidebar-auth-user">{user.displayName || user.username}</div>
             <button className="btn ghost" onClick={logout} style={{ fontSize: 12, padding: '4px 10px' }}>
-              {t('auth.logout')}
+              {'Sign Out'}
             </button>
           </div>
         )}
@@ -485,33 +483,13 @@ export default function ProjectPage() {
       <div className="project-main">
         <header className="project-main-header">
           <h1 className="project-main-title">
-            {activeTag ? `${t('标签')}: ${activeTag}` : navItems.find((n) => n.key === viewFilter)?.label || t('所有项目')}
+            {activeTag ? `${'Tags'}: ${activeTag}` : navItems.find((n) => n.key === viewFilter)?.label || 'All Projects'}
           </h1>
           <div className="project-main-header-actions">
             {viewFilter === 'trash' && viewCounts.trash > 0 && (
-              <button className="btn ghost" onClick={handleEmptyTrash}>{t('清空回收站')}</button>
+              <button className="btn ghost" onClick={handleEmptyTrash}>{'Empty Trash'}</button>
             )}
-            <div className="ios-select-wrapper">
-              <button className="ios-select-trigger" onClick={() => setLangDropdownOpen(!langDropdownOpen)}>
-                <span>{i18n.language === 'en-US' ? t('English') : t('中文')}</span>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={langDropdownOpen ? 'rotate' : ''}>
-                  <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              {langDropdownOpen && (
-                <div className="ios-dropdown dropdown-down">
-                  {([['zh-CN', t('中文')], ['en-US', t('English')]] as [string, string][]).map(([val, label]) => (
-                    <div key={val} className={`ios-dropdown-item ${i18n.language === val ? 'active' : ''}`} onClick={() => { i18n.changeLanguage(val); setLangDropdownOpen(false); }}>
-                      {label}
-                      {i18n.language === val && (
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button className="btn ghost" onClick={() => setSettingsOpen(true)}>{t('设置')}</button>
+            <button className="btn ghost" onClick={() => setSettingsOpen(true)}>{'Settings'}</button>
           </div>
         </header>
 
@@ -522,18 +500,18 @@ export default function ProjectPage() {
             className="project-search"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder={t('搜索项目...')}
+            placeholder={'Search projects...'}
           />
           <div className="ios-select-wrapper">
             <button className="ios-select-trigger" onClick={() => setSortDropdownOpen(!sortDropdownOpen)}>
-              <span>{sortBy === 'updatedAt' ? t('最近修改') : sortBy === 'name' ? t('按名称') : t('创建时间')}</span>
+              <span>{sortBy === 'updatedAt' ? 'Recently Modified' : sortBy === 'name' ? 'By Name' : 'Created'}</span>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={sortDropdownOpen ? 'rotate' : ''}>
                 <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
             {sortDropdownOpen && (
               <div className="ios-dropdown dropdown-down">
-                {([['updatedAt', t('最近修改')], ['name', t('按名称')], ['createdAt', t('创建时间')]] as [SortBy, string][]).map(([val, label]) => (
+                {([['updatedAt', 'Recently Modified'], ['name', 'By Name'], ['createdAt', 'Created']] as [SortBy, string][]).map(([val, label]) => (
                   <div key={val} className={`ios-dropdown-item ${sortBy === val ? 'active' : ''}`} onClick={() => { setSortBy(val); setSortDropdownOpen(false); }}>
                     {label}
                     {sortBy === val && (
@@ -561,10 +539,10 @@ export default function ProjectPage() {
                     }}
                   />
                 </th>
-                <th className="col-name">{t('名称')}</th>
-                <th className="col-tags">{t('标签')}</th>
-                <th className="col-modified">{t('最后修改')}</th>
-                <th className="col-actions">{t('操作')}</th>
+                <th className="col-name">{'Name'}</th>
+                <th className="col-tags">{'Tags'}</th>
+                <th className="col-modified">{'Last Modified'}</th>
+                <th className="col-actions">{'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -618,7 +596,7 @@ export default function ProjectPage() {
                             autoFocus
                             value={tagInput}
                             onChange={(e) => setTagInput(e.target.value)}
-                            placeholder={t('添加标签')}
+                            placeholder={'Add Tag'}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && tagInput.trim()) {
                                 handleAddTag(project.id, tagInput.trim());
@@ -645,18 +623,18 @@ export default function ProjectPage() {
                   <td className="col-actions">
                     <div className="col-actions-inner">
                       {viewFilter === 'trash' ? (<>
-                        <button className="btn ghost" onClick={() => handleTrash(project.id, false)}>{t('恢复')}</button>
-                        <button className="btn ghost" onClick={() => handlePermanentDelete(project.id, project.name)}>{t('永久删除')}</button>
+                        <button className="btn ghost" onClick={() => handleTrash(project.id, false)}>{'Restore'}</button>
+                        <button className="btn ghost" onClick={() => handlePermanentDelete(project.id, project.name)}>{'Delete Permanently'}</button>
                       </>) : (<>
-                        <button className="btn ghost" onClick={() => navigate(`/editor/${project.id}`)}>{t('打开')}</button>
-                        <button className="btn ghost" onClick={() => setRenameState({ id: project.id, value: project.name })}>{t('重命名')}</button>
-                        <button className="btn ghost" onClick={() => handleCopy(project.id, project.name)}>{t('复制')}</button>
-                        <button className="btn ghost" onClick={() => { setTransferSource({ id: project.id, name: project.name }); setTransferOpen(true); }}>{t('转换')}</button>
+                        <button className="btn ghost" onClick={() => navigate(`/editor/${project.id}`)}>{'Open'}</button>
+                        <button className="btn ghost" onClick={() => setRenameState({ id: project.id, value: project.name })}>{'Rename'}</button>
+                        <button className="btn ghost" onClick={() => handleCopy(project.id, project.name)}>{'Copy'}</button>
+                        <button className="btn ghost" onClick={() => { setTransferSource({ id: project.id, name: project.name }); setTransferOpen(true); }}>{'Transfer'}</button>
                         {project.archived
-                          ? <button className="btn ghost" onClick={() => handleArchive(project.id, false)}>{t('取消归档')}</button>
-                          : <button className="btn ghost" onClick={() => handleArchive(project.id, true)}>{t('归档')}</button>
+                          ? <button className="btn ghost" onClick={() => handleArchive(project.id, false)}>{'Unarchive'}</button>
+                          : <button className="btn ghost" onClick={() => handleArchive(project.id, true)}>{'Archive'}</button>
                         }
-                        <button className="btn ghost" onClick={() => handleDelete(project.id, project.name)}>{t('删除')}</button>
+                        <button className="btn ghost" onClick={() => handleDelete(project.id, project.name)}>{'Delete'}</button>
                       </>)}
                     </div>
                   </td>
@@ -665,12 +643,12 @@ export default function ProjectPage() {
             </tbody>
           </table>
           {filteredProjects.length === 0 && (
-            <div className="project-table-empty">{t('暂无项目。')}</div>
+            <div className="project-table-empty">{'No projects.'}</div>
           )}
         </div>
 
         <div className="project-footer">
-          {t('显示 {{shown}} / {{total}} 个项目', { shown: filteredProjects.length, total: projects.length })}
+          {`Showing ${shown} / ${total} projects`}
         </div>
       </div>
 
@@ -694,21 +672,21 @@ export default function ProjectPage() {
         <div className="modal-backdrop" onClick={() => setCreateOpen(false)}>
           <div className="modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <div>{t('新建项目')}</div>
+              <div>{'New project'}</div>
               <button className="icon-btn" onClick={() => setCreateOpen(false)}>✕</button>
             </div>
             <div className="modal-body">
               <div className="field">
-                <label>{t('项目名称')}</label>
+                <label>{'Project name'}</label>
                 <input
                   className="input"
                   value={createName}
                   onChange={(event) => setCreateName(event.target.value)}
-                  placeholder={t('My Paper')}
+                  placeholder={'My Paper'}
                 />
               </div>
               <div className="field">
-                <label>{t('模板')}</label>
+                <label>{'Template'}</label>
                 <div className="ios-select-wrapper">
                   <button className="ios-select-trigger" onClick={() => setTemplateDropdownOpen(!templateDropdownOpen)}>
                     <span>{templates.find((tpl) => tpl.id === createTemplate)?.label || '—'}</span>
@@ -732,8 +710,8 @@ export default function ProjectPage() {
               </div>
             </div>
             <div className="modal-actions">
-              <button className="btn ghost" onClick={() => setCreateOpen(false)}>{t('取消')}</button>
-              <button className="btn" onClick={handleCreate}>{t('创建')}</button>
+              <button className="btn ghost" onClick={() => setCreateOpen(false)}>{'Cancel'}</button>
+              <button className="btn" onClick={handleCreate}>{'Create'}</button>
             </div>
           </div>
         </div>
@@ -743,30 +721,30 @@ export default function ProjectPage() {
         <div className="modal-backdrop" onClick={() => setImportOpen(false)}>
           <div className="modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <div>{t('导入项目')}</div>
+              <div>{'Import project'}</div>
               <button className="icon-btn" onClick={() => setImportOpen(false)}>✕</button>
             </div>
             <div className="modal-body">
               <div className="field">
-                <label>{t('上传 Zip 文件')}</label>
+                <label>{'Upload Zip file'}</label>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <button
                     className="btn"
                     onClick={() => zipInputRef.current?.click()}
                     disabled={importing}
                   >
-                    {t('选择文件')}
+                    {'Choose file'}
                   </button>
-                  {importing && <span className="muted">{t('导入中...')}</span>}
+                  {importing && <span className="muted">{'Importing...'}</span>}
                 </div>
               </div>
               <div className="field" style={{ borderTop: '1px solid var(--border, #e0e0e0)', paddingTop: '12px', marginTop: '4px' }}>
-                <label>{t('arXiv 链接导入')}</label>
+                <label>{'Import via arXiv link'}</label>
                 <input
                   className="input"
                   value={arxivInput}
                   onChange={(event) => setArxivInput(event.target.value)}
-                  placeholder={t('arXiv URL 或 ID，例如 2301.00001')}
+                  placeholder={'arXiv URL or ID, e.g. 2301.00001'}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                       event.preventDefault();
@@ -780,9 +758,9 @@ export default function ProjectPage() {
                   <label>
                     {importProgress.phase === 'download'
                       ? importProgress.percent >= 0
-                        ? t('下载中... {{percent}}%', { percent: importProgress.percent })
-                        : t('下载中...')
-                      : t('解压中...')}
+                        ? `Downloading... ${percent}%`
+                        : 'Downloading...'
+                      : 'Extracting...'}
                   </label>
                   <div style={{
                     width: '100%',
@@ -805,9 +783,9 @@ export default function ProjectPage() {
               )}
             </div>
             <div className="modal-actions">
-              <button className="btn ghost" onClick={() => setImportOpen(false)}>{t('取消')}</button>
+              <button className="btn ghost" onClick={() => setImportOpen(false)}>{'Cancel'}</button>
               <button className="btn" onClick={handleImportArxiv} disabled={importing || !arxivInput.trim()}>
-                {t('导入 arXiv')}
+                {'Import arXiv'}
               </button>
             </div>
           </div>
@@ -820,8 +798,8 @@ export default function ProjectPage() {
           <div className="modal template-gallery-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="template-gallery-header-left">
-                <button className="btn ghost" onClick={() => setTemplateGalleryOpen(false)}>{t('返回')}</button>
-                <span>{t('模板库')}</span>
+                <button className="btn ghost" onClick={() => setTemplateGalleryOpen(false)}>{'Back'}</button>
+                <span>{'Templates'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input
@@ -839,22 +817,22 @@ export default function ProjectPage() {
                   disabled={uploadingTemplate}
                   onClick={() => templateZipRef.current?.click()}
                 >
-                  {uploadingTemplate ? t('上传中...') : t('上传模板')}
+                  {uploadingTemplate ? 'Uploading...' : 'Upload Template'}
                 </button>
                 <button className="icon-btn" onClick={() => setTemplateGalleryOpen(false)}>✕</button>
               </div>
             </div>
             <div className="modal-body">
-              <div className="template-gallery-subtitle">{t('选择模板快速开始您的项目')}</div>
+              <div className="template-gallery-subtitle">{'Choose a template to start your project'}</div>
 
               <div className="template-gallery-categories">
-                {[{ id: 'all', label: t('全部'), labelEn: 'All' }, ...(categories || [])].map((cat) => (
+                {[{ id: 'all', label: 'All', labelEn: 'All' }, ...(categories || [])].map((cat) => (
                   <button
                     key={cat.id}
                     className={`template-cat-tab${galleryCat === cat.id ? ' active' : ''}`}
                     onClick={() => setGalleryCat(cat.id)}
                   >
-                    {i18n.language === 'en-US' ? cat.labelEn : cat.label}
+                    {cat.label}
                   </button>
                 ))}
               </div>
@@ -862,13 +840,13 @@ export default function ProjectPage() {
               <div className="template-gallery-filters">
                 <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
                   <input type="checkbox" checked={galleryFeatured} onChange={(e) => setGalleryFeatured(e.target.checked)} />
-                  {t('精选模板')}
+                  {'Featured'}
                 </label>
                 <input
                   className="project-search"
                   value={gallerySearch}
                   onChange={(e) => setGallerySearch(e.target.value)}
-                  placeholder={t('搜索模板...')}
+                  placeholder={'Search templates...'}
                   style={{ maxWidth: 240 }}
                 />
               </div>
@@ -882,7 +860,7 @@ export default function ProjectPage() {
                     <div className="template-card-body">
                       <div className="template-card-title">{tpl.label}</div>
                       <div className="template-card-desc">
-                        {i18n.language === 'en-US' ? (tpl.descriptionEn || tpl.description) : tpl.description}
+                        {tpl.description}
                       </div>
                       {tpl.tags?.length > 0 && (
                         <div className="template-card-tags">
@@ -895,7 +873,7 @@ export default function ProjectPage() {
                 ))}
               </div>
               {galleryTemplates.length === 0 && (
-                <div className="template-gallery-empty">{t('暂无匹配模板')}</div>
+                <div className="template-gallery-empty">{'No matching templates'}</div>
               )}
             </div>
           </div>
@@ -907,7 +885,7 @@ export default function ProjectPage() {
         <div className="modal-backdrop" onClick={() => setTransferOpen(false)}>
           <div className="modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <div>{t('模板转换')} — {transferSource.name}</div>
+              <div>{'Template Transfer'} — {transferSource.name}</div>
               <button className="icon-btn" onClick={() => setTransferOpen(false)}>✕</button>
             </div>
             <div className="modal-body">
@@ -928,17 +906,17 @@ export default function ProjectPage() {
       {activeJob && !transferOpen && jobWidgetOpen && (
         <div className="transfer-widget">
           <div className="transfer-widget-header">
-            <span>{t('模板转换')} — {activeJob.sourceName || ''}</span>
+            <span>{'Template Transfer'} — {activeJob.sourceName || ''}</span>
             <div style={{ display: 'flex', gap: 4 }}>
               <button className="icon-btn" onClick={() => {
                 setTransferOpen(true);
                 if (transferSource) setTransferSource(transferSource);
-              }} title={t('展开')}>&#x2197;</button>
+              }} title={'Expand'}>&#x2197;</button>
               <button className="icon-btn" onClick={() => setJobWidgetOpen(false)}>✕</button>
             </div>
           </div>
           <div className="transfer-widget-status">
-            <strong>{t('状态')}:</strong> {activeJob.status}
+            <strong>{'Status'}:</strong> {activeJob.status}
           </div>
           {activeJob.error && (
             <div className="transfer-widget-error">{activeJob.error}</div>
@@ -958,12 +936,12 @@ export default function ProjectPage() {
         <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div>{t('设置')}</div>
+              <div>{'Settings'}</div>
               <button className="icon-btn" onClick={() => setSettingsOpen(false)}>✕</button>
             </div>
             <div className="modal-body">
               <div className="field">
-                <label>{t('LLM Endpoint')}</label>
+                <label>{'LLM Endpoint'}</label>
                 <input
                   className="input"
                   type="text"
@@ -973,7 +951,7 @@ export default function ProjectPage() {
                 />
               </div>
               <div className="field">
-                <label>{t('LLM API Key')}</label>
+                <label>{'LLM API Key'}</label>
                 <input
                   className="input"
                   type="password"
@@ -983,7 +961,7 @@ export default function ProjectPage() {
                 />
               </div>
               <div className="field">
-                <label>{t('LLM Model')}</label>
+                <label>{'LLM Model'}</label>
                 <input
                   className="input"
                   type="text"
@@ -993,12 +971,12 @@ export default function ProjectPage() {
                 />
               </div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
-                {t('未配置 API Key 时将使用后端环境变量。')}
+                {'If API Key is empty, backend env vars will be used.'}
               </div>
             </div>
             <div className="modal-actions">
-              <button className="btn ghost" onClick={() => { setSettingsForm(loadLLMSettings()); setSettingsOpen(false); }}>{t('取消')}</button>
-              <button className="btn" onClick={() => { saveLLMSettings(settingsForm); setSettingsOpen(false); }}>{t('保存')}</button>
+              <button className="btn ghost" onClick={() => { setSettingsForm(loadLLMSettings()); setSettingsOpen(false); }}>{'Cancel'}</button>
+              <button className="btn" onClick={() => { saveLLMSettings(settingsForm); setSettingsOpen(false); }}>{'Save'}</button>
             </div>
           </div>
         </div>

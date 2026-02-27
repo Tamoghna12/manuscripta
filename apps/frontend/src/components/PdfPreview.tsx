@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
-import { useTranslation } from 'react-i18next';
 import { getDocument, renderTextLayer } from 'pdfjs-dist';
 
 export default function PdfPreview({
@@ -32,7 +31,6 @@ export default function PdfPreview({
   synctexHighlight?: { page: number; x: number; y: number; w: number; h: number } | null;
   containerRef?: RefObject<HTMLDivElement>;
 }) {
-  const { t } = useTranslation();
   const localRef = useRef<HTMLDivElement | null>(null);
   const containerRef = externalRef || localRef;
   const renderScaleRef = useRef(scale);
@@ -150,7 +148,7 @@ export default function PdfPreview({
                 } catch {
                   pageNumber = undefined;
                 }
-                items.push({ title: entry.title || t('(untitled)'), page: pageNumber, level });
+                items.push({ title: entry.title || '(untitled)', page: pageNumber, level });
                 if (entry.items?.length) {
                   await walk(entry.items, level + 1);
                 }
@@ -164,19 +162,19 @@ export default function PdfPreview({
         }
       } catch (err) {
         console.error('PDF render error:', err);
-        container.innerHTML = `<div class="muted">${t('PDF 渲染失败')}</div>`;
+        container.innerHTML = `<div class="muted">${'PDF render failed'}</div>`;
       }
     };
 
     render().catch(() => {
-      container.innerHTML = `<div class="muted">${t('PDF 渲染失败')}</div>`;
+      container.innerHTML = `<div class="muted">${'PDF render failed'}</div>`;
     });
 
     return () => {
       cancelled = true;
       container.innerHTML = '';
     };
-  }, [pdfUrl, fitWidth, onFitScale, scale, spread, onOutline, t]);
+  }, [pdfUrl, fitWidth, onFitScale, scale, spread, onOutline]);
 
   useEffect(() => {
     const container = containerRef.current;

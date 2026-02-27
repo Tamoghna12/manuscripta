@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { CommentThread } from '../CommentExtension';
 
 interface CommentsPanelProps {
@@ -27,7 +26,6 @@ export default function CommentsPanel({
   authorColor,
   readOnly,
 }: CommentsPanelProps) {
-  const { t } = useTranslation();
   const [newComment, setNewComment] = useState('');
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [showResolved, setShowResolved] = useState(false);
@@ -60,7 +58,7 @@ export default function CommentsPanel({
       <div
         style={{ fontSize: 11, color: 'var(--accent)', cursor: 'pointer', marginBottom: 4 }}
         onClick={() => onJumpTo(comment.anchorFrom, comment.anchorTo)}
-        title={t('Jump to location')}
+        title={'Jump to location'}
       >
         "{comment.anchorText.length > 50 ? comment.anchorText.slice(0, 50) + '...' : comment.anchorText}"
       </div>
@@ -90,12 +88,12 @@ export default function CommentsPanel({
             className="input-field"
             value={replyText[comment.id] || ''}
             onChange={e => setReplyText(prev => ({ ...prev, [comment.id]: e.target.value }))}
-            placeholder={t('Reply...')}
+            placeholder={'Reply...'}
             onKeyDown={e => e.key === 'Enter' && handleReply(comment.id)}
             style={{ flex: 1, fontSize: 11 }}
           />
           <button className="small-btn" onClick={() => handleReply(comment.id)} style={{ fontSize: 10 }}>
-            {t('Reply')}
+            {'Reply'}
           </button>
         </div>
       )}
@@ -107,7 +105,7 @@ export default function CommentsPanel({
             onClick={() => onResolve(comment.id, !comment.resolved)}
             style={{ fontSize: 10 }}
           >
-            {comment.resolved ? t('Unresolve') : t('Resolve')}
+            {comment.resolved ? 'Unresolve' : 'Resolve'}
           </button>
         )}
         {!readOnly && (
@@ -116,7 +114,7 @@ export default function CommentsPanel({
             onClick={() => onDelete(comment.id)}
             style={{ fontSize: 10, color: 'var(--error)' }}
           >
-            {t('Delete')}
+            {'Delete'}
           </button>
         )}
       </div>
@@ -126,25 +124,25 @@ export default function CommentsPanel({
   return (
     <div className="comments-panel">
       <div className="panel-header">
-        <div>{t('Comments')} ({active.length})</div>
+        <div>{'Comments'} ({active.length})</div>
       </div>
 
       {!readOnly && selectionRange && (
         <div style={{ padding: '8px', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>
-            {t('Selected')}: "{selectionRange.text.length > 40 ? selectionRange.text.slice(0, 40) + '...' : selectionRange.text}"
+            {'Selected'}: "{selectionRange.text.length > 40 ? selectionRange.text.slice(0, 40) + '...' : selectionRange.text}"
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             <input
               className="input-field"
               value={newComment}
               onChange={e => setNewComment(e.target.value)}
-              placeholder={t('Add comment...')}
+              placeholder={'Add comment...'}
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
               style={{ flex: 1, fontSize: 11 }}
             />
             <button className="primary-btn" onClick={handleAdd} disabled={!newComment.trim()} style={{ fontSize: 11 }}>
-              {t('Add')}
+              {'Add'}
             </button>
           </div>
         </div>
@@ -165,7 +163,7 @@ export default function CommentsPanel({
               }}
               onClick={() => setShowResolved(!showResolved)}
             >
-              {showResolved ? '▾' : '▸'} {t('Resolved')} ({resolved.length})
+              {showResolved ? '▾' : '▸'} {'Resolved'} ({resolved.length})
             </div>
             {showResolved && resolved.map(renderThread)}
           </>
@@ -173,7 +171,7 @@ export default function CommentsPanel({
 
         {active.length === 0 && resolved.length === 0 && (
           <div style={{ padding: 12, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
-            {t('No comments. Select text in the editor to add a comment.')}
+            {'No comments. Select text in the editor to add a comment.'}
           </div>
         )}
       </div>

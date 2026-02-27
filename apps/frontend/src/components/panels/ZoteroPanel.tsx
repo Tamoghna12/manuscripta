@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   zoteroGetConfig,
   zoteroSaveConfig,
@@ -33,7 +32,6 @@ interface ZoteroPanelProps {
 }
 
 export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: ZoteroPanelProps) {
-  const { t } = useTranslation();
   const [tab, setTab] = useState<'cloud' | 'local' | 'config'>('cloud');
   const [userId, setUserId] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -224,40 +222,40 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   if (configLoading) {
-    return <div className="zotero-panel" style={{ padding: 12 }}>{t('Loading...')}</div>;
+    return <div className="zotero-panel" style={{ padding: 12 }}>{'Loading...'}</div>;
   }
 
   return (
     <div className="zotero-panel">
       <div className="panel-header">
-        <div>{t('Zotero')}</div>
+        <div>{'Zotero'}</div>
       </div>
 
       <div className="zotero-tabs" style={{ display: 'flex', gap: 4, padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>
         <button
           className={`tab-btn-sm ${tab === 'cloud' ? 'active' : ''}`}
           onClick={() => setTab('cloud')}
-        >{t('Cloud')}</button>
+        >{'Cloud'}</button>
         <button
           className={`tab-btn-sm ${tab === 'local' ? 'active' : ''}`}
           onClick={() => setTab('local')}
-        >{t('Local')}</button>
+        >{'Local'}</button>
         <button
           className={`tab-btn-sm ${tab === 'config' ? 'active' : ''}`}
           onClick={() => setTab('config')}
-        >{t('Config')}</button>
+        >{'Config'}</button>
       </div>
 
       {tab === 'config' && (
         <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label style={{ fontSize: 11 }}>{t('Zotero User ID')}</label>
+          <label style={{ fontSize: 11 }}>{'Zotero User ID'}</label>
           <input
             className="input-field"
             value={userId}
             onChange={e => setUserId(e.target.value)}
             placeholder="12345678"
           />
-          <label style={{ fontSize: 11 }}>{t('Zotero API Key')}</label>
+          <label style={{ fontSize: 11 }}>{'Zotero API Key'}</label>
           <input
             className="input-field"
             type="password"
@@ -266,10 +264,10 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
             placeholder="xxxxxxxxxxxxxxxxxxxxxxxx"
           />
           <button className="primary-btn" onClick={saveConfig} disabled={busy}>
-            {t('Save')}
+            {'Save'}
           </button>
           <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-            {t('Get your API key from')}{' '}
+            {'Get your API key from'}{' '}
             <a href="https://www.zotero.org/settings/keys" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
               zotero.org/settings/keys
             </a>
@@ -279,9 +277,9 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
 
       {tab === 'cloud' && !configured && (
         <div style={{ padding: 12, textAlign: 'center', color: 'var(--text-muted)' }}>
-          <p>{t('Zotero not configured.')}</p>
+          <p>{'Zotero not configured.'}</p>
           <button className="primary-btn" onClick={() => setTab('config')} style={{ marginTop: 8 }}>
-            {t('Configure')}
+            {'Configure'}
           </button>
         </div>
       )}
@@ -296,7 +294,7 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
                 onChange={e => setSelectedCollection(e.target.value)}
                 style={{ fontSize: 11 }}
               >
-                <option value="">{t('All Collections')}</option>
+                <option value="">{'All Collections'}</option>
                 {collections.map(c => (
                   <option key={c.key} value={c.key}>{c.name} ({c.numItems})</option>
                 ))}
@@ -307,12 +305,12 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
                 className="input-field"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder={t('Search Zotero library...')}
+                placeholder={'Search Zotero library...'}
                 onKeyDown={e => e.key === 'Enter' && search()}
                 style={{ flex: 1 }}
               />
               <button className="primary-btn" onClick={() => search()} disabled={busy}>
-                {busy ? '...' : t('Search')}
+                {busy ? '...' : 'Search'}
               </button>
             </div>
           </div>
@@ -344,7 +342,7 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
             ))}
             {items.length === 0 && !busy && (
               <div style={{ padding: 12, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
-                {t('Search your Zotero library above.')}
+                {'Search your Zotero library above.'}
               </div>
             )}
           </div>
@@ -352,7 +350,7 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
           {items.length > 0 && (
             <div style={{ padding: '6px 8px', borderTop: '1px solid var(--border)', display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
               <button className="small-btn" onClick={selectAll} style={{ fontSize: 10 }}>
-                {items.every(i => selected[i.key]) ? t('Deselect All') : t('Select All')}
+                {items.every(i => selected[i.key]) ? 'Deselect All' : 'Select All'}
               </button>
               <button
                 className="primary-btn"
@@ -360,7 +358,7 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
                 disabled={busy || selectedCount === 0}
                 style={{ fontSize: 11 }}
               >
-                {t('Import to .bib')} ({selectedCount})
+                {'Import to .bib'} ({selectedCount})
               </button>
               {totalResults > 25 && (
                 <div style={{ display: 'flex', gap: 2, fontSize: 10 }}>
@@ -383,7 +381,7 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
       {tab === 'local' && (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <div style={{ padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 11 }}>{t('Database Path (auto-detected)')}</label>
+            <label style={{ fontSize: 11 }}>{'Database Path (auto-detected)'}</label>
             <div style={{ display: 'flex', gap: 4 }}>
               <input
                 className="input-field"
@@ -393,7 +391,7 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
                 style={{ flex: 1, fontSize: 11 }}
               />
               <button className="primary-btn" onClick={loadLocal} disabled={localBusy}>
-                {localBusy ? '...' : t('Load')}
+                {localBusy ? '...' : 'Load'}
               </button>
             </div>
             {localError && <div style={{ fontSize: 11, color: 'var(--error)' }}>{localError}</div>}
@@ -420,7 +418,7 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
             ))}
             {localItems.length === 0 && !localBusy && (
               <div style={{ padding: 12, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
-                {t('Click Load to read your local Zotero database.')}
+                {'Click Load to read your local Zotero database.'}
               </div>
             )}
           </div>
@@ -428,7 +426,7 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
           {localItems.length > 0 && (
             <div style={{ padding: '6px 8px', borderTop: '1px solid var(--border)', display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
               <button className="small-btn" onClick={selectAllLocal} style={{ fontSize: 10 }}>
-                {localItems.every(i => localSelected[i.itemKey]) ? t('Deselect All') : t('Select All')}
+                {localItems.every(i => localSelected[i.itemKey]) ? 'Deselect All' : 'Select All'}
               </button>
               <button
                 className="primary-btn"
@@ -436,11 +434,11 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
                 disabled={localBusy || localSelectedCount === 0}
                 style={{ fontSize: 11 }}
               >
-                {t('Import to .bib')} ({localSelectedCount})
+                {'Import to .bib'} ({localSelectedCount})
               </button>
               {localItems.length >= 200 && (
                 <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                  {t('Showing first 200 items')}
+                  {'Showing first 200 items'}
                 </span>
               )}
             </div>

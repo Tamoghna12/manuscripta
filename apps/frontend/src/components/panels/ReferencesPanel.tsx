@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { BibEntry } from '../../utils/bibParser';
 
 interface ReferencesPanelProps {
@@ -79,19 +78,19 @@ function EntryDetail({ entry, query, onCite, onOpenBib, t }: {
       )}
       {entry.author && (
         <div className="ref-detail-row">
-          <span className="ref-detail-label">{t('ref.authors')}</span>
+          <span className="ref-detail-label">{'Authors'}</span>
           <span>{highlightMatch(formatAuthors(entry.author, false), query)}</span>
         </div>
       )}
       {(entry.journal || entry.booktitle) && (
         <div className="ref-detail-row">
-          <span className="ref-detail-label">{t('ref.venue')}</span>
+          <span className="ref-detail-label">{'Venue'}</span>
           <span style={{ fontStyle: 'italic' }}>{entry.journal || entry.booktitle}</span>
         </div>
       )}
       {entry.year && (
         <div className="ref-detail-row">
-          <span className="ref-detail-label">{t('ref.year')}</span>
+          <span className="ref-detail-label">{'Year'}</span>
           <span>{entry.year}</span>
         </div>
       )}
@@ -114,7 +113,7 @@ function EntryDetail({ entry, query, onCite, onOpenBib, t }: {
       <div className="ref-detail-actions">
         <button className="ref-action-btn primary" onClick={() => onCite([entry.key])}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-          {t('ref.insertCite')}
+          {'Insert \cite'}
         </button>
         <button className="ref-action-btn" onClick={copyKey}>
           {copied ? (
@@ -122,7 +121,7 @@ function EntryDetail({ entry, query, onCite, onOpenBib, t }: {
           ) : (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           )}
-          {copied ? t('ref.copied') : t('ref.copyKey')}
+          {copied ? 'Copied!' : 'Copy key'}
         </button>
         {entry.sourcePath && (
           <button className="ref-action-btn" onClick={() => onOpenBib(entry.sourcePath!)}>
@@ -137,7 +136,6 @@ function EntryDetail({ entry, query, onCite, onOpenBib, t }: {
 
 /* ── Main Panel ── */
 export default function ReferencesPanel({ entries, onCite, onOpenBib }: ReferencesPanelProps) {
-  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -254,7 +252,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
     return (
       <div className="references-panel">
         <div className="panel-header">
-          <span>{t('引用管理')}</span>
+          <span>{'References'}</span>
         </div>
         <div className="ref-empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
@@ -262,8 +260,8 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
             <path d="M8 7h8"/><path d="M8 11h6"/><path d="M8 15h4"/>
           </svg>
-          <div className="ref-empty-title">{t('ref.emptyTitle')}</div>
-          <div className="ref-empty-desc">{t('ref.emptyDesc')}</div>
+          <div className="ref-empty-title">{'No references yet'}</div>
+          <div className="ref-empty-desc">{'Add a .bib file to your project, or import references from Zotero / arXiv to get started.'}</div>
         </div>
       </div>
     );
@@ -273,13 +271,13 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
     <div className="references-panel">
       {/* ── Header ── */}
       <div className="panel-header" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span>{t('引用管理')}</span>
+        <span>{'References'}</span>
         <span className="ref-badge-count">{entries.length}</span>
         <div style={{ flex: 1 }} />
         <button
           className="ref-icon-btn"
           onClick={() => setShowControls(!showControls)}
-          title={t('ref.sortGroup')}
+          title={'Sort & Group'}
           style={{ opacity: showControls ? 1 : 0.5 }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -297,7 +295,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
           ref={searchRef}
           className="ref-search-input"
           type="text"
-          placeholder={t('搜索引用...')}
+          placeholder={'Search by key, title, author, year...'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -312,7 +310,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
       {showControls && (
         <div className="ref-controls">
           <div className="ref-control-row">
-            <span className="ref-control-label">{t('ref.sortBy')}</span>
+            <span className="ref-control-label">{'Sort'}</span>
             <div className="ref-pill-group">
               {(['key', 'year', 'author', 'title'] as SortMode[]).map((m) => (
                 <button key={m} className={`ref-pill ${sortMode === m ? 'active' : ''}`} onClick={() => setSortMode(m)}>
@@ -322,7 +320,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
             </div>
           </div>
           <div className="ref-control-row">
-            <span className="ref-control-label">{t('ref.groupBy')}</span>
+            <span className="ref-control-label">{'Group'}</span>
             <div className="ref-pill-group">
               {(['none', 'source', 'year', 'type'] as GroupMode[]).map((m) => (
                 <button key={m} className={`ref-pill ${groupMode === m ? 'active' : ''}`} onClick={() => setGroupMode(m)}>
@@ -339,13 +337,13 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
         <div className="ref-selection-bar">
           <button className="ref-action-btn primary" onClick={citeSelected}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-            {t('ref.citeN', { count: selected.size })}
+            {`Cite (${count})`}
           </button>
           <button className="ref-action-btn" onClick={selectAll}>
-            {selected.size === filtered.length ? t('ref.deselectAll') : t('全选')}
+            {selected.size === filtered.length ? 'Deselect all' : 'Select all'}
           </button>
           <button className="ref-action-btn" onClick={() => setSelected(new Set())}>
-            {t('取消')}
+            {'Cancel'}
           </button>
         </div>
       )}
@@ -354,8 +352,8 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
       {query && (
         <div className="ref-result-count">
           {filtered.length === 0
-            ? t('没有匹配结果。')
-            : t('ref.matchCount', { count: filtered.length, total: entries.length })}
+            ? 'No matches.'
+            : `${count} of ${total} entries`}
         </div>
       )}
 
@@ -367,7 +365,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               <line x1="8" y1="8" x2="14" y2="14"/><line x1="14" y1="8" x2="8" y2="14"/>
             </svg>
-            <span>{t('没有匹配结果。')}</span>
+            <span>{'No matches.'}</span>
           </div>
         ) : (
           groups.map((group) => (
@@ -447,7 +445,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
         <div style={{ flex: 1 }} />
         {filtered.length > 0 && selected.size === 0 && (
           <button className="ref-action-btn" onClick={selectAll} style={{ fontSize: 10 }}>
-            {t('全选')}
+            {'Select all'}
           </button>
         )}
       </div>

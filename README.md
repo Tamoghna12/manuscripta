@@ -8,12 +8,11 @@
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/network/members)
-[![GitHub Issues](https://img.shields.io/github/issues/OpenDCAI/Manuscripta)](https://github.com/OpenDCAI/Manuscripta/issues)
-[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/OpenDCAI/Manuscripta)](https://github.com/OpenDCAI/Manuscripta/pulls)
+[![GitHub Stars](https://img.shields.io/github/stars/Tamoghna12/manuscripta?style=social)](https://github.com/Tamoghna12/manuscripta/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/Tamoghna12/manuscripta?style=social)](https://github.com/Tamoghna12/manuscripta/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/Tamoghna12/manuscripta)](https://github.com/Tamoghna12/manuscripta/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/Tamoghna12/manuscripta)](https://github.com/Tamoghna12/manuscripta/pulls)
 
-[中文](README_ZH.md) | [English](README.md)
 
 ---
 
@@ -50,9 +49,6 @@
 <a href="#-contributing" target="_self">
   <img alt="Contributing" src="https://img.shields.io/badge/🤝-Contributing-purple?style=for-the-badge" />
 </a>
-<a href="#wechat-group" target="_self">
-  <img alt="WeChat" src="https://img.shields.io/badge/💬-WeChat_Group-07C160?style=for-the-badge" />
-</a>
 
 </div>
 
@@ -60,7 +56,7 @@
 
 > [!TIP]
 > 🆕 <strong>Template Transfer (Dual Mode)</strong><br>
-> Two transfer modes are available: Legacy mode (LaTeX→LaTeX direct migration) and MinerU mode (PDF→Markdown→LaTeX via MinerU API). Both modes feature LLM-powered content migration, automatic compile error fixing, and optional VLM-based layout checking. If you encounter any issues, please report them via [Issues](https://github.com/OpenDCAI/Manuscripta/issues).
+> Two transfer modes are available: Legacy mode (LaTeX→LaTeX direct migration) and MinerU mode (PDF→Markdown→LaTeX via MinerU API). Both modes feature LLM-powered content migration, automatic compile error fixing, and optional VLM-based layout checking. If you encounter any issues, please report them via [Issues](https://github.com/Tamoghna12/manuscripta/issues).
 
 > [!TIP]
 > 🆕 <strong>2025-02 · Real-time Collaboration</strong><br>
@@ -122,7 +118,7 @@ Manuscripta is a local-first LaTeX + AI workspace for academic writing, optimize
 - **LLM Endpoint**: OpenAI-compatible, supports custom base_url
 - **Local storage**: settings saved to browser localStorage
 - **TexLive config**: customizable TexLive resources
-- **Language switch**: toggle 中文/English in the top bar
+- **Language**: English UI
 
 ### 🔍 Search & Reading
 
@@ -307,8 +303,8 @@ Manuscripta requires a LaTeX engine to generate PDFs. Choose one of the followin
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/OpenDCAI/Manuscripta.git
-cd Manuscripta
+git clone https://github.com/Tamoghna12/manuscripta.git
+cd manuscripta
 
 # 2. Install dependencies
 npm install
@@ -347,8 +343,8 @@ node --version  # Should show >= 18.0.0
 pdflatex --version  # Should show TexLive version
 
 # 4. Clone and deploy project
-git clone https://github.com/OpenDCAI/Manuscripta.git
-cd Manuscripta
+git clone https://github.com/Tamoghna12/manuscripta.git
+cd manuscripta
 npm install
 npm run build
 
@@ -430,7 +426,7 @@ MANUSCRIPTA_LLM_MODEL=gpt-4o-mini
 
 **Supported Compilation Engines:**
 - `pdflatex` - Standard LaTeX engine
-- `xelatex` - Supports Unicode and Chinese
+- `xelatex` - Supports Unicode and multilingual text
 - `lualatex` - Supports Lua scripting
 - `latexmk` - Automated build tool
 - `tectonic` - Modern lightweight engine
@@ -674,15 +670,10 @@ MIT License. See [LICENSE](LICENSE).
 
 **If this project helps you, please give us a ⭐️ Star!**
 
-[![GitHub stars](https://img.shields.io/github/stars/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/OpenDCAI/Manuscripta?style=social)](https://github.com/OpenDCAI/Manuscripta/network/members)
+[![GitHub stars](https://img.shields.io/github/stars/Tamoghna12/manuscripta?style=social)](https://github.com/Tamoghna12/manuscripta/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Tamoghna12/manuscripta?style=social)](https://github.com/Tamoghna12/manuscripta/network/members)
 
 <br>
-
-<a name="wechat-group"></a>
-<img src="static/wechat.png" alt="Manuscripta WeChat Community" width="300"/>
-<br>
-<sub>Scan to join the community WeChat group</sub>
 
 <p align="center">
   <em>Made with ❤️ by Manuscripta Team</em>

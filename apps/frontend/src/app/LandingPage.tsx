@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-
 const TITLE_TEXT = 'Manuscripta is Here';
 const FEATURE_KEYS = ['completion', 'vision', 'plot', 'search', 'agent', 'review', 'grammar'] as const;
 const AUTO_INTERVAL = 4000;
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
   const [charCount, setCharCount] = useState(0);
   const [activeFeature, setActiveFeature] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
@@ -47,7 +44,7 @@ export default function LandingPage() {
           </span>
           <a
             className="landing-announce-link"
-            href="https://github.com/OpenDCAI"
+            href="https://github.com/Tamoghna12/manuscripta"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -87,7 +84,7 @@ export default function LandingPage() {
             className="landing-btn-primary"
             onClick={() => navigate('/projects')}
           >
-            {t('landing.startWriting')} &rarr;
+            {'Start Writing Free'} &rarr;
           </button>
         </div>
 

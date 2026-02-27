@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { callLLM, ollamaListModels } from '../../api/client';
 import {
   PROVIDER_PRESETS,
@@ -15,7 +14,6 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ settings, setSettings, onClose }: SettingsModalProps) {
-  const { t } = useTranslation();
   const [settingsTab, setSettingsTab] = useState<'providers' | 'general' | 'grammar' | 'compile'>('providers');
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [testConnStatus, setTestConnStatus] = useState<'' | 'testing' | 'success' | 'failed'>('');
@@ -68,9 +66,9 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
 
   return (
     <div className="modal-backdrop" onClick={onClose} role="presentation">
-      <div className="modal settings-modal" role="dialog" aria-modal="true" aria-label={t('设置')} onClick={(event) => event.stopPropagation()}>
+      <div className="modal settings-modal" role="dialog" aria-modal="true" aria-label={'Settings'} onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
-          <div>{t('Workspace Settings')}</div>
+          <div>{'Workspace Settings'}</div>
           <button className="icon-btn" onClick={onClose}>✕</button>
         </div>
         <div className="settings-tabs">
@@ -89,7 +87,7 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
           {settingsTab === 'providers' && (
             <>
               <div className="field">
-                <label>{t('provider.label')}</label>
+                <label>{'LLM Provider'}</label>
                 <div className="provider-cards">
                   {(Object.keys(PROVIDER_PRESETS) as LLMProvider[]).map((p) => (
                     <button
@@ -127,7 +125,7 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
                       ollamaListModels(llmEndpoint.replace(/\/v1$/, '')).then((res) => {
                         if (res.ok) setOllamaModels(res.models);
                       });
-                    }}>{t('provider.refreshModels')}</button>
+                    }}>{'Refresh Models'}</button>
                   </div>
                 ) : (
                   <input
@@ -149,12 +147,12 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
                     type="password"
                   />
                   {!llmApiKey && (
-                    <div className="muted">{t('未配置 API Key 时将使用后端环境变量。')}</div>
+                    <div className="muted">{'If API Key is empty, backend env vars will be used.'}</div>
                   )}
                 </div>
               )}
               {provider === 'ollama' && (
-                <div className="muted" style={{ marginTop: 4 }}>{t('provider.ollamaHint')}</div>
+                <div className="muted" style={{ marginTop: 4 }}>{'No API key needed for local Ollama.'}</div>
               )}
               <div className="field" style={{ marginTop: 8 }}>
                 <button
@@ -162,9 +160,9 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
                   onClick={handleTestConnection}
                   disabled={testConnStatus === 'testing'}
                 >
-                  {testConnStatus === 'testing' ? t('provider.testing') :
-                   testConnStatus === 'success' ? t('provider.success') :
-                   t('provider.test')}
+                  {testConnStatus === 'testing' ? 'Testing...' :
+                   testConnStatus === 'success' ? 'Connection successful!' :
+                   'Test Connection'}
                 </button>
               </div>
             </>
@@ -174,17 +172,17 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
           {settingsTab === 'general' && (
             <>
               <div className="field">
-                <label>{t('Search LLM Endpoint (可选)')}</label>
+                <label>{'Search LLM Endpoint (optional)'}</label>
                 <input
                   className="input"
                   value={searchEndpoint}
                   onChange={(e) => setSettings((prev) => ({ ...prev, searchEndpoint: e.target.value }))}
                   placeholder="https://api.openai.com/v1"
                 />
-                <div className="muted">{t('仅用于"检索/websearch"任务，留空则复用 LLM Endpoint。')}</div>
+                <div className="muted">{'Only for search/websearch tasks; empty means use LLM Endpoint.'}</div>
               </div>
               <div className="field">
-                <label>{t('Search LLM Model (可选)')}</label>
+                <label>{'Search LLM Model (optional)'}</label>
                 <input
                   className="input"
                   value={searchModel}
@@ -193,7 +191,7 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
                 />
               </div>
               <div className="field">
-                <label>{t('Search LLM API Key (可选)')}</label>
+                <label>{'Search LLM API Key (optional)'}</label>
                 <input
                   className="input"
                   value={searchApiKey}
@@ -203,17 +201,17 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
                 />
               </div>
               <div className="field">
-                <label>{t('VLM Endpoint (可选)')}</label>
+                <label>{'VLM Endpoint (optional)'}</label>
                 <input
                   className="input"
                   value={visionEndpoint}
                   onChange={(e) => setSettings((prev) => ({ ...prev, visionEndpoint: e.target.value }))}
                   placeholder="https://api.openai.com/v1"
                 />
-                <div className="muted">{t('仅用于图像识别，留空则复用 LLM Endpoint。')}</div>
+                <div className="muted">{'Only for vision; empty means use LLM Endpoint.'}</div>
               </div>
               <div className="field">
-                <label>{t('VLM Model (可选)')}</label>
+                <label>{'VLM Model (optional)'}</label>
                 <input
                   className="input"
                   value={visionModel}
@@ -222,7 +220,7 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
                 />
               </div>
               <div className="field">
-                <label>{t('VLM API Key (可选)')}</label>
+                <label>{'VLM API Key (optional)'}</label>
                 <input
                   className="input"
                   value={visionApiKey}
@@ -244,19 +242,19 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
                     checked={grammarEnabled}
                     onChange={(e) => setSettings((prev) => ({ ...prev, grammarEnabled: e.target.checked }))}
                   />
-                  {t('grammar.enabled')}
+                  {'Enable real-time grammar checking'}
                 </label>
-                <div className="muted">{t('grammar.enabledDesc')}</div>
+                <div className="muted">{'Underlines grammar, spelling, and style issues as you type. Uses API calls.'}</div>
               </div>
               <div className="field">
-                <label>{t('grammar.model')}</label>
+                <label>{'Grammar Check Model'}</label>
                 <input
                   className="input"
                   value={grammarModel}
                   onChange={(e) => setSettings((prev) => ({ ...prev, grammarModel: e.target.value }))}
                   placeholder={llmModel || 'gpt-4o'}
                 />
-                <div className="muted">{t('grammar.modelHint')}</div>
+                <div className="muted">{'Model for grammar checks (can use a fast/cheap one). Leave empty to use main LLM model.'}</div>
               </div>
             </>
           )}
@@ -265,7 +263,7 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
           {settingsTab === 'compile' && (
             <>
               <div className="field">
-                <label>{t('编译引擎')}</label>
+                <label>{'Compile Engine'}</label>
                 <select
                   className="input"
                   value={compileEngine}
@@ -282,8 +280,8 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
           )}
         </div>
         <div className="modal-actions">
-          <button className="btn ghost" onClick={onClose}>{t('关闭')}</button>
-          <button className="btn" onClick={onClose}>{t('完成')}</button>
+          <button className="btn ghost" onClick={onClose}>{'Close'}</button>
+          <button className="btn" onClick={onClose}>{'Done'}</button>
         </div>
       </div>
     </div>

@@ -2315,7 +2315,7 @@ html.dark .agent-file-nav-item:hover {
   display: block;
 }
 
-/* 图片拖拽上传区域 */
+/* Image drag-and-drop upload area */
 .image-drop-zone {
   border: 2px dashed rgba(120, 98, 83, 0.25);
   border-radius: 12px;
@@ -2397,7 +2397,7 @@ html.dark .agent-file-nav-item:hover {
   background: rgba(180, 74, 47, 0.2);
 }
 
-/* iOS 风格按钮 */
+/* iOS-style buttons */
 .vision-actions {
   display: flex;
   gap: 10px;
@@ -3395,7 +3395,7 @@ textarea.input {
   margin-left: 8px;
 }
 
-/* 侧边栏标签响应式：宽度较小时显示图标隐藏文字 */
+/* Sidebar tabs responsive: show icons, hide text at narrow widths */
 @container sidebar (max-width: 280px) {
   .tab-icon {
     display: inline-flex;
