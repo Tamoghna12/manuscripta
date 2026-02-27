@@ -603,7 +603,7 @@ export default function EditorPage() {
         }
         setProjectName(current.name);
       })
-      .catch((err) => setStatus(`Failed to load project info: ${error}`));
+      .catch((err) => setStatus(`Failed to load project info: ${err}`));
   }, [navigate, projectId]);
 
   useEffect(() => {
@@ -669,7 +669,7 @@ export default function EditorPage() {
       doc: ydoc,
       awareness,
       onStatus: setCollabStatus,
-      onError: (error) => setStatus(`Collab connection failed: ${error}`)
+      onError: (error) => setStatus(`Collab connection failed: ${err}`)
     });
     collabProviderRef.current = provider;
     collabDocRef.current = { doc: ydoc, text: ytext, awareness };
@@ -738,7 +738,7 @@ export default function EditorPage() {
       }
       setStatus('Invite link generated');
     } catch (err) {
-      setStatus(`Failed to generate invite: ${error}`);
+      setStatus(`Failed to generate invite: ${err}`);
     } finally {
       setCollabInviteBusy(false);
     }
@@ -750,7 +750,7 @@ export default function EditorPage() {
       await navigator.clipboard.writeText(collabInviteLink);
       setStatus('Invite link copied');
     } catch (err) {
-      setStatus(`Copy failed: ${error}`);
+      setStatus(`Copy failed: ${err}`);
     }
   }, [collabInviteLink]);
 
@@ -772,7 +772,7 @@ export default function EditorPage() {
     if (!projectId) return;
     setFiles({});
     setActivePath('');
-    refreshTree(false).catch((err) => setStatus(`Failed to load file tree: ${error}`));
+    refreshTree(false).catch((err) => setStatus(`Failed to load file tree: ${err}`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
@@ -1087,7 +1087,7 @@ export default function EditorPage() {
       const draft = await loadDraft(projectId, filePath).catch(() => null);
       if (draft) {
         content = draft.content;
-        setStatus(`Offline: loaded ${path} from local cache`);
+        setStatus(`Offline: loaded ${filePath} from local cache`);
       }
     }
     setFiles((prev) => ({ ...prev, [filePath]: content }));
@@ -1329,11 +1329,11 @@ export default function EditorPage() {
       setFiles(prev => ({ ...prev, [target]: finalContent }));
 
       const msg = skippedKeys.length > 0
-        ? `Imported ${count} entries to ${target} (${skipped} duplicates skipped)`
-        : `Imported ${count} entries to ${target}`;
+        ? `Imported ${newEntries.length} entries to ${target} (${skippedKeys.length} duplicates skipped)`
+        : `Imported ${newEntries.length} entries to ${target}`;
       toast(msg, 'success');
     } catch (err: any) {
-      toast(`Failed to import BibTeX: ${error}`, 'error');
+      toast(`Failed to import BibTeX: ${err}`, 'error');
     }
   }, [projectId, bibTarget, toast]);
 
@@ -1421,7 +1421,7 @@ export default function EditorPage() {
         prompt: [
           'You are a LaTeX writing assistant.',
           'Continue after <CURSOR> with a coherent next block (1-2 paragraphs or a full environment).',
-          heading ? `Current section: ${title} (${level}).` : '',
+          heading ? `Current section: ${heading.title} (${heading.level}).` : '',
           env ? `You are inside environment: ${env}.` : '',
           'Preserve style and formatting.',
           'Return only the continuation text, no commentary.'
@@ -1443,7 +1443,7 @@ export default function EditorPage() {
         effects: setGhostEffect.of({ pos, text: suggestion })
       });
     } catch (err) {
-      setStatus(`Completion failed: ${error}`);
+      setStatus(`Completion failed: ${err}`);
     } finally {
       setIsSuggesting(false);
       if (!inlineSuggestionRef.current) {
@@ -1498,10 +1498,10 @@ export default function EditorPage() {
           setSavePulse(true);
           window.setTimeout(() => setSavePulse(false), 1200);
           if (!opts?.silent) {
-            setStatus(`Synced ${path}`);
+            setStatus(`Synced ${activePath}`);
           }
         } catch (err) {
-          setStatus(`Sync failed: ${error}`);
+          setStatus(`Sync failed: ${err}`);
         } finally {
           setIsSaving(false);
         }
@@ -1516,7 +1516,7 @@ export default function EditorPage() {
         // Clear any offline draft on successful save
         deleteDraft(projectId, activePath).catch(() => {});
         if (!opts?.silent) {
-          setStatus(`Saved ${path}`);
+          setStatus(`Saved ${activePath}`);
         }
       } catch (err) {
         // Server unreachable — save to IndexedDB for offline recovery
@@ -1524,10 +1524,10 @@ export default function EditorPage() {
           await saveDraft(projectId, activePath, editorValue);
           setIsDirty(false);
           if (!opts?.silent) {
-            setStatus(`Saved offline ${path} (server unavailable)`);
+            setStatus(`Saved offline ${activePath} (server unavailable)`);
           }
         } catch {
-          setStatus(`Save failed: ${error}`);
+          setStatus(`Save failed: ${err}`);
         }
       } finally {
         setIsSaving(false);
@@ -1785,7 +1785,7 @@ export default function EditorPage() {
         }
       }
     } catch (err) {
-      setArxivStatus(`Search failed: ${error}`);
+      setArxivStatus(`Search failed: ${err}`);
     } finally {
       setArxivBusy(false);
     }
@@ -1869,7 +1869,7 @@ export default function EditorPage() {
           }));
         const prompt = [
           'Insert citations into the target TeX file.',
-          `Target file: ${file}.`,
+          `Target file: ${targetFile}.`,
           `Use \\\\cite{${keys.join(',')}}.`,
           'If a Related Work section exists, add the citations there.',
           'Otherwise add a Related Work subsection near the end and cite the papers.',
@@ -1905,13 +1905,13 @@ export default function EditorPage() {
             setArxivStatus('No applicable citation edits generated.');
           }
         } catch (err) {
-          setArxivStatus(`Citation insert failed: ${error}`);
+          setArxivStatus(`Citation insert failed: ${err}`);
         }
       } else {
         setArxivStatus('Bib written.');
       }
     } catch (err) {
-      setArxivStatus(`Write failed: ${error}`);
+      setArxivStatus(`Write failed: ${err}`);
     } finally {
       setArxivBusy(false);
     }
@@ -1946,7 +1946,7 @@ export default function EditorPage() {
         insertFigureSnippet(res.assetPath);
       }
     } catch (err) {
-      setPlotStatus(`Generation failed: ${error}`);
+      setPlotStatus(`Generation failed: ${err}`);
     } finally {
       setPlotBusy(false);
     }
@@ -2032,7 +2032,7 @@ export default function EditorPage() {
               citeKey
             });
           });
-          appendLog(setWebsearchLog, `Done: ${query} (${count})`);
+          appendLog(setWebsearchLog, `Done: ${query} (${results.length})`);
         })
       );
       const deduped: WebsearchItem[] = [];
@@ -2042,7 +2042,7 @@ export default function EditorPage() {
         }
       });
       setWebsearchResults(deduped);
-      appendLog(setWebsearchLog, `Aggregated results: ${count}`);
+      appendLog(setWebsearchLog, `Aggregated results: ${deduped.length}`);
       if (deduped.length === 0) {
         setWebsearchBusy(false);
         return;
@@ -2114,7 +2114,7 @@ export default function EditorPage() {
         appendLog(setWebsearchLog, 'Paragraph generation failed.');
       }
     } catch (err) {
-      appendLog(setWebsearchLog, `Error: ${error}`);
+      appendLog(setWebsearchLog, `Error: ${err}`);
     } finally {
       setWebsearchBusy(false);
     }
@@ -2158,7 +2158,7 @@ export default function EditorPage() {
     });
     await writeFileCompat(targetBib, content);
     setFiles((prev) => ({ ...prev, [targetBib]: content }));
-    appendLog(setWebsearchLog, `Bib written: ${path}`);
+    appendLog(setWebsearchLog, `Bib written: ${targetBib}`);
 
     const targetFile = websearchTargetFile || mainFile || activePath;
     const perItemBlock = perItemLines.length
@@ -2182,7 +2182,7 @@ export default function EditorPage() {
           setEditorDoc(nextContent);
         }
       }
-      appendLog(setWebsearchLog, `Paragraph inserted into ${path}`);
+      appendLog(setWebsearchLog, `Paragraph inserted into ${targetFile}`);
     } else if (activePath && activePath.toLowerCase().endsWith('.tex')) {
       if (insertBlock) {
         insertAtCursor(insertBlock, { block: true });
@@ -2194,7 +2194,7 @@ export default function EditorPage() {
   const handleUpload = async (fileList: FileList | null, basePath = '') => {
     if (!projectId || !fileList || fileList.length === 0) return;
     const fileArr = Array.from(fileList);
-    setStatus(`Uploading ${num} files...`);
+    setStatus(`Uploading ${fileArr.length} files...`);
     const res = await uploadFiles(projectId, fileArr, basePath);
     // Evict cached content for any overwritten files so re-open fetches fresh data
     if (res.files && res.files.length > 0) {
@@ -2211,7 +2211,7 @@ export default function EditorPage() {
     if (activePath && res.files?.includes(activePath)) {
       await openFile(activePath);
     }
-    setStatus(`Uploaded ${num} files.`);
+    setStatus(`Uploaded ${fileArr.length} files.`);
   };
 
   const handleVisionSubmit = async () => {
@@ -2245,7 +2245,7 @@ export default function EditorPage() {
       }
       setVisionResult(res.latex || '');
     } catch (err) {
-      setStatus(`Recognition failed: ${error}`);
+      setStatus(`Recognition failed: ${err}`);
     } finally {
       setVisionBusy(false);
     }
@@ -2403,7 +2403,7 @@ export default function EditorPage() {
       try {
         await updateFileOrder(projectId, folder, order);
       } catch (err) {
-        setStatus(`Failed to save order: ${error}`);
+        setStatus(`Failed to save order: ${err}`);
       }
     },
     [projectId]
@@ -2595,7 +2595,7 @@ export default function EditorPage() {
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault();
-                confirmInlineEdit().catch((err) => setStatus(`Operation failed: ${error}`));
+                confirmInlineEdit().catch((err) => setStatus(`Operation failed: ${err}`));
               }
               if (event.key === 'Escape') {
                 event.preventDefault();
@@ -2652,7 +2652,7 @@ export default function EditorPage() {
                 setDragOverPath(node.path);
                 setDragOverKind('folder');
                 if (draggingPath) {
-                  updateDragHint(`Move to folder ${name}`, event);
+                  updateDragHint(`Move to folder ${node.name}`, event);
                 }
               }}
               onDragLeave={() => {
@@ -2663,7 +2663,7 @@ export default function EditorPage() {
               onDrop={(event) => {
                 event.preventDefault();
                 if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-                  handleUpload(event.dataTransfer.files, node.path).catch((err) => setStatus(`Upload failed: ${error}`));
+                  handleUpload(event.dataTransfer.files, node.path).catch((err) => setStatus(`Upload failed: ${err}`));
                   setDragOverPath('');
                   setDragOverKind('');
                   setDragHint(null);
@@ -2678,7 +2678,7 @@ export default function EditorPage() {
                     setStatus('Cannot move while filtering.');
                     return;
                   }
-                  moveFileWithOrder(from, node.path).catch((err) => setStatus(`Move failed: ${error}`));
+                  moveFileWithOrder(from, node.path).catch((err) => setStatus(`Move failed: ${err}`));
                 }
               }}
             >
@@ -2693,7 +2693,7 @@ export default function EditorPage() {
                   onKeyDown={(event) => {
                   if (event.key === 'Enter') {
                     event.preventDefault();
-                    confirmInlineEdit().catch((err) => setStatus(`Operation failed: ${error}`));
+                    confirmInlineEdit().catch((err) => setStatus(`Operation failed: ${err}`));
                   }
                     if (event.key === 'Escape') {
                       event.preventDefault();
@@ -2741,8 +2741,8 @@ export default function EditorPage() {
               const parentLabel = targetParent || 'Root';
               const hint =
                 fromParent === targetParent
-                  ? `Insert before ${name}`
-                  : `Move to ${parent} and insert before ${name}`;
+                  ? `Insert before ${node.name}`
+                  : `Move to ${parentLabel} and insert before ${node.name}`;
               updateDragHint(hint, event);
             }
           }}
@@ -2758,7 +2758,7 @@ export default function EditorPage() {
             setDragHint(null);
             if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
               const targetParent = getParentPath(node.path);
-              handleUpload(event.dataTransfer.files, targetParent).catch((err) => setStatus(`Upload failed: ${error}`));
+              handleUpload(event.dataTransfer.files, targetParent).catch((err) => setStatus(`Upload failed: ${err}`));
               return;
             }
             const from = event.dataTransfer.getData('text/plain');
@@ -2770,10 +2770,10 @@ export default function EditorPage() {
             const targetParent = getParentPath(node.path);
             const fromParent = getParentPath(from);
             if (fromParent === targetParent) {
-              reorderWithinFolder(from, node.path).catch((err) => setStatus(`Reorder failed: ${error}`));
+              reorderWithinFolder(from, node.path).catch((err) => setStatus(`Reorder failed: ${err}`));
               return;
             }
-            moveFileWithOrder(from, targetParent, node.name).catch((err) => setStatus(`Move failed: ${error}`));
+            moveFileWithOrder(from, targetParent, node.name).catch((err) => setStatus(`Move failed: ${err}`));
           }}
         >
           <span className={`tree-icon file ext-${getFileTypeLabel(node.path).toLowerCase()}`}>{getFileTypeLabel(node.path)}</span>
@@ -2786,7 +2786,7 @@ export default function EditorPage() {
               onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault();
-                confirmInlineEdit().catch((err) => setStatus(`Operation failed: ${error}`));
+                confirmInlineEdit().catch((err) => setStatus(`Operation failed: ${err}`));
               }
                 if (event.key === 'Escape') {
                   event.preventDefault();
@@ -2813,7 +2813,7 @@ export default function EditorPage() {
       // Save current editor buffer to disk before compiling
       await saveActiveFile({ silent: true });
 
-      setCompilePhase(`Pass ${n}/${total}...`);
+      setCompilePhase('Pass 1/3...');
       setStatus('Compiling...');
 
       // Stream compile logs in real-time
@@ -2830,7 +2830,7 @@ export default function EditorPage() {
           if (bibMatch) {
             setCompilePhase('Bibliography...');
           } else if (passMatch) {
-            setCompilePhase(`Pass ${n}/${total}...`);
+            setCompilePhase(`Pass ${passMatch[1]}/${passMatch[2] || '3'}...`);
           }
           // Throttle log updates to ~100ms
           if (!logFlushTimer) {
@@ -2856,8 +2856,8 @@ export default function EditorPage() {
       };
 
       const meta = [
-        `Engine: ${engine}`,
-        `Main file: ${file}`
+        `Engine: ${compileEngine}`,
+        `Main file: ${mainFile}`
       ].filter(Boolean).join('\n');
       setEngineName(compileEngine);
       setCompileLog(`${meta}\n\n${result.log || 'No log'}`.trim());
@@ -2870,11 +2870,11 @@ export default function EditorPage() {
       setPdfUrl(nextUrl);
       setHasSynctex(!!res.hasSynctex);
       setRightView('pdf');
-      setStatus(`Compile done (${engine})`);
+      setStatus(`Compile done (${compileEngine})`);
     } catch (err) {
       console.error('Compilation error:', err);
-      setCompileLog(`${`Compile error: ${error}`}\n${(err as Error).stack || ''}`);
-      setStatus(`Compile failed: ${error}`);
+      setCompileLog(`${`Compile error: ${err}`}\n${(err as Error).stack || ''}`);
+      setStatus(`Compile failed: ${err}`);
     } finally {
       setIsCompiling(false);
       setCompilePhase('');
@@ -2928,7 +2928,7 @@ export default function EditorPage() {
   const pdfScaleLabel = useMemo(() => {
     if (pdfFitWidth) {
       const fitValue = pdfFitScale ?? pdfScale;
-      return `Fit · ${percent}%`;
+      return `Fit · ${Math.round(fitValue * 100)}%`;
     }
     return `${Math.round(pdfScale * 100)}%`;
   }, [pdfFitScale, pdfFitWidth, pdfScale]);
@@ -3098,12 +3098,12 @@ export default function EditorPage() {
           effectiveMode = 'tools';
           effectiveSelection = '';
           effectiveContent = '';
-          effectivePrompt = `Translate all .tex files in the project to ${target}. Preserve LaTeX commands and structure.${note}`;
+          effectivePrompt = `Translate all .tex files in the project to ${translateTarget}. Preserve LaTeX commands and structure.${note}`;
         } else if (translateScope === 'file') {
           effectiveSelection = '';
-          effectivePrompt = `Translate the current file to ${target}. Preserve LaTeX commands and structure.${note}`;
+          effectivePrompt = `Translate the current file to ${translateTarget}. Preserve LaTeX commands and structure.${note}`;
         } else {
-          effectivePrompt = `Translate the selected text to ${target}. Preserve LaTeX commands and structure.${note}`;
+          effectivePrompt = `Translate the selected text to ${translateTarget}. Preserve LaTeX commands and structure.${note}`;
         }
         effectiveTask = 'translate';
       }
@@ -3161,7 +3161,7 @@ export default function EditorPage() {
         setRightView('diff');
       }
     } catch (err) {
-      setHistory((prev) => [...prev, { role: 'assistant', content: `Request failed: ${error}` }]);
+      setHistory((prev) => [...prev, { role: 'assistant', content: `Request failed: ${err}` }]);
     }
   };
 
@@ -3205,7 +3205,7 @@ export default function EditorPage() {
         setRightView('diff');
       }
     } catch (err) {
-      setAgentMessages((prev) => [...prev, { role: 'assistant', content: `Request failed: ${error}` }]);
+      setAgentMessages((prev) => [...prev, { role: 'assistant', content: `Request failed: ${err}` }]);
     } finally {
       setDiagnoseBusy(false);
     }
@@ -3536,7 +3536,7 @@ export default function EditorPage() {
                   multiple
                   style={{ display: 'none' }}
                   onChange={(event) => {
-                    handleUpload(event.target.files).catch((err) => setStatus(`Upload failed: ${error}`));
+                    handleUpload(event.target.files).catch((err) => setStatus(`Upload failed: ${err}`));
                     if (event.target) {
                       event.target.value = '';
                     }
@@ -3549,7 +3549,7 @@ export default function EditorPage() {
                   style={{ display: 'none' }}
                   {...({ webkitdirectory: 'true', directory: 'true' } as Record<string, string>)}
                   onChange={(event) => {
-                    handleUpload(event.target.files).catch((err) => setStatus(`Upload failed: ${error}`));
+                    handleUpload(event.target.files).catch((err) => setStatus(`Upload failed: ${err}`));
                     if (event.target) {
                       event.target.value = '';
                     }
@@ -3586,7 +3586,7 @@ export default function EditorPage() {
                   onDrop={(event) => {
                     event.preventDefault();
                     if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-                      handleUpload(event.dataTransfer.files).catch((err) => setStatus(`Upload failed: ${error}`));
+                      handleUpload(event.dataTransfer.files).catch((err) => setStatus(`Upload failed: ${err}`));
                       return;
                     }
                     const from = event.dataTransfer.getData('text/plain');
@@ -3595,7 +3595,7 @@ export default function EditorPage() {
                         setStatus('Cannot move while filtering.');
                         return;
                       }
-                      moveFileWithOrder(from, '').catch((err) => setStatus(`Move failed: ${error}`));
+                      moveFileWithOrder(from, '').catch((err) => setStatus(`Move failed: ${err}`));
                     }
                     setDragHint(null);
                   }}
@@ -3712,7 +3712,7 @@ export default function EditorPage() {
                   </div>
                   <div className="collab-row">
                     <div className="muted">
-                      {activePath ? `Current file: ${path}` : 'No file selected'}
+                      {activePath ? `Current file: ${activePath}` : 'No file selected'}
                     </div>
                   </div>
                   <div className="collab-users">
@@ -3997,7 +3997,7 @@ export default function EditorPage() {
                     {assistantMode === 'chat' ? 'Send' : 'Generate suggestion'}
                   </button>
                   {selectionText && assistantMode === 'agent' && (
-                    <div className="muted">{`Selected ${count} characters for the task`}</div>
+                    <div className="muted">{`Selected ${selectionText.length} characters for the task`}</div>
                   )}
                   {assistantMode === 'agent' && task === 'translate' && translateScope === 'selection' && !selectionText && (
                     <div className="muted">{'Select text before translating.'}</div>
@@ -4355,7 +4355,7 @@ export default function EditorPage() {
                                 onClick={() => {
                                   if (paper.citeKey) {
                                     insertAtCursor(`\\cite{${paper.citeKey}}`);
-                                    appendLog(setWebsearchLog, `Inserted: ${cite}`);
+                                    appendLog(setWebsearchLog, `Inserted: ${paper.citeKey}`);
                                   }
                                 }}
                               >
@@ -4584,7 +4584,7 @@ export default function EditorPage() {
                       <>
                         <div className="grammar-summary" style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                           <span className="muted" style={{ fontSize: 11 }}>
-                            {`${count} issues found`}
+                            {`${grammarIssues.length} issues found`}
                           </span>
                           {(['error', 'warning', 'suggestion'] as const).map((sev) => {
                             const count = grammarIssues.filter((i) => i.severity === sev).length;
@@ -4607,7 +4607,7 @@ export default function EditorPage() {
                               className={`btn ghost grammar-filter-btn ${grammarFilter === cat ? 'active' : ''}`}
                               onClick={() => setGrammarFilter(cat)}
                             >
-                              {t(`grammar.category.${cat}`)} ({grammarIssues.filter((i) => i.category === cat).length})
+                              {({ grammar: 'Grammar', spelling: 'Spelling', style: 'Style', punctuation: 'Punctuation', vocabulary: 'Vocabulary', structure: 'Structure' } as Record<string, string>)[cat] || cat} ({grammarIssues.filter((i) => i.category === cat).length})
                             </button>
                           ))}
                         </div>
@@ -4617,7 +4617,7 @@ export default function EditorPage() {
                             style={{ marginBottom: 8, fontSize: 11 }}
                             onClick={() => handleGrammarFixCategory(grammarFilter)}
                           >
-                            Fix all {t(`grammar.category.${grammarFilter}`)}
+                            Fix all {({ grammar: 'Grammar', spelling: 'Spelling', style: 'Style', punctuation: 'Punctuation', vocabulary: 'Vocabulary', structure: 'Structure' } as Record<string, string>)[grammarFilter] || grammarFilter}
                           </button>
                         )}
                       </>
@@ -4639,7 +4639,7 @@ export default function EditorPage() {
                             <span className={`grammar-badge grammar-badge-${issue.severity}`}>
                               {issue.severity === 'error' ? 'Error' : issue.severity === 'warning' ? 'Warning' : 'Suggestion'}
                             </span>
-                            <span className="grammar-category">{t(`grammar.category.${issue.category}`)}</span>
+                            <span className="grammar-category">{({ grammar: 'Grammar', spelling: 'Spelling', style: 'Style', punctuation: 'Punctuation', vocabulary: 'Vocabulary', structure: 'Structure' } as Record<string, string>)[issue.category] || issue.category}</span>
                           </div>
                           <div className="grammar-issue-body">
                             <div className="grammar-original">{issue.original}</div>
@@ -4685,7 +4685,7 @@ export default function EditorPage() {
                             });
                             setReviewReport(res.reply || 'No result');
                           } catch (err) {
-                            setReviewReport(`Generation failed: ${error}`);
+                            setReviewReport(`Generation failed: ${err}`);
                           } finally {
                             setReviewReportBusy(false);
                           }
@@ -5205,7 +5205,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               )}
               {rightView === 'diff' && (
                 <div className="diff-panel">
-                  <div className="diff-title">{`Diff Preview (${count})`}</div>
+                  <div className="diff-title">{`Diff Preview (${pendingGrouped.length})`}</div>
                   {pendingGrouped.length === 0 && <div className="muted">{'No pending changes.'}</div>}
                   {pendingGrouped.map((change) => (
                     (() => {

@@ -78,7 +78,7 @@ export default function SettingsModal({ settings, setSettings, onClose }: Settin
               className={`settings-tab ${settingsTab === tab ? 'active' : ''}`}
               onClick={() => setSettingsTab(tab)}
             >
-              {t(`settings.tab.${tab}`)}
+              {({ general: 'General', providers: 'Providers', grammar: 'Grammar', compile: 'Compilation' } as Record<string, string>)[tab] || tab}
             </button>
           ))}
         </div>

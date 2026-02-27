@@ -314,7 +314,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
             <div className="ref-pill-group">
               {(['key', 'year', 'author', 'title'] as SortMode[]).map((m) => (
                 <button key={m} className={`ref-pill ${sortMode === m ? 'active' : ''}`} onClick={() => setSortMode(m)}>
-                  {t(`ref.sort.${m}`)}
+                  {({ key: 'Key', year: 'Year', author: 'Author', title: 'Title' } as Record<string, string>)[m] || m}
                 </button>
               ))}
             </div>
@@ -324,7 +324,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
             <div className="ref-pill-group">
               {(['none', 'source', 'year', 'type'] as GroupMode[]).map((m) => (
                 <button key={m} className={`ref-pill ${groupMode === m ? 'active' : ''}`} onClick={() => setGroupMode(m)}>
-                  {t(`ref.group.${m}`)}
+                  {({ none: 'None', source: 'File', year: 'Year', type: 'Type' } as Record<string, string>)[m] || m}
                 </button>
               ))}
             </div>
@@ -337,7 +337,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
         <div className="ref-selection-bar">
           <button className="ref-action-btn primary" onClick={citeSelected}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-            {`Cite (${count})`}
+            {`Cite (${selected.size})`}
           </button>
           <button className="ref-action-btn" onClick={selectAll}>
             {selected.size === filtered.length ? 'Deselect all' : 'Select all'}
@@ -353,7 +353,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
         <div className="ref-result-count">
           {filtered.length === 0
             ? 'No matches.'
-            : `${count} of ${total} entries`}
+            : `${filtered.length} of ${entries.length} entries`}
         </div>
       )}
 

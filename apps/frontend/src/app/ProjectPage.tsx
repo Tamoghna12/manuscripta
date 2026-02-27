@@ -59,14 +59,14 @@ function saveLLMSettings(s: LLMSettings) {
   } catch {}
 }
 
-function formatRelativeTime(iso: string, t: (k: string, o?: Record<string, unknown>) => string): string {
+function formatRelativeTime(iso: string): string {
   const now = Date.now();
   const then = new Date(iso).getTime();
   const diff = now - then;
   if (diff < 60_000) return 'Just now';
-  if (diff < 3_600_000) return `${n} min ago`;
-  if (diff < 86_400_000) return `${n} hr ago`;
-  return `${n} days ago`;
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} min ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} hr ago`;
+  return `${Math.floor(diff / 86_400_000)} days ago`;
 }
 
 export default function ProjectPage() {
@@ -134,7 +134,7 @@ export default function ProjectPage() {
   }, []);
 
   useEffect(() => {
-    loadProjects().catch((err) => setStatus(`Failed to load projects: ${error}`));
+    loadProjects().catch((err) => setStatus(`Failed to load projects: ${err}`));
   }, [loadProjects]);
 
   useEffect(() => {
@@ -146,7 +146,7 @@ export default function ProjectPage() {
           setCreateTemplate(res.templates[0].id);
         }
       })
-      .catch((err) => setStatus(`Failed to load templates: ${error}`));
+      .catch((err) => setStatus(`Failed to load templates: ${err}`));
   }, [createTemplate]);
 
   const allTags = useMemo(() => {
@@ -205,7 +205,7 @@ export default function ProjectPage() {
       await loadProjects();
       navigate(`/editor/${created.id}`);
     } catch (err) {
-      setStatus(`Create failed: ${error}`);
+      setStatus(`Create failed: ${err}`);
     }
   };
 
@@ -221,7 +221,7 @@ export default function ProjectPage() {
       setRenameState(null);
       await loadProjects();
     } catch (err) {
-      setStatus(`Rename failed: ${error}`);
+      setStatus(`Rename failed: ${err}`);
     }
   };
 
@@ -231,7 +231,7 @@ export default function ProjectPage() {
       await deleteProject(id);
       await loadProjects();
     } catch (err) {
-      setStatus(`Delete failed: ${error}`);
+      setStatus(`Delete failed: ${err}`);
     }
   };
 
@@ -240,7 +240,7 @@ export default function ProjectPage() {
       await archiveProject(id, archived);
       await loadProjects();
     } catch (err) {
-      setStatus(`Operation failed: ${error}`);
+      setStatus(`Operation failed: ${err}`);
     }
   };
 
@@ -249,7 +249,7 @@ export default function ProjectPage() {
       await trashProject(id, trashed);
       await loadProjects();
     } catch (err) {
-      setStatus(`Operation failed: ${error}`);
+      setStatus(`Operation failed: ${err}`);
     }
   };
 
@@ -259,7 +259,7 @@ export default function ProjectPage() {
       await permanentDeleteProject(id);
       await loadProjects();
     } catch (err) {
-      setStatus(`Delete failed: ${error}`);
+      setStatus(`Delete failed: ${err}`);
     }
   };
 
@@ -280,7 +280,7 @@ export default function ProjectPage() {
       await updateProjectTags(id, tags);
       await loadProjects();
     } catch (err) {
-      setStatus(`Operation failed: ${error}`);
+      setStatus(`Operation failed: ${err}`);
     }
   };
 
@@ -292,7 +292,7 @@ export default function ProjectPage() {
       await updateProjectTags(id, tags);
       await loadProjects();
     } catch (err) {
-      setStatus(`Operation failed: ${error}`);
+      setStatus(`Operation failed: ${err}`);
     }
   };
 
@@ -306,7 +306,7 @@ export default function ProjectPage() {
       await loadProjects();
       navigate(`/editor/${created.id}`);
     } catch (err) {
-      setStatus(`Create failed: ${error}`);
+      setStatus(`Create failed: ${err}`);
     }
   };
 
@@ -322,7 +322,7 @@ export default function ProjectPage() {
       setCategories(res.categories || []);
       setStatus('Template uploaded successfully');
     } catch (err) {
-      setStatus(`Template upload failed: ${error}`);
+      setStatus(`Template upload failed: ${err}`);
     } finally {
       setUploadingTemplate(false);
       if (templateZipRef.current) templateZipRef.current.value = '';
@@ -335,7 +335,7 @@ export default function ProjectPage() {
       if (!res.ok || !res.project) throw new Error(res.error || 'Copy failed');
       await loadProjects();
     } catch (err) {
-      setStatus(`Copy failed: ${error}`);
+      setStatus(`Copy failed: ${err}`);
     }
   };
 
@@ -350,7 +350,7 @@ export default function ProjectPage() {
       await loadProjects();
       navigate(`/editor/${res.project.id}`);
     } catch (err) {
-      setStatus(`Zip import failed: ${error}`);
+      setStatus(`Zip import failed: ${err}`);
     } finally {
       setImporting(false);
     }
@@ -376,7 +376,7 @@ export default function ProjectPage() {
       await loadProjects();
       navigate(`/editor/${res.project.id}`);
     } catch (err) {
-      setStatus(`arXiv import failed: ${error}`);
+      setStatus(`arXiv import failed: ${err}`);
     } finally {
       setImporting(false);
       setImportProgress(null);
@@ -618,7 +618,7 @@ export default function ProjectPage() {
                     </div>
                   </td>
                   <td className="col-modified">
-                    {formatRelativeTime(project.updatedAt || project.createdAt, t)}
+                    {formatRelativeTime(project.updatedAt || project.createdAt)}
                   </td>
                   <td className="col-actions">
                     <div className="col-actions-inner">
@@ -648,7 +648,7 @@ export default function ProjectPage() {
         </div>
 
         <div className="project-footer">
-          {`Showing ${shown} / ${total} projects`}
+          {`Showing ${filteredProjects.length} / ${projects.filter((p) => !p.trashed).length} projects`}
         </div>
       </div>
 
@@ -758,7 +758,7 @@ export default function ProjectPage() {
                   <label>
                     {importProgress.phase === 'download'
                       ? importProgress.percent >= 0
-                        ? `Downloading... ${percent}%`
+                        ? `Downloading... ${importProgress.percent}%`
                         : 'Downloading...'
                       : 'Extracting...'}
                   </label>

@@ -28,7 +28,7 @@ export default function CollabJoinPage() {
         navigate(`/editor/${res.projectId}`, { replace: true });
       })
       .catch((err) => {
-        setStatus(`Join failed: ${error}`);
+        setStatus(`Join failed: ${err}`);
       });
   }, [navigate]);
 

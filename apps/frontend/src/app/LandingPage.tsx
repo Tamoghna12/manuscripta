@@ -4,6 +4,16 @@ const TITLE_TEXT = 'Manuscripta is Here';
 const FEATURE_KEYS = ['completion', 'vision', 'plot', 'search', 'agent', 'review', 'grammar'] as const;
 const AUTO_INTERVAL = 4000;
 
+const FEAT_STRINGS: Record<string, { tab: string; title: string; desc: string }> = {
+  completion: { tab: 'Completion', title: 'AI Smart Completion', desc: 'Context-aware LaTeX continuation — auto-complete paragraphs, equations, and environments to keep your writing flowing.' },
+  vision: { tab: 'Vision', title: 'AI Vision Recognition', desc: 'Upload paper screenshots or handwritten formulas and let AI convert them into editable LaTeX code.' },
+  plot: { tab: 'Plotting', title: 'AI Smart Plotting', desc: 'Generate line charts, bar charts, heatmaps and more from LaTeX table data with a single click.' },
+  search: { tab: 'Search', title: 'Online Paper Search', desc: 'Integrated arXiv search with parallel multi-query support — auto-generate BibTeX and insert citations.' },
+  agent: { tab: 'Agent', title: 'AI Writing Agent', desc: 'Polish, rewrite, translate, restructure — multi-step tool calls for complex editing tasks across files.' },
+  review: { tab: 'Review', title: 'Quality Review', desc: 'One-click checks for terminology consistency, missing citations, and compile errors with AI-powered fix suggestions.' },
+  grammar: { tab: 'Grammar', title: 'English Correction', desc: 'Real-time grammar, spelling, and style checking powered by AI. Get inline suggestions and fix issues with one click.' },
+};
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const [charCount, setCharCount] = useState(0);
@@ -132,7 +142,7 @@ export default function LandingPage() {
               className={`carousel-tab ${activeFeature === i ? 'active' : ''}`}
               onClick={() => selectFeature(i)}
             >
-              {t(`landing.feat.${key}.tab`)}
+              {FEAT_STRINGS[key]?.tab}
             </button>
           ))}
         </div>
@@ -148,10 +158,10 @@ export default function LandingPage() {
                   <FeatureIcon name={key} />
                 </div>
                 <h3 className="carousel-card-title">
-                  {t(`landing.feat.${key}.title`)}
+                  {FEAT_STRINGS[key]?.title}
                 </h3>
                 <p className="carousel-card-desc">
-                  {t(`landing.feat.${key}.desc`)}
+                  {FEAT_STRINGS[key]?.desc}
                 </p>
               </div>
             ))}
