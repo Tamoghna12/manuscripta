@@ -108,7 +108,7 @@ export function registerAgentRoutes(fastify) {
       const wantsCompileLog = compileLog && (
         promptLower.includes('compil') || promptLower.includes('error') ||
         promptLower.includes('log') || promptLower.includes('debug') ||
-        promptLower.includes('fix') || promptLower.includes('warning') ||
+        promptLower.includes('fix') || promptLower.includes('warning')
       );
 
       const user = [
