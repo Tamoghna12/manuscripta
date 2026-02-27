@@ -58,10 +58,9 @@ function highlightMatch(text: string, query: string): JSX.Element {
 }
 
 /* ── Expanded detail card ── */
-function EntryDetail({ entry, query, onCite, onOpenBib, t }: {
+function EntryDetail({ entry, query, onCite, onOpenBib }: {
   entry: BibEntry; query: string;
   onCite: (keys: string[]) => void; onOpenBib: (p: string) => void;
-  t: (k: string) => string;
 }) {
   const [copied, setCopied] = useState(false);
   const copyKey = () => {
@@ -427,7 +426,7 @@ export default function ReferencesPanel({ entries, onCite, onOpenBib }: Referenc
                       </svg>
                     </div>
                     {isExpanded && (
-                      <EntryDetail entry={entry} query={query} onCite={onCite} onOpenBib={onOpenBib} t={t} />
+                      <EntryDetail entry={entry} query={query} onCite={onCite} onOpenBib={onOpenBib} />
                     )}
                   </div>
                 );
