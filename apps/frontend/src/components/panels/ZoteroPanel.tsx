@@ -7,6 +7,7 @@ import {
   zoteroCollections,
   zoteroBibtex,
   zoteroLocal,
+  zoteroLocalBibtex,
 } from '../../api/client';
 
 interface ZoteroItem {
@@ -51,6 +52,7 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
   const [localDbPath, setLocalDbPath] = useState('');
   const [localBusy, setLocalBusy] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [localSelected, setLocalSelected] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadConfig();
@@ -152,6 +154,7 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
       const res = await zoteroLocal({ dbPath: localDbPath || undefined });
       if (res.ok) {
         setLocalItems(res.items || []);
+        setLocalSelected({});
         if (res.dbPath) setLocalDbPath(res.dbPath);
       } else {
         setLocalError(res.error || 'Failed to read local database.');
@@ -161,6 +164,47 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
     }
     setLocalBusy(false);
   };
+
+  const toggleLocalSelect = (key: string) => {
+    setLocalSelected(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const selectAllLocal = () => {
+    const allSelected = localItems.every(i => localSelected[i.itemKey]);
+    if (allSelected) {
+      setLocalSelected({});
+    } else {
+      const next: Record<string, boolean> = {};
+      localItems.forEach(i => { if (i.itemKey) next[i.itemKey] = true; });
+      setLocalSelected(next);
+    }
+  };
+
+  const importLocalSelected = async () => {
+    const keys = Object.entries(localSelected).filter(([, v]) => v).map(([k]) => k);
+    if (!keys.length) {
+      setStatus('No items selected.');
+      return;
+    }
+    const selectedItems = localItems.filter(i => keys.includes(i.itemKey));
+    setLocalBusy(true);
+    setStatus('Generating BibTeX...');
+    try {
+      const res = await zoteroLocalBibtex({ items: selectedItems });
+      if (res.ok && res.bibtex) {
+        onBibImport(res.bibtex);
+        setStatus(`Imported ${selectedItems.length} local item(s) to ${bibTarget || '.bib'}`);
+        setLocalSelected({});
+      } else {
+        setStatus(res.error || 'BibTeX generation failed.');
+      }
+    } catch (err: any) {
+      setStatus(err.message || 'Error generating BibTeX.');
+    }
+    setLocalBusy(false);
+  };
+
+  const localSelectedCount = Object.values(localSelected).filter(Boolean).length;
 
   const toggleSelect = (key: string) => {
     setSelected(prev => ({ ...prev, [key]: !prev[key] }));
@@ -358,10 +402,13 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
             {localItems.map((item, idx) => (
               <div
                 key={item.itemKey || idx}
+                onClick={() => item.itemKey && toggleLocalSelect(item.itemKey)}
                 style={{
                   padding: '6px 8px',
                   borderBottom: '1px solid var(--border)',
                   fontSize: 12,
+                  cursor: 'pointer',
+                  background: localSelected[item.itemKey] ? 'var(--selection-bg)' : 'transparent',
                 }}
               >
                 <div style={{ fontWeight: 500 }}>{item.title || '(Untitled)'}</div>
@@ -377,6 +424,27 @@ export default function ZoteroPanel({ projectId, bibTarget, onBibImport }: Zoter
               </div>
             )}
           </div>
+
+          {localItems.length > 0 && (
+            <div style={{ padding: '6px 8px', borderTop: '1px solid var(--border)', display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button className="small-btn" onClick={selectAllLocal} style={{ fontSize: 10 }}>
+                {localItems.every(i => localSelected[i.itemKey]) ? t('Deselect All') : t('Select All')}
+              </button>
+              <button
+                className="primary-btn"
+                onClick={importLocalSelected}
+                disabled={localBusy || localSelectedCount === 0}
+                style={{ fontSize: 11 }}
+              >
+                {t('Import to .bib')} ({localSelectedCount})
+              </button>
+              {localItems.length >= 200 && (
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                  {t('Showing first 200 items')}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 

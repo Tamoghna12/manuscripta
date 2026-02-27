@@ -56,6 +56,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <div
               key={t.id}
               role="alert"
+              className={`toast-${t.type}`}
               onClick={() => dismiss(t.id)}
               style={{
                 pointerEvents: 'auto',
@@ -68,11 +69,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 animation: 'toastIn 0.25s ease-out',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                 border: '1px solid',
-                ...(t.type === 'success'
-                  ? { background: '#f0faf0', borderColor: '#b4d9b4', color: '#2d6a2d' }
-                  : t.type === 'error'
-                    ? { background: '#fef2f0', borderColor: '#e8b4a8', color: '#933623' }
-                    : { background: '#fbf8f2', borderColor: 'rgba(120,98,83,0.22)', color: '#2b2522' }),
               }}
             >
               {t.message}

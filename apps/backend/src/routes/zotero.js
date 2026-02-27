@@ -8,6 +8,7 @@ import {
   fetchZoteroBibtex,
   readLocalZoteroDb,
   detectLocalZoteroDb,
+  localItemsToBibtex,
 } from '../services/zoteroService.js';
 
 const CONFIG_PATH = path.join(DATA_DIR, 'zotero-config.json');
@@ -27,13 +28,19 @@ async function writeConfig(config) {
 }
 
 export function registerZoteroRoutes(fastify) {
-  // Save config
+  // Save config (with credential validation)
   fastify.post('/api/zotero/config', async (req) => {
     const { userId, apiKey } = req.body || {};
     if (!userId || !apiKey) {
       return { ok: false, error: 'userId and apiKey are required.' };
     }
-    await writeConfig({ userId, apiKey });
+    // Validate credentials by making a test API call
+    try {
+      await fetchZoteroItems(userId.trim(), apiKey.trim(), { limit: 1 });
+    } catch (err) {
+      return { ok: false, error: `Invalid credentials: ${err.message}` };
+    }
+    await writeConfig({ userId: userId.trim(), apiKey: apiKey.trim() });
     return { ok: true };
   });
 
@@ -120,6 +127,20 @@ export function registerZoteroRoutes(fastify) {
       const items = await readLocalZoteroDb(dbPath || null);
       const detected = detectLocalZoteroDb();
       return { ok: true, items, dbPath: detected };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  // Convert local items to BibTeX
+  fastify.post('/api/zotero/local/bibtex', async (req) => {
+    const { items } = req.body || {};
+    if (!items || !items.length) {
+      return { ok: false, error: 'No items provided.' };
+    }
+    try {
+      const bibtex = localItemsToBibtex(items);
+      return { ok: true, bibtex };
     } catch (err) {
       return { ok: false, error: err.message };
     }

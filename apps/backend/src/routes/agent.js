@@ -7,6 +7,8 @@ const CHAT_SYSTEM_PROMPT = [
   'You are an expert academic writing assistant with deep knowledge of scientific publishing',
   'conventions, LaTeX typesetting, and research methodology. You help researchers write clearer,',
   'more rigorous, and more publishable papers.',
+  'IMPORTANT: Always answer the user\'s question directly. The file content and compile log are',
+  'provided as context only — do not summarize or analyze them unless the user specifically asks.',
   'When reviewing text:',
   '- Cite specific style guide conventions (APA, IEEE, Nature) when relevant.',
   '- Flag logical gaps, unsupported claims, and vague language.',
@@ -101,11 +103,20 @@ export function registerAgentRoutes(fastify) {
         ? history.filter((item) => item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string')
         : [];
 
+      // Only include compile log if the user is explicitly asking about compilation/errors
+      const promptLower = (prompt || '').toLowerCase();
+      const wantsCompileLog = compileLog && (
+        promptLower.includes('compil') || promptLower.includes('error') ||
+        promptLower.includes('log') || promptLower.includes('debug') ||
+        promptLower.includes('fix') || promptLower.includes('warning') ||
+        promptLower.includes('编译') || promptLower.includes('错误') || promptLower.includes('日志')
+      );
+
       const user = [
         prompt ? `User Prompt: ${prompt}` : '',
         selection ? `Selection (read-only):\n${selection}` : '',
         selection ? '' : (content ? `Current File (read-only):\n${content}` : ''),
-        compileLog ? `Compile Log (read-only):\n${compileLog}` : ''
+        wantsCompileLog ? `Compile Log (read-only):\n${compileLog}` : ''
       ].filter(Boolean).join('\n\n');
 
       const result = await callOpenAICompatible({
@@ -127,18 +138,28 @@ export function registerAgentRoutes(fastify) {
     }
 
     if (mode === 'tools') {
-      return runToolAgent({ projectId, activePath, task, prompt, selection, compileLog, llmConfig, lang });
+      const toolResult = await runToolAgent({ projectId, activePath, task, prompt, selection, compileLog, llmConfig, lang });
+      // If tool mode failed (e.g. model doesn't support tools), fall back to direct mode
+      if (!toolResult.ok && /does not support tools|tool_use|function.call/i.test(toolResult.reply || '')) {
+        console.warn('[agent] Tool mode failed, falling back to direct mode:', toolResult.reply);
+        // Fall through to direct mode below
+      } else {
+        return toolResult;
+      }
     }
 
     // Direct mode: use task-specific system prompts
     const system = TASK_SYSTEM_PROMPTS[task] || TASK_SYSTEM_PROMPTS.default;
 
+    // Only include compile log for fix-errors task
+    const includeLog = (task === 'fix-errors') && compileLog;
+
     const user = [
       `Task: ${task}`,
-      mode === 'tools' ? 'Mode: tools (use extra reasoning)' : 'Mode: direct',
-      prompt ? `User Prompt: ${prompt}` : '',
+      prompt ? `User Instruction: ${prompt}` : '',
       selection ? `Selection:\n${selection}` : '',
-      selection ? '' : `Full Content:\n${content}`
+      selection ? '' : `Full Content:\n${content}`,
+      includeLog ? `Compile Log:\n${compileLog}` : ''
     ].filter(Boolean).join('\n\n');
 
     const result = await callOpenAICompatible({

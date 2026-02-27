@@ -154,8 +154,8 @@ export async function fetchDocuments(accessToken, { query, limit = 20, offset = 
   return res.json();
 }
 
-export async function searchCatalog(accessToken, query) {
-  const url = `${MENDELEY_API_BASE}/catalog?query=${encodeURIComponent(query)}&view=bib&limit=20`;
+export async function searchCatalog(accessToken, query, { limit = 20 } = {}) {
+  const url = `${MENDELEY_API_BASE}/catalog?query=${encodeURIComponent(query)}&view=bib&limit=${limit}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
   });
@@ -163,22 +163,92 @@ export async function searchCatalog(accessToken, query) {
   return res.json();
 }
 
+/**
+ * Fetch a single document by its ID.
+ */
+export async function fetchDocumentById(accessToken, docId) {
+  const url = `${MENDELEY_API_BASE}/documents/${encodeURIComponent(docId)}?view=bib`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Mendeley document fetch error: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Escape special BibTeX characters in a string value.
+ */
+function escapeBibtex(str) {
+  if (!str) return '';
+  return str
+    .replace(/\\/g, '\\textbackslash{}')
+    .replace(/[&%$#_{}~^]/g, ch => '\\' + ch);
+}
+
+/**
+ * Generate a unique cite key from author + year + title word.
+ */
+function makeCiteKey(doc) {
+  const lastName = (doc.authors?.[0]?.last_name || 'unknown')
+    .toLowerCase()
+    .replace(/[^a-z]/g, '');
+  const year = doc.year || '0000';
+  // Add first significant word of title to reduce collisions
+  const titleWord = (doc.title || '')
+    .replace(/[^a-zA-Z\s]/g, '')
+    .split(/\s+/)
+    .find(w => w.length > 3 && !['with', 'from', 'that', 'this', 'some', 'their', 'about'].includes(w.toLowerCase()));
+  const suffix = titleWord ? titleWord.charAt(0).toLowerCase() : '';
+  return `${lastName}${year}${suffix}`;
+}
+
+const BIBTEX_TYPE_MAP = {
+  journal: 'article',
+  conference_proceedings: 'inproceedings',
+  book: 'book',
+  book_section: 'incollection',
+  thesis: 'phdthesis',
+  report: 'techreport',
+  web_page: 'misc',
+  patent: 'misc',
+  generic: 'misc',
+  working_paper: 'unpublished',
+};
+
 export function documentToBibtex(doc) {
   const type = doc.type || 'article';
-  const citeKey = (doc.authors?.[0]?.last_name || 'unknown').toLowerCase() +
-    (doc.year || '0000');
-  const authors = (doc.authors || []).map(a => `${a.first_name || ''} ${a.last_name || ''}`.trim()).join(' and ');
+  const bibtexType = BIBTEX_TYPE_MAP[type] || type;
+  const citeKey = makeCiteKey(doc);
+  const authors = (doc.authors || [])
+    .map(a => `${a.first_name || ''} ${a.last_name || ''}`.trim())
+    .filter(Boolean)
+    .join(' and ');
 
   const fields = [];
-  if (authors) fields.push(`  author = {${authors}}`);
-  if (doc.title) fields.push(`  title = {${doc.title}}`);
+  if (authors) fields.push(`  author = {${escapeBibtex(authors)}}`);
+  if (doc.title) fields.push(`  title = {${escapeBibtex(doc.title)}}`);
   if (doc.year) fields.push(`  year = {${doc.year}}`);
-  if (doc.source) fields.push(`  journal = {${doc.source}}`);
+
+  // Context-aware source field mapping
+  if (doc.source) {
+    if (bibtexType === 'article') {
+      fields.push(`  journal = {${escapeBibtex(doc.source)}}`);
+    } else if (bibtexType === 'inproceedings' || bibtexType === 'incollection') {
+      fields.push(`  booktitle = {${escapeBibtex(doc.source)}}`);
+    } else {
+      fields.push(`  publisher = {${escapeBibtex(doc.source)}}`);
+    }
+  }
+
   if (doc.volume) fields.push(`  volume = {${doc.volume}}`);
   if (doc.issue) fields.push(`  number = {${doc.issue}}`);
   if (doc.pages) fields.push(`  pages = {${doc.pages}}`);
   if (doc.identifiers?.doi) fields.push(`  doi = {${doc.identifiers.doi}}`);
+  if (doc.identifiers?.isbn) fields.push(`  isbn = {${doc.identifiers.isbn}}`);
+  if (doc.identifiers?.issn) fields.push(`  issn = {${doc.identifiers.issn}}`);
+  if (doc.identifiers?.url) fields.push(`  url = {${doc.identifiers.url}}`);
+  if (doc.publisher) fields.push(`  publisher = {${escapeBibtex(doc.publisher)}}`);
+  if (doc.edition) fields.push(`  edition = {${escapeBibtex(doc.edition)}}`);
 
-  const bibtexType = type === 'journal' ? 'article' : type === 'conference_proceedings' ? 'inproceedings' : type;
-  return `@${bibtexType}{${citeKey},\n${fields.join(',\n')}\n}\n`;
+  return `@${bibtexType}{${citeKey},\n${fields.join(',\n')}\n}`;
 }

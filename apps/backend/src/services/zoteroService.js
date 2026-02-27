@@ -35,7 +35,7 @@ export async function fetchZoteroItems(userId, apiKey, { query, limit = 25, star
  * Fetch collections from Zotero cloud library.
  */
 export async function fetchZoteroCollections(userId, apiKey) {
-  const url = `${ZOTERO_API_BASE}/users/${encodeURIComponent(userId)}/collections?format=json&limit=100`;
+  const url = `${ZOTERO_API_BASE}/users/${encodeURIComponent(userId)}/collections?format=json&limit=500`;
   const res = await fetch(url, {
     headers: {
       'Zotero-API-Key': apiKey,
@@ -102,6 +102,50 @@ export function detectLocalZoteroDb() {
     } catch { /* ignore */ }
   }
   return null;
+}
+
+/**
+ * Escape special BibTeX characters.
+ */
+function escapeBibtex(str) {
+  if (!str) return '';
+  return str
+    .replace(/\\/g, '\\textbackslash{}')
+    .replace(/[&%$#_{}~^]/g, ch => '\\' + ch);
+}
+
+/**
+ * Convert local Zotero DB items to BibTeX strings.
+ */
+export function localItemsToBibtex(items) {
+  return items.map(item => {
+    const type = item.itemType || 'misc';
+    const bibtexType = type === 'journalArticle' ? 'article'
+      : type === 'conferencePaper' ? 'inproceedings'
+      : type === 'book' ? 'book'
+      : type === 'bookSection' ? 'incollection'
+      : type === 'thesis' ? 'phdthesis'
+      : type === 'report' ? 'techreport'
+      : 'misc';
+    const authorsArr = Array.isArray(item.authors) ? item.authors : [];
+    const lastName = (authorsArr[0] || 'unknown').split(/\s+/).pop() || 'unknown';
+    const year = (item.date || '').replace(/[^0-9]/g, '').slice(0, 4) || '0000';
+    const citeKey = lastName.toLowerCase().replace(/[^a-z]/g, '') + year;
+    const authors = authorsArr.map(a => escapeBibtex(a)).join(' and ');
+
+    const fields = [];
+    if (authors) fields.push(`  author = {${authors}}`);
+    if (item.title) fields.push(`  title = {${escapeBibtex(item.title)}}`);
+    if (year !== '0000') fields.push(`  year = {${year}}`);
+    if (item.publicationTitle) {
+      if (bibtexType === 'article') {
+        fields.push(`  journal = {${escapeBibtex(item.publicationTitle)}}`);
+      } else {
+        fields.push(`  booktitle = {${escapeBibtex(item.publicationTitle)}}`);
+      }
+    }
+    return `@${bibtexType}{${citeKey},\n${fields.join(',\n')}\n}`;
+  }).join('\n\n');
 }
 
 /**

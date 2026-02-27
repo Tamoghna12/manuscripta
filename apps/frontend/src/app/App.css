@@ -111,8 +111,10 @@ html.dark .landing-page {
   background: var(--bg);
 }
 
-html.dark .pdf-page canvas {
+html.dark .pdf-page {
   filter: invert(0.88) hue-rotate(180deg);
+  background: white; /* keep white so invert makes it dark */
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -299,6 +301,14 @@ body {
   overflow: hidden;
 }
 
+.workspace.layout-editor-only {
+  grid-template-columns: var(--col-sidebar) var(--col-sidebar-gap) 1fr 0px 0px;
+}
+
+.workspace.layout-preview-only {
+  grid-template-columns: var(--col-sidebar) var(--col-sidebar-gap) 0px 0px 1fr;
+}
+
 .panel {
   background: var(--panel);
   border-radius: 18px;
@@ -358,6 +368,60 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+}
+
+.agent-file-nav {
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.agent-file-nav-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+}
+.agent-file-nav-toggle:hover {
+  background: rgba(120, 98, 83, 0.08);
+}
+html.dark .agent-file-nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.agent-file-nav-list {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+.agent-file-nav-item {
+  display: block;
+  width: 100%;
+  padding: 4px 12px 4px 24px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agent-file-nav-item:hover {
+  background: rgba(120, 98, 83, 0.08);
+  color: var(--text);
+}
+html.dark .agent-file-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.agent-file-nav-item.active {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .header-controls {
@@ -4796,91 +4860,6 @@ textarea.input {
   background: rgba(120, 98, 83, 0.1);
 }
 
-/* ═══════════════════════════════════
-   DARK MODE
-   ═══════════════════════════════════ */
-
-html.dark {
-  --bg: #1a1a1e;
-  --panel: #242428;
-  --panel-muted: #1e1e22;
-  --border: rgba(255, 255, 255, 0.1);
-  --text: #e4e4e7;
-  --muted: #9ca3af;
-  --accent: #f59e0b;
-  --accent-soft: rgba(245, 158, 11, 0.12);
-  --accent-strong: #fbbf24;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-}
-
-html.dark body {
-  background: var(--bg);
-  color: var(--text);
-}
-
-/* Dark CM editor */
-html.dark .cm-editor {
-  background: #1e1e22;
-}
-
-html.dark .cm-gutters {
-  background: #1a1a1e;
-  border-color: rgba(255, 255, 255, 0.06);
-  color: #6b7280;
-}
-
-html.dark .cm-activeLineGutter,
-html.dark .cm-activeLine {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-html.dark .cm-selectionBackground {
-  background: rgba(245, 158, 11, 0.18) !important;
-}
-
-html.dark .cm-cursor {
-  border-color: var(--accent);
-}
-
-/* Dark inputs & buttons */
-html.dark input,
-html.dark textarea,
-html.dark select {
-  background: #2a2a2e;
-  color: var(--text);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-html.dark .btn {
-  background: var(--accent);
-  color: #1a1a1e;
-}
-
-html.dark .btn.ghost {
-  background: transparent;
-  color: var(--text);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-html.dark .btn.ghost:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-/* Dark modal */
-html.dark .modal-backdrop {
-  background: rgba(0, 0, 0, 0.6);
-}
-
-html.dark .modal,
-html.dark .settings-modal {
-  background: var(--panel);
-  border-color: var(--border);
-}
-
-html.dark .modal-header {
-  border-color: var(--border);
-  background: var(--panel-muted);
-}
 
 /* Dark settings tabs */
 html.dark .settings-tabs {
@@ -5016,11 +4995,7 @@ html.dark .carousel-card {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Dark PDF viewer invert */
-html.dark .pdf-canvas,
-html.dark .react-pdf__Page__canvas {
-  filter: invert(0.88) hue-rotate(180deg);
-}
+/* pdf-canvas dark invert consolidated at line 114 */
 
 /* Dark scrollbars */
 html.dark ::-webkit-scrollbar-track {
@@ -5066,6 +5041,310 @@ html.dark .dark-mode-toggle {
 html.dark .dark-mode-toggle:hover {
   background: rgba(255, 255, 255, 0.08);
 }
+
+/* ─── Layout Toggle ─── */
+.layout-toggle {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.layout-btn {
+  padding: 4px 6px !important;
+  min-width: 0 !important;
+  border-radius: 6px !important;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+}
+
+.layout-btn.active {
+  opacity: 1;
+  background: var(--panel) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.layout-btn:hover {
+  opacity: 0.8;
+}
+
+/* ─── Dark Mode: Component Overrides ─── */
+
+/* Status bar */
+html.dark .status-bar {
+  background: rgba(30, 30, 35, 0.7);
+}
+
+/* Save indicator */
+html.dark .save-indicator {
+  background: rgba(50, 50, 55, 0.8);
+  border-color: var(--border);
+}
+
+html.dark .save-indicator .dot {
+  background: rgba(200, 180, 160, 0.4);
+}
+
+/* Panel border */
+html.dark .panel {
+  border-color: var(--border);
+}
+
+/* Drag handle */
+html.dark .drag-handle {
+  background: rgba(200, 180, 160, 0.2);
+}
+
+/* Breadcrumb bar */
+html.dark .breadcrumb-bar {
+  background: rgba(35, 35, 40, 0.6);
+}
+
+/* Editor toolbar */
+html.dark .editor-toolbar {
+  background: rgba(35, 35, 40, 0.7);
+}
+
+/* Toolbar button */
+html.dark .toolbar-btn {
+  background: rgba(50, 50, 55, 0.9);
+  border-color: var(--border);
+}
+
+html.dark .toolbar-btn:hover {
+  background: rgba(60, 60, 65, 1);
+  border-color: var(--accent);
+}
+
+/* Outline panel */
+html.dark .outline-panel {
+  background: rgba(35, 35, 40, 0.6);
+}
+
+html.dark .outline-item {
+  background: rgba(50, 50, 55, 0.8);
+  border-color: var(--border);
+}
+
+html.dark .outline-item:hover {
+  border-color: var(--accent);
+}
+
+/* Tree icon */
+html.dark .tree-icon {
+  background: rgba(50, 50, 55, 0.9);
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+/* TOC panel */
+html.dark .toc-panel {
+  background: rgba(35, 35, 40, 0.8);
+  border-color: var(--border);
+}
+
+html.dark .toc-item {
+  background: rgba(50, 50, 55, 0.9);
+  border-color: var(--border);
+}
+
+/* Chat input */
+html.dark .chat-input {
+  background: var(--input-bg);
+  border-color: var(--border);
+}
+
+/* Review buttons */
+html.dark .review-btn {
+  background: rgba(50, 50, 55, 0.8);
+  border-color: var(--border);
+}
+
+html.dark .review-btn:hover {
+  background: rgba(60, 60, 65, 1);
+}
+
+/* Tool items */
+html.dark .tool-item {
+  background: rgba(50, 50, 55, 0.9);
+  border-color: var(--border);
+}
+
+html.dark .tool-item:hover {
+  background: rgba(60, 60, 65, 1);
+}
+
+/* Websearch log */
+html.dark .websearch-log {
+  background: rgba(50, 50, 55, 0.8);
+  border-color: var(--border);
+}
+
+/* Review items */
+html.dark .review-item {
+  background: rgba(50, 50, 55, 0.85);
+  border-color: var(--border);
+}
+
+/* Project cards */
+html.dark .project-card {
+  background: rgba(50, 50, 55, 0.85);
+  border-color: var(--border);
+}
+
+/* Vision */
+html.dark .vision-result {
+  background: rgba(50, 50, 55, 0.8);
+  border-color: var(--border);
+}
+
+html.dark .vision-preview {
+  background: rgba(50, 50, 55, 0.85);
+  border-color: var(--border);
+}
+
+html.dark .image-drop-zone {
+  background: rgba(50, 50, 55, 0.6);
+  border-color: var(--border);
+}
+
+html.dark .image-drop-zone:hover,
+html.dark .image-drop-zone:focus {
+  background: rgba(60, 60, 65, 0.8);
+  border-color: var(--accent);
+}
+
+/* PDF annotations */
+html.dark .pdf-annotations {
+  background: rgba(35, 35, 40, 0.7);
+  border-color: var(--border);
+}
+
+/* Diff */
+html.dark .diff-item {
+  background: #2a2520;
+  border-color: #3a3530;
+}
+
+html.dark .diff-path {
+  color: var(--muted);
+}
+
+/* Panel search */
+html.dark .panel-search {
+  background: rgba(35, 35, 40, 0.6);
+}
+
+/* File actions */
+html.dark .file-actions {
+  background: rgba(35, 35, 40, 0.5);
+}
+
+/* Inline input & .input & .select */
+html.dark .inline-input,
+html.dark .input,
+html.dark .select {
+  background: var(--input-bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* Editor CM search input */
+html.dark .editor-host .cm-search.cm-panel input[type="text"] {
+  background: var(--input-bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* Sidebar tag input */
+html.dark .sidebar-tag-input {
+  background: var(--input-bg);
+}
+
+/* Figure display */
+html.dark .figure-display {
+  background: rgba(35, 35, 40, 0.4);
+}
+
+/* PDF preview */
+html.dark .pdf-preview {
+  background: rgba(35, 35, 40, 0.78);
+  border-color: var(--border);
+}
+
+/* PDF toolbar */
+html.dark .pdf-toolbar {
+  background: rgba(50, 50, 55, 0.9);
+  border-color: var(--border);
+}
+
+/* PDF page */
+/* pdf-page dark override consolidated at line 114 */
+
+/* Split diff */
+html.dark .split-diff {
+  background: #1e1e22;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* Feature box / list (diff item variants) */
+html.dark .diff-item {
+  background: #2a2520;
+  border-color: #3a3530;
+}
+
+/* Carousel dot */
+html.dark .carousel-dot {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Project table */
+html.dark .project-table-wrapper {
+  background: rgba(50, 50, 55, 0.85);
+}
+
+html.dark .project-table td {
+  border-color: var(--border);
+}
+
+html.dark .project-table-row:hover td {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Ghost button */
+html.dark .btn.ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+html.dark .btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* iOS Select Trigger (dropdowns) */
+html.dark .ios-select-trigger {
+  background: var(--input-bg);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+html.dark .ios-select-trigger:hover {
+  background: rgba(60, 60, 65, 0.95);
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Toast variants */
+.toast-success { background: #f0faf0; border-color: #b4d9b4; color: #2d6a2d; }
+.toast-error { background: #fef2f0; border-color: #e8b4a8; color: #933623; }
+.toast-info { background: var(--paper); border-color: var(--border); color: var(--text); }
+
+html.dark .toast-success { background: #1a2e1a; border-color: #2d5a2d; color: #8fdf8f; }
+html.dark .toast-error { background: #2e1a1a; border-color: #5a2d2d; color: #f8a0a0; }
+html.dark .toast-info { background: var(--panel); border-color: var(--border); color: var(--text); }
 
 /* ─── New Panel Shared Styles ─── */
 

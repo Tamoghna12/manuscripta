@@ -721,6 +721,13 @@ export function zoteroLocal(params?: { dbPath?: string }) {
   return request<{ ok: boolean; items: any[]; dbPath?: string; error?: string }>(`/api/zotero/local?${qs}`);
 }
 
+export function zoteroLocalBibtex(payload: { items: any[] }) {
+  return request<{ ok: boolean; bibtex?: string; error?: string }>('/api/zotero/local/bibtex', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 // ─── Mendeley API ───
 
 export function mendeleyStatus() {

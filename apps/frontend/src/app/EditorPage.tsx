@@ -195,6 +195,7 @@ export default function EditorPage() {
   const [mainFileDropdownOpen, setMainFileDropdownOpen] = useState(false);
   const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const [agentFileNavOpen, setAgentFileNavOpen] = useState(false);
   const [topBarDropdownRect, setTopBarDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const [visionModeDropdownOpen, setVisionModeDropdownOpen] = useState(false);
   const [bibTargetDropdownOpen, setBibTargetDropdownOpen] = useState(false);
@@ -229,6 +230,7 @@ export default function EditorPage() {
   const [diffFocus, setDiffFocus] = useState<PendingChange | null>(null);
   const [activeSidebar, setActiveSidebar] = useState<'files' | 'agent' | 'vision' | 'search' | 'websearch' | 'plot' | 'review' | 'references' | 'collab' | 'zotero' | 'mendeley' | 'git' | 'comments' | 'trackchanges'>('files');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [layoutMode, setLayoutMode] = useState<'split' | 'editor' | 'preview'>('split');
   const [columnSizes, setColumnSizes] = useState({ sidebar: 260, editor: 640, right: 420 });
   const [editorSplit, setEditorSplit] = useState(0.7);
   const [selectedPath, setSelectedPath] = useState('');
@@ -1283,6 +1285,59 @@ export default function EditorPage() {
     });
     view.focus();
   }, []);
+
+  // ─── Shared BibTeX Import Handler ───
+
+  const handleBibImport = useCallback(async (bibtex: string) => {
+    const target = bibTarget || 'references.bib';
+    try {
+      const existing = await getFile(projectId, target).catch(() => ({ content: '' }));
+      const existingContent = (existing.content || '').trimEnd();
+
+      // Extract cite keys already present in the file
+      const existingKeys = new Set<string>();
+      const keyRegex = /@\w+\{([^,\s]+)/g;
+      let m;
+      while ((m = keyRegex.exec(existingContent)) !== null) {
+        existingKeys.add(m[1]);
+      }
+
+      // Split incoming bibtex into individual entries and filter duplicates
+      const entries = bibtex.split(/\n(?=@)/);
+      const newEntries: string[] = [];
+      const skippedKeys: string[] = [];
+      for (const entry of entries) {
+        const trimmed = entry.trim();
+        if (!trimmed) continue;
+        const keyMatch = trimmed.match(/@\w+\{([^,\s]+)/);
+        if (keyMatch && existingKeys.has(keyMatch[1])) {
+          skippedKeys.push(keyMatch[1]);
+          continue;
+        }
+        newEntries.push(trimmed);
+      }
+
+      if (newEntries.length === 0) {
+        toast(t('All entries already exist in {{target}}', { target }), 'warning');
+        return;
+      }
+
+      // Join with blank lines for proper BibTeX separation
+      const separator = existingContent ? '\n\n' : '';
+      const finalContent = existingContent + separator + newEntries.join('\n\n');
+      await writeFile(projectId, target, finalContent);
+
+      // Update the in-memory files cache so ReferencesPanel re-indexes
+      setFiles(prev => ({ ...prev, [target]: finalContent }));
+
+      const msg = skippedKeys.length > 0
+        ? t('Imported {{count}} entries to {{target}} ({{skipped}} duplicates skipped)', { count: newEntries.length, target, skipped: skippedKeys.length })
+        : t('Imported {{count}} entries to {{target}}', { count: newEntries.length, target });
+      toast(msg, 'success');
+    } catch (err: any) {
+      toast(t('Failed to import BibTeX: {{error}}', { error: err.message || 'Unknown error' }), 'error');
+    }
+  }, [projectId, bibTarget, t, toast]);
 
   const nextSuggestionChunk = (text: string) => {
     const match = text.match(/^(\s*\S+\s*)/);
@@ -3261,6 +3316,29 @@ export default function EditorPage() {
           <button className="btn ghost" onClick={() => setSidebarOpen((prev) => !prev)}>
             {sidebarOpen ? t('隐藏侧栏') : t('显示侧栏')}
           </button>
+          <div className="layout-toggle">
+            <button
+              className={`btn ghost layout-btn ${layoutMode === 'editor' ? 'active' : ''}`}
+              onClick={() => setLayoutMode(layoutMode === 'editor' ? 'split' : 'editor')}
+              title={t('仅编辑器')}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/></svg>
+            </button>
+            <button
+              className={`btn ghost layout-btn ${layoutMode === 'split' ? 'active' : ''}`}
+              onClick={() => setLayoutMode('split')}
+              title={t('分栏视图')}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="8" y1="2" x2="8" y2="14"/></svg>
+            </button>
+            <button
+              className={`btn ghost layout-btn ${layoutMode === 'preview' ? 'active' : ''}`}
+              onClick={() => setLayoutMode(layoutMode === 'preview' ? 'split' : 'preview')}
+              title={t('仅预览')}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="7" y1="5" x2="11" y2="5"/><line x1="7" y1="8" x2="11" y2="8"/><line x1="7" y1="11" x2="10" y2="11"/></svg>
+            </button>
+          </div>
           <div className="ios-select-wrapper">
             <button className="ios-select-trigger" onClick={(e) => {
               const opening = !mainFileDropdownOpen;
@@ -3332,14 +3410,14 @@ export default function EditorPage() {
 
       <main
         id="editor-main"
-        className="workspace"
+        className={`workspace ${layoutMode === 'editor' ? 'layout-editor-only' : layoutMode === 'preview' ? 'layout-preview-only' : ''}`}
         role="main"
         ref={gridRef}
         style={{
           '--col-sidebar': sidebarOpen ? `${columnSizes.sidebar}px` : '0px',
           '--col-sidebar-gap': sidebarOpen ? '10px' : '0px',
           '--col-editor': `${columnSizes.editor}px`,
-          '--col-right': `${columnSizes.right}px`
+          '--col-right': `${columnSizes.right}px`,
         } as CSSProperties}
       >
         {sidebarOpen && (
@@ -3685,6 +3763,36 @@ export default function EditorPage() {
                       </button>
                     </div>
                   </div>
+                </div>
+                {/* Collapsible file navigator */}
+                <div className={`agent-file-nav ${agentFileNavOpen ? 'open' : ''}`}>
+                  <button
+                    className="agent-file-nav-toggle"
+                    onClick={() => setAgentFileNavOpen(prev => !prev)}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points={agentFileNavOpen ? "6 9 12 15 18 9" : "9 6 15 12 9 18"} />
+                    </svg>
+                    <span style={{ fontSize: 11, opacity: 0.7 }}>
+                      {activePath ? activePath.split('/').pop() : 'No file open'}
+                    </span>
+                  </button>
+                  {agentFileNavOpen && (
+                    <div className="agent-file-nav-list">
+                      {tree
+                        .filter(f => f.type !== 'dir')
+                        .map(f => (
+                          <button
+                            key={f.path}
+                            className={`agent-file-nav-item ${f.path === activePath ? 'active' : ''}`}
+                            onClick={() => handleFileSelect(f.path)}
+                            title={f.path}
+                          >
+                            {f.path}
+                          </button>
+                        ))}
+                    </div>
+                  )}
                 </div>
                 {assistantMode === 'chat' && (
                   <div className="context-tags">
@@ -4756,24 +4864,12 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               <ZoteroPanel
                 projectId={projectId}
                 bibTarget={bibTarget}
-                onBibImport={async (bibtex: string) => {
-                  const target = bibTarget || 'references.bib';
-                  try {
-                    const existing = await getFile(projectId, target).catch(() => ({ content: '' }));
-                    await writeFile(projectId, target, (existing.content || '') + '\n' + bibtex);
-                  } catch { /* ignore */ }
-                }}
+                onBibImport={handleBibImport}
               />
             ) : activeSidebar === 'mendeley' ? (
               <MendeleyPanel
                 bibTarget={bibTarget}
-                onBibImport={async (bibtex: string) => {
-                  const target = bibTarget || 'references.bib';
-                  try {
-                    const existing = await getFile(projectId, target).catch(() => ({ content: '' }));
-                    await writeFile(projectId, target, (existing.content || '') + '\n' + bibtex);
-                  } catch { /* ignore */ }
-                }}
+                onBibImport={handleBibImport}
               />
             ) : activeSidebar === 'git' ? (
               <GitPanel projectId={projectId} />
@@ -4811,7 +4907,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
           />
         )}
 
-        <section className="panel editor-panel">
+        {layoutMode !== 'preview' && <section className="panel editor-panel">
           <div className="panel-header">{t('Editor')}</div>
           <div className="breadcrumb-bar">
             <span className="breadcrumb-item">{projectName || t('Project')}</span>
@@ -4888,14 +4984,16 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               )}
             </div>
           </div>
-        </section>
+        </section>}
 
-        <div
-          className="drag-handle vertical main-handle"
-          onMouseDown={(e) => startColumnDrag('right', e)}
-        />
+        {layoutMode === 'split' && (
+          <div
+            className="drag-handle vertical main-handle"
+            onMouseDown={(e) => startColumnDrag('right', e)}
+          />
+        )}
 
-        <section className="panel pdf-panel">
+        {layoutMode !== 'editor' && <section className="panel pdf-panel">
           <div className="panel-header">
             <div>{t('Preview')}</div>
             <div className="header-controls">
@@ -5199,7 +5297,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               )}
             </div>
           </div>
-        </section>
+        </section>}
       </main>
 
       {/* Top-bar dropdown portals — rendered outside top-bar to escape backdrop-filter stacking context */}

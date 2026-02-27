@@ -7,6 +7,7 @@ import {
   deleteTokens,
   getValidToken,
   fetchDocuments,
+  fetchDocumentById,
   searchCatalog,
   documentToBibtex,
 } from '../services/mendeleyService.js';
@@ -43,8 +44,23 @@ export function registerMendeleyRoutes(fastify) {
           <h3>Connected to Mendeley!</h3>
           <p>You can close this window.</p>
           <script>
-            if (window.opener) window.opener.postMessage({ type: 'mendeley-connected' }, '*');
-            setTimeout(() => window.close(), 1500);
+            (function() {
+              var sent = false;
+              function trySend() {
+                if (sent) return;
+                if (window.opener) {
+                  window.opener.postMessage({ type: 'mendeley-connected' }, '*');
+                  sent = true;
+                  setTimeout(function() { window.close(); }, 500);
+                }
+              }
+              // Try immediately, then retry to handle slow networks
+              trySend();
+              setTimeout(trySend, 1000);
+              setTimeout(trySend, 3000);
+              // Final close after 5s regardless
+              setTimeout(function() { window.close(); }, 5000);
+            })();
           </script>
         </body></html>
       `);
@@ -94,10 +110,10 @@ export function registerMendeleyRoutes(fastify) {
   fastify.get('/api/mendeley/catalog', async (req) => {
     const token = await getValidToken();
     if (!token) return { ok: false, error: 'Not connected to Mendeley.' };
-    const { q } = req.query || {};
+    const { q, limit } = req.query || {};
     if (!q) return { ok: false, error: 'Query required.' };
     try {
-      const results = await searchCatalog(token, q);
+      const results = await searchCatalog(token, q, { limit: Math.min(50, Math.max(1, Number(limit) || 25)) });
       const items = results.map(doc => ({
         id: doc.id,
         title: doc.title || '',
@@ -121,10 +137,15 @@ export function registerMendeleyRoutes(fastify) {
       return { ok: false, error: 'No document IDs provided.' };
     }
     try {
-      // Fetch full documents by querying user's library
-      const docs = await fetchDocuments(token, { limit: 50 });
-      const selected = docs.filter(d => documentIds.includes(d.id));
-      const bibtex = selected.map(d => documentToBibtex(d)).join('\n');
+      // Fetch each selected document individually by ID
+      const docs = await Promise.all(
+        documentIds.map(id => fetchDocumentById(token, id).catch(() => null))
+      );
+      const valid = docs.filter(Boolean);
+      if (valid.length === 0) {
+        return { ok: false, error: 'Could not retrieve any of the selected documents.' };
+      }
+      const bibtex = valid.map(d => documentToBibtex(d)).join('\n\n');
       return { ok: true, bibtex };
     } catch (err) {
       return { ok: false, error: err.message };

@@ -490,14 +490,14 @@ export default function TransferPanel({ projectId, onJobUpdate }: TransferPanelP
 
       {/* Error */}
       {error && (
-        <div style={{ fontSize: 12, color: '#d32f2f', marginBottom: 8 }}>{error}</div>
+        <div style={{ fontSize: 12, color: 'var(--error)', marginBottom: 8 }}>{error}</div>
       )}
 
       {/* Progress log */}
       {progressLog.length > 0 && (
         <div style={{
           fontSize: 11, fontFamily: 'monospace',
-          background: 'rgba(120, 98, 83, 0.06)', borderRadius: 8,
+          background: 'var(--code-bg)', borderRadius: 8,
           padding: 8, maxHeight: 300, overflowY: 'auto' as const,
         }}>
           {progressLog.map((line, i) => (

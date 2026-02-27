@@ -22,6 +22,8 @@ interface MendeleyPanelProps {
   onBibImport: (bibtex: string) => void;
 }
 
+const PAGE_SIZE = 25;
+
 export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelProps) {
   const { t } = useTranslation();
   const [connected, setConnected] = useState(false);
@@ -32,6 +34,8 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     checkStatus();
@@ -52,7 +56,9 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
     try {
       const res = await mendeleyStatus();
       setConnected(res.connected || false);
-    } catch { /* ignore */ }
+    } catch {
+      setStatus('Could not check Mendeley connection status.');
+    }
     setLoading(false);
   };
 
@@ -67,25 +73,30 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
       setConnected(false);
       setItems([]);
       setStatus('Disconnected.');
-    } catch { /* ignore */ }
+    } catch {
+      setStatus('Failed to disconnect.');
+    }
     setBusy(false);
   };
 
-  const search = async () => {
+  const search = async (pageNum = 0) => {
     setBusy(true);
     setStatus('');
     try {
       const res = tab === 'library'
-        ? await mendeleyDocuments({ q: query })
+        ? await mendeleyDocuments({ q: query, limit: PAGE_SIZE, offset: pageNum * PAGE_SIZE })
         : await mendeleyCatalog({ q: query });
       if (res.ok) {
-        setItems(res.items || []);
-        setSelected({});
+        const newItems = res.items || [];
+        setItems(newItems);
+        setPage(pageNum);
+        setHasMore(newItems.length >= PAGE_SIZE);
+        if (pageNum === 0) setSelected({});
       } else {
         setStatus(res.error || 'Search failed.');
       }
     } catch (err: any) {
-      setStatus(err.message || 'Error.');
+      setStatus(err.message || 'Error searching Mendeley.');
     }
     setBusy(false);
   };
@@ -108,13 +119,24 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
         setStatus(res.error || 'BibTeX fetch failed.');
       }
     } catch (err: any) {
-      setStatus(err.message);
+      setStatus(err.message || 'Error fetching BibTeX.');
     }
     setBusy(false);
   };
 
   const toggleSelect = (id: string) => {
     setSelected(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const selectAll = () => {
+    const allSelected = items.every(i => selected[i.id]);
+    if (allSelected) {
+      setSelected({});
+    } else {
+      const next: Record<string, boolean> = {};
+      items.forEach(i => { next[i.id] = true; });
+      setSelected(next);
+    }
   };
 
   const selectedCount = Object.values(selected).filter(Boolean).length;
@@ -146,11 +168,11 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
           <div style={{ display: 'flex', gap: 4, padding: '4px 8px', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
             <button
               className={`tab-btn-sm ${tab === 'library' ? 'active' : ''}`}
-              onClick={() => setTab('library')}
+              onClick={() => { setTab('library'); setItems([]); setSelected({}); setPage(0); }}
             >{t('My Library')}</button>
             <button
               className={`tab-btn-sm ${tab === 'catalog' ? 'active' : ''}`}
-              onClick={() => setTab('catalog')}
+              onClick={() => { setTab('catalog'); setItems([]); setSelected({}); setPage(0); }}
             >{t('Catalog')}</button>
             <div style={{ flex: 1 }} />
             <button className="small-btn" onClick={disconnect} disabled={busy} style={{ fontSize: 10, color: 'var(--error)' }}>
@@ -164,10 +186,10 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder={tab === 'library' ? t('Search your library...') : t('Search Mendeley catalog...')}
-              onKeyDown={e => e.key === 'Enter' && search()}
+              onKeyDown={e => e.key === 'Enter' && search(0)}
               style={{ flex: 1 }}
             />
-            <button className="primary-btn" onClick={search} disabled={busy}>
+            <button className="primary-btn" onClick={() => search(0)} disabled={busy}>
               {busy ? '...' : t('Search')}
             </button>
           </div>
@@ -204,7 +226,10 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
           </div>
 
           {items.length > 0 && (
-            <div style={{ padding: '6px 8px', borderTop: '1px solid var(--border)', display: 'flex', gap: 4 }}>
+            <div style={{ padding: '6px 8px', borderTop: '1px solid var(--border)', display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button className="small-btn" onClick={selectAll} style={{ fontSize: 10 }}>
+                {items.every(i => selected[i.id]) ? t('Deselect All') : t('Select All')}
+              </button>
               <button
                 className="primary-btn"
                 onClick={importSelected}
@@ -213,6 +238,19 @@ export default function MendeleyPanel({ bibTarget, onBibImport }: MendeleyPanelP
               >
                 {t('Import to .bib')} ({selectedCount})
               </button>
+              {tab === 'library' && (
+                <div style={{ display: 'flex', gap: 2, fontSize: 10 }}>
+                  <button className="small-btn" disabled={page === 0 || busy} onClick={() => search(page - 1)}>
+                    &laquo;
+                  </button>
+                  <span style={{ padding: '2px 6px', color: 'var(--text-muted)' }}>
+                    {page * PAGE_SIZE + 1}-{page * PAGE_SIZE + items.length}
+                  </span>
+                  <button className="small-btn" disabled={!hasMore || busy} onClick={() => search(page + 1)}>
+                    &raquo;
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
