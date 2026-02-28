@@ -42,6 +42,7 @@ import {
   synctexForward,
   synctexInverse,
   exportProjectZip,
+  exportProjectDocx,
   getComments,
   saveComments,
   getTrackedChanges,
@@ -65,6 +66,8 @@ import GitPanel from '../components/panels/GitPanel';
 import CommentsPanel from '../components/panels/CommentsPanel';
 import TrackChangesPanel from '../components/panels/TrackChangesPanel';
 import ReferencesPanel from '../components/panels/ReferencesPanel';
+import SymbolPalettePanel from '../components/panels/SymbolPalettePanel';
+import MermaidPanel from '../components/panels/MermaidPanel';
 import SplitDiffView from '../components/SplitDiffView';
 import PdfPreview from '../components/PdfPreview';
 import { useToast } from '../components/Toast';
@@ -144,12 +147,33 @@ const DEFAULT_TASKS = [
 
 const RIGHT_VIEW_OPTIONS = [
   { value: 'pdf', label: 'PDF' },
-  { value: 'toc', label: 'Table of contents' },
-  { value: 'figures', label: 'FIG' },
-  { value: 'diff', label: 'DIFF' },
-  { value: 'log', label: 'LOG' },
-  { value: 'review', label: 'Review report' }
+  { value: 'toc', label: 'TOC' },
+  { value: 'figures', label: 'Figures' },
+  { value: 'diff', label: 'Diff' },
+  { value: 'log', label: 'Logs' },
+  { value: 'review', label: 'Review' },
+  { value: 'mermaid', label: 'Mermaid' }
 ];
+
+const SIDEBAR_TITLES: Record<string, string> = {
+  files: 'File Tree',
+  agent: 'AI Agent',
+  vision: 'Vision',
+  search: 'Paper Search',
+  websearch: 'Web Search',
+  plot: 'Plot Generator',
+  review: 'Review',
+  references: 'References',
+  collab: 'Collaboration',
+  zotero: 'Zotero',
+  mendeley: 'Mendeley',
+  git: 'Git',
+  comments: 'Comments',
+  trackchanges: 'Track Changes',
+  symbols: 'Symbols',
+};
+
+type SidebarTab = keyof typeof SIDEBAR_TITLES;
 
 /* Settings, collab, file, latex, JSON, compile utilities imported from ../utils/ */
 
@@ -189,7 +213,6 @@ export default function EditorPage() {
   const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
   const [translateScopeDropdownOpen, setTranslateScopeDropdownOpen] = useState(false);
   const [translateTargetDropdownOpen, setTranslateTargetDropdownOpen] = useState(false);
-  const [rightViewDropdownOpen, setRightViewDropdownOpen] = useState(false);
   const [mainFileDropdownOpen, setMainFileDropdownOpen] = useState(false);
   const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
 
@@ -223,7 +246,7 @@ export default function EditorPage() {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle');
   const [savePulse, setSavePulse] = useState(false);
   const [status, setStatus] = useState<string>('');
-  const [rightView, setRightView] = useState<'pdf' | 'figures' | 'diff' | 'log' | 'toc' | 'review'>('pdf');
+  const [rightView, setRightView] = useState<'pdf' | 'figures' | 'diff' | 'log' | 'toc' | 'review' | 'mermaid'>('pdf');
   const [selectedFigure, setSelectedFigure] = useState<string>('');
   const [diffFocus, setDiffFocus] = useState<PendingChange | null>(null);
   const [activeSidebar, setActiveSidebar] = useState<'files' | 'agent' | 'vision' | 'search' | 'websearch' | 'plot' | 'review' | 'references' | 'collab' | 'zotero' | 'mendeley' | 'git' | 'comments' | 'trackchanges'>('files');
@@ -3256,7 +3279,12 @@ export default function EditorPage() {
       const onMove = (moveEvent: MouseEvent) => {
         const dx = moveEvent.clientX - startX;
         if (side === 'left') {
-          const nextSidebar = Math.max(minSidebar, sidebar + dx);
+          const raw = sidebar + dx;
+          if (raw < 120) {
+            setSidebarOpen(false);
+            return;
+          }
+          const nextSidebar = Math.max(minSidebar, raw);
           const nextEditor = Math.max(minEditor, editor - dx);
           setColumnSizes({ sidebar: nextSidebar, editor: nextEditor, right });
         } else {
@@ -3307,36 +3335,10 @@ export default function EditorPage() {
       <header className="top-bar" role="banner">
         <div className="brand">
           <div className="brand-title">Manuscripta</div>
-          <div className="brand-sub">{projectName || 'Editor Workspace'}</div>
+          <div className="brand-sub">{projectName || 'Workspace'}</div>
         </div>
         <div className="toolbar" role="toolbar" aria-label={'Main toolbar'}>
           <Link to="/projects" className="btn ghost">{'Projects'}</Link>
-          <button className="btn ghost" onClick={() => setSidebarOpen((prev) => !prev)}>
-            {sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-          </button>
-          <div className="layout-toggle">
-            <button
-              className={`btn ghost layout-btn ${layoutMode === 'editor' ? 'active' : ''}`}
-              onClick={() => setLayoutMode(layoutMode === 'editor' ? 'split' : 'editor')}
-              title={'Editor only'}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/></svg>
-            </button>
-            <button
-              className={`btn ghost layout-btn ${layoutMode === 'split' ? 'active' : ''}`}
-              onClick={() => setLayoutMode('split')}
-              title={'Split view'}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="8" y1="2" x2="8" y2="14"/></svg>
-            </button>
-            <button
-              className={`btn ghost layout-btn ${layoutMode === 'preview' ? 'active' : ''}`}
-              onClick={() => setLayoutMode(layoutMode === 'preview' ? 'split' : 'preview')}
-              title={'Preview only'}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="7" y1="5" x2="11" y2="5"/><line x1="7" y1="8" x2="11" y2="8"/><line x1="7" y1="11" x2="10" y2="11"/></svg>
-            </button>
-          </div>
           <div className="ios-select-wrapper">
             <button className="ios-select-trigger" onClick={(e) => {
               const opening = !mainFileDropdownOpen;
@@ -3356,22 +3358,6 @@ export default function EditorPage() {
             </button>
           </div>
           <button onClick={saveActiveFile} className="btn ghost">{'Save'}</button>
-          <button onClick={compile} className="btn compile-btn" disabled={isCompiling}>
-            {isCompiling && <span className="spinner" />}
-            {isCompiling ? (compilePhase || 'Compiling...') : 'Compile PDF'}
-          </button>
-          <button className="btn ghost" onClick={() => setSettingsOpen(true)}>{'Settings'}</button>
-          <button
-            className="btn ghost dark-mode-toggle"
-            onClick={() => setDarkMode((prev) => !prev)}
-            title={darkMode ? 'Light mode' : 'Dark mode'}
-          >
-            {darkMode ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            )}
-          </button>
         </div>
       </header>
 
@@ -3401,135 +3387,76 @@ export default function EditorPage() {
         ref={gridRef}
         style={{
           '--col-sidebar': sidebarOpen ? `${columnSizes.sidebar}px` : '0px',
-          '--col-sidebar-gap': sidebarOpen ? '10px' : '0px',
           '--col-editor': `${columnSizes.editor}px`,
           '--col-right': `${columnSizes.right}px`,
         } as CSSProperties}
       >
+        {/* Activity Rail */}
+        <nav className="activity-rail">
+          <div className="rail-top">
+            {([
+              { key: 'files', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> },
+              { key: 'collab', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-3-3.87"/><path d="M7 21v-2a4 4 0 0 1 3-3.87"/><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/></svg> },
+              { key: 'agent', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg> },
+              { key: 'vision', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> },
+              { key: 'search', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> },
+              { key: 'references', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg> },
+              { key: 'websearch', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
+              { key: 'plot', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+              { key: 'review', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
+              { key: 'zotero', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
+              { key: 'mendeley', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg> },
+              { key: 'git', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><line x1="1.05" y1="12" x2="7" y2="12"/><line x1="17.01" y1="12" x2="22.96" y2="12"/></svg> },
+              { key: 'comments', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
+              { key: 'trackchanges', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> },
+              { key: 'symbols', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 7V4H6v3"/><path d="M12 4v16"/><path d="M8 20h8"/></svg> },
+            ] as { key: SidebarTab; icon: React.ReactNode }[]).map(({ key, icon }) => (
+              <button
+                key={key}
+                className={`rail-btn ${sidebarOpen && activeSidebar === key ? 'active' : ''}`}
+                title={SIDEBAR_TITLES[key]}
+                onClick={() => {
+                  if (sidebarOpen && activeSidebar === key) {
+                    setSidebarOpen(false);
+                  } else {
+                    setActiveSidebar(key);
+                    setSidebarOpen(true);
+                  }
+                }}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+          <div className="rail-bottom">
+            <button
+              className="rail-btn"
+              title="Settings"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button
+              className="rail-btn"
+              title={darkMode ? 'Light mode' : 'Dark mode'}
+              onClick={() => setDarkMode((prev) => !prev)}
+            >
+              {darkMode ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              )}
+            </button>
+          </div>
+        </nav>
+
         {sidebarOpen && (
           <aside className="panel side-panel" aria-label={'Sidebar'}>
-            <div className="sidebar-tabs">
-              <div className="tab-group">
-                <button
-                  className={`tab-btn ${activeSidebar === 'files' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('files')}
-                  title={'Files'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
-                  <span className="tab-text">{'Files'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'collab' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('collab')}
-                  title={'Collaboration'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-3-3.87"/><path d="M7 21v-2a4 4 0 0 1 3-3.87"/><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/></svg></span>
-                  <span className="tab-text">{'Collaboration'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'agent' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('agent')}
-                  title={'Agent'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg></span>
-                  <span className="tab-text">{'Agent'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'vision' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('vision')}
-                  title={'Vision'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span>
-                  <span className="tab-text">{'Vision'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'search' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('search')}
-                  title={'Paper search'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-                  <span className="tab-text">{'Paper search'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'references' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('references')}
-                  title={'References'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/><path d="M8 15h4"/></svg></span>
-                  <span className="tab-text">{'References'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'websearch' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('websearch')}
-                  title={'Websearch'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-                  <span className="tab-text">{'Websearch'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'plot' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('plot')}
-                  title={'Plot'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-                  <span className="tab-text">{'Plot'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'review' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('review')}
-                  title={'Review'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
-                  <span className="tab-text">{'Review'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'zotero' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('zotero')}
-                  title={'Zotero'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
-                  <span className="tab-text">{'Zotero'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'mendeley' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('mendeley')}
-                  title={'Mendeley'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span>
-                  <span className="tab-text">{'Mendeley'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'git' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('git')}
-                  title={'Git'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><line x1="1.05" y1="12" x2="7" y2="12"/><line x1="17.01" y1="12" x2="22.96" y2="12"/></svg></span>
-                  <span className="tab-text">{'Git'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'comments' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('comments')}
-                  title={'Comments'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-                  <span className="tab-text">{'Comments'}</span>
-                </button>
-                <button
-                  className={`tab-btn ${activeSidebar === 'trackchanges' ? 'active' : ''}`}
-                  onClick={() => setActiveSidebar('trackchanges')}
-                  title={'Track Changes'}
-                >
-                  <span className="tab-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
-                  <span className="tab-text">{'Track Changes'}</span>
-                </button>
-              </div>
-              <button className="icon-btn" onClick={() => setSidebarOpen(false)}>✕</button>
+            <div className="panel-header">
+              <div>{SIDEBAR_TITLES[activeSidebar] || activeSidebar}</div>
             </div>
             {activeSidebar === 'files' ? (
               <>
-                <div className="panel-header">
-                  <div>{'Project Files'}</div>
-                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -4882,6 +4809,8 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                 onRejectAll={handleTrackRejectAll}
                 onJumpTo={handleTrackJumpTo}
               />
+            ) : activeSidebar === 'symbols' ? (
+              <SymbolPalettePanel onInsert={insertAtCursor} />
             ) : null}
           </aside>
         )}
@@ -4894,15 +4823,38 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
         )}
 
         {layoutMode !== 'preview' && <section className="panel editor-panel">
-          <div className="panel-header">{'Editor'}</div>
-          <div className="breadcrumb-bar">
-            <span className="breadcrumb-item">{projectName || 'Project'}</span>
-            {breadcrumbParts.map((part, idx) => (
-              <span key={`${part}-${idx}`} className="breadcrumb-item">{part}</span>
-            ))}
-            {currentHeading && (
-              <span className="breadcrumb-item heading">{currentHeading.title}</span>
-            )}
+          <div className="editor-modebar">
+            <button className="mode-tab active">Source Editor</button>
+            <div className="modebar-spacer" />
+            <div className="layout-toggle">
+              <button
+                className={`btn ghost layout-btn ${layoutMode === 'editor' ? 'active' : ''}`}
+                onClick={() => setLayoutMode(layoutMode === 'editor' ? 'split' : 'editor')}
+                title={'Editor only'}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/></svg>
+              </button>
+              <button
+                className={`btn ghost layout-btn ${layoutMode === 'split' ? 'active' : ''}`}
+                onClick={() => setLayoutMode('split')}
+                title={'Split view'}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="8" y1="2" x2="8" y2="14"/></svg>
+              </button>
+              <button
+                className={`btn ghost layout-btn ${layoutMode === 'preview' ? 'active' : ''}`}
+                onClick={() => setLayoutMode(layoutMode === 'preview' ? 'split' : 'preview')}
+                title={'Preview only'}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="7" y1="5" x2="11" y2="5"/><line x1="7" y1="8" x2="11" y2="8"/><line x1="7" y1="11" x2="10" y2="11"/></svg>
+              </button>
+            </div>
+          </div>
+          <div className="editor-filetab-bar">
+            <span className="file-tab">
+              {activePath ? activePath.split('/').pop() : 'untitled.tex'}
+              {isDirty && <span className="dirty-dot" />}
+            </span>
           </div>
           <div className="editor-toolbar" role="toolbar" aria-label={'Editor toolbar'}>
             <div className="toolbar-group">
@@ -4970,6 +4922,13 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
               )}
             </div>
           </div>
+          <div className="editor-statusline">
+            <div className={`save-indicator ${isSaving ? 'saving' : isDirty ? 'dirty' : 'saved'}`}>
+              <span className="dot" />
+              <span>{isSaving ? 'Saving...' : isDirty ? 'Unsaved' : 'Saved'}</span>
+            </div>
+            <div>{compileEngine} {engineName ? `(${engineName})` : ''}</div>
+          </div>
         </section>}
 
         {layoutMode === 'split' && (
@@ -4980,42 +4939,30 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
         )}
 
         {layoutMode !== 'editor' && <section className="panel pdf-panel">
-          <div className="panel-header">
-            <div>{'Preview'}</div>
-            <div className="header-controls">
-              <div className="ios-select-wrapper">
-                <button
-                  className="ios-select-trigger"
-                  onClick={() => setRightViewDropdownOpen(!rightViewDropdownOpen)}
-                >
-                  <span>{RIGHT_VIEW_OPTIONS.find((item) => item.value === rightView)?.label || 'PDF'}</span>
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={rightViewDropdownOpen ? 'rotate' : ''}>
-                    <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-                {rightViewDropdownOpen && (
-                  <div className="ios-dropdown dropdown-down">
-                    {RIGHT_VIEW_OPTIONS.map((item) => (
-                      <div
-                        key={item.value}
-                        className={`ios-dropdown-item ${rightView === item.value ? 'active' : ''}`}
-                        onClick={() => {
-                          setRightView(item.value as 'pdf' | 'figures' | 'diff' | 'log' | 'toc' | 'review');
-                          setRightViewDropdownOpen(false);
-                        }}
-                      >
-                        {item.label}
-                        {rightView === item.value && (
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M3 8L6.5 11.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+          <div className="compile-header">
+            <button className="recompile-btn" onClick={compile} disabled={isCompiling}>
+              {isCompiling && <span className="spinner" />}
+              {isCompiling ? (compilePhase || 'Compiling...') : 'Recompile'}
+            </button>
+            {pdfUrl && !isCompiling && (
+              <span className="compile-status-icon success">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>
+            )}
+          </div>
+          <div className="right-tabbar">
+            {RIGHT_VIEW_OPTIONS.map((item) => (
+              <button
+                key={item.value}
+                className={`right-tab ${rightView === item.value ? 'active' : ''}`}
+                onClick={() => setRightView(item.value as 'pdf' | 'figures' | 'diff' | 'log' | 'toc' | 'review' | 'mermaid')}
+              >
+                {item.label}
+                {item.value === 'log' && compileLog && (
+                  <span className="error-badge">{compileLog.split('\n').filter(l => l.includes('!')).length || '!'}</span>
                 )}
-              </div>
-            </div>
+              </button>
+            ))}
           </div>
           <div className="right-body">
             <div className="view-content">
@@ -5041,6 +4988,7 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                     <div className="toolbar-group">
                       <button className="btn ghost small" onClick={downloadPdf} disabled={!pdfUrl}>{'Download PDF'}</button>
                       <button className="btn ghost small" onClick={() => projectId && exportProjectZip(projectId)} disabled={!projectId}>{'Export ZIP'}</button>
+                      <button className="btn ghost small" onClick={() => projectId && exportProjectDocx(projectId, mainFile)} disabled={!projectId}>{'Export Word'}</button>
                       <button
                         className={`btn ghost small ${pdfSpread ? 'active' : ''}`}
                         onClick={() => setPdfSpread((prev) => !prev)}
@@ -5280,6 +5228,16 @@ Be thorough. Read ALL .tex files before reporting. Group findings by category. I
                     )}
                   </div>
                 </div>
+              )}
+              {rightView === 'mermaid' && (
+                <MermaidPanel
+                  source={editorValue}
+                  projectId={projectId}
+                  onInsertFigure={(figPath) => {
+                    insertAtCursor(`\\includegraphics[width=0.9\\linewidth]{${figPath}}`, { block: true });
+                    refreshTree();
+                  }}
+                />
               )}
             </div>
           </div>

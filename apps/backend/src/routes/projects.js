@@ -485,4 +485,63 @@ export function registerProjectRoutes(fastify) {
     child.on('close', () => reply.raw.end());
     return reply;
   });
+
+  // Export project as Word (DOCX) via pandoc
+  fastify.get('/api/projects/:id/export-docx', async (req, reply) => {
+    const { id } = req.params;
+    const mainFile = req.query.mainFile || 'main.tex';
+    const projectRoot = await getProjectRoot(id);
+    let projectName = 'project';
+    try {
+      const meta = await readJson(path.join(projectRoot, 'project.json'));
+      projectName = (meta.name || 'project').replace(/[^a-zA-Z0-9_\-. ]/g, '_');
+    } catch { /* use default */ }
+
+    const inputPath = path.join(projectRoot, mainFile);
+    try {
+      await fs.access(inputPath);
+    } catch {
+      return reply.code(404).send({ ok: false, error: `File not found: ${mainFile}` });
+    }
+
+    // Check pandoc availability
+    try {
+      await new Promise((resolve, reject) => {
+        const check = spawn('pandoc', ['--version']);
+        check.on('close', (code) => code === 0 ? resolve(null) : reject(new Error('pandoc not found')));
+        check.on('error', reject);
+      });
+    } catch {
+      return reply.code(500).send({ ok: false, error: 'pandoc is not installed on the server. Please install pandoc to enable Word export.' });
+    }
+
+    const outputPath = path.join(projectRoot, '.compile', `${projectName}.docx`);
+    await ensureDir(path.join(projectRoot, '.compile'));
+
+    try {
+      await new Promise((resolve, reject) => {
+        const child = spawn('pandoc', [
+          inputPath,
+          '-o', outputPath,
+          '--from=latex',
+          '--to=docx',
+          `--resource-path=${projectRoot}`,
+        ], { cwd: projectRoot });
+        let stderr = '';
+        child.stderr.on('data', (d) => { stderr += d.toString(); });
+        child.on('close', (code) => code === 0 ? resolve(null) : reject(new Error(stderr || 'pandoc failed')));
+        child.on('error', reject);
+      });
+    } catch (err) {
+      return reply.code(500).send({ ok: false, error: `Pandoc conversion failed: ${err.message}` });
+    }
+
+    const stream = createReadStream(outputPath);
+    reply.raw.writeHead(200, {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Disposition': `attachment; filename="${projectName}.docx"`,
+    });
+    stream.pipe(reply.raw);
+    return reply;
+  });
 }

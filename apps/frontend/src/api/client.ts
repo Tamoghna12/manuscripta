@@ -411,6 +411,24 @@ export async function exportProjectZip(projectId: string) {
   URL.revokeObjectURL(url);
 }
 
+export async function exportProjectDocx(projectId: string, mainFile?: string) {
+  const qs = mainFile ? `?mainFile=${encodeURIComponent(mainFile)}` : '';
+  const res = await fetch(`${API_BASE}/api/projects/${projectId}/export-docx${qs}`, {
+    headers: { ...getAuthHeader() },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="(.+?)"/);
+  const filename = match ? match[1] : `${projectId}.docx`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function listTemplates() {
   return request<{ templates: TemplateMeta[]; categories?: TemplateCategory[] }>('/api/templates');
 }
